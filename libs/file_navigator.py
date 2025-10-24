@@ -99,7 +99,7 @@ class SongBox:
                 placeholders = ','.join('?' * len(hash_values))
 
                 batch_query = f"""
-                    SELECT hash, score, good, ok, bad, clear
+                    SELECT hash, score, good, ok, bad, drumroll, clear
                     FROM Scores
                     WHERE hash IN ({placeholders})
                 """
@@ -206,11 +206,11 @@ class SongBox:
         if valid_scores:
             highest_key = max(valid_scores.keys())
             score = self.scores[highest_key]
-            if score and ((score[4] == 2 and score[2] == 0) or (score[2] == 0 and score[3] == 0)):
+            if score and ((score[5] == 2 and score[2] == 0) or (score[2] == 0 and score[3] == 0)):
                 tex.draw_texture('yellow_box', 'crown_dfc', x=x, y=y, frame=min(4, highest_key))
-            elif score and ((score[4] == 2) or (score[3] == 0)):
+            elif score and ((score[5] == 2) or (score[3] == 0)):
                 tex.draw_texture('yellow_box', 'crown_fc', x=x, y=y, frame=min(4, highest_key))
-            elif score and score[4] >= 1:
+            elif score and score[5] >= 1:
                 tex.draw_texture('yellow_box', 'crown_clear', x=x, y=y, frame=min(4, highest_key))
         if self.crown: #Folder lamp
             highest_crown = max(self.crown)
@@ -551,6 +551,7 @@ class ScoreHistory:
             current_ms (int): The current time in milliseconds.
         """
         self.scores = {k: v for k, v in scores.items() if v is not None}
+        print(self.scores)
         self.difficulty_keys = list(self.scores.keys())
         self.curr_difficulty_index = 0
         self.curr_difficulty_index = (self.curr_difficulty_index + 1) % len(self.difficulty_keys)
@@ -558,6 +559,7 @@ class ScoreHistory:
         self.curr_score = self.scores[self.curr_difficulty][0]
         self.curr_score_su = self.scores[self.curr_difficulty][0]
         self.last_ms = current_ms
+        self.long = True
 
     def update(self, current_ms):
         if current_ms >= self.last_ms + 1000:
@@ -567,7 +569,40 @@ class ScoreHistory:
             self.curr_score = self.scores[self.curr_difficulty][0]
             self.curr_score_su = self.scores[self.curr_difficulty][0]
 
+    def draw_long(self):
+        tex.draw_texture('leaderboard','background_2')
+        tex.draw_texture('leaderboard','title', index=self.long)
+        if self.curr_difficulty == 4:
+            tex.draw_texture('leaderboard', 'shinuchi_ura', index=self.long)
+        else:
+            tex.draw_texture('leaderboard', 'shinuchi', index=self.long)
+
+        tex.draw_texture('leaderboard', 'pts', color=ray.WHITE, index=self.long)
+        tex.draw_texture('leaderboard', 'difficulty', frame=self.curr_difficulty, index=self.long)
+
+        for i in range(4):
+            tex.draw_texture('leaderboard', 'normal', index=self.long, y=50+(i*50))
+
+        tex.draw_texture('leaderboard', 'judge_good')
+        tex.draw_texture('leaderboard', 'judge_ok')
+        tex.draw_texture('leaderboard', 'judge_bad')
+        tex.draw_texture('leaderboard', 'judge_drumroll')
+
+        for j, counter in enumerate(self.scores[self.curr_difficulty]):
+            if j == 5:
+                continue
+            counter = str(counter)
+            margin = 24
+            for i in range(len(counter)):
+                if j == 0:
+                    tex.draw_texture('leaderboard', 'counter', frame=int(counter[i]), x=-((len(counter) * 14) // 2) + (i * 14), color=ray.WHITE, index=self.long)
+                else:
+                    tex.draw_texture('leaderboard', 'judge_num', frame=int(counter[i]), x=-(len(counter) - i) * margin, y=j*50)
+
     def draw(self):
+        if self.long:
+            self.draw_long()
+            return
         tex.draw_texture('leaderboard','background')
         tex.draw_texture('leaderboard','title')
 
@@ -1085,11 +1120,11 @@ class FileNavigator:
                     all_scores[diff].append(song_obj.box.scores[diff])
 
         for diff in all_scores:
-            if all(score is not None and ((score[4] == 2 and score[2] == 0) or (score[2] == 0 and score[3] == 0)) for score in all_scores[diff]):
+            if all(score is not None and ((score[5] == 2 and score[2] == 0) or (score[2] == 0 and score[3] == 0)) for score in all_scores[diff]):
                 crowns[diff] = 'DFC'
-            elif all(score is not None and ((score[4] == 2) or (score[3] == 0)) for score in all_scores[diff]):
+            elif all(score is not None and ((score[5] == 2) or (score[3] == 0)) for score in all_scores[diff]):
                 crowns[diff] = 'FC'
-            elif all(score is not None and score[4] >= 1 for score in all_scores[diff]):
+            elif all(score is not None and score[5] >= 1 for score in all_scores[diff]):
                 crowns[diff] = 'CLEAR'
 
         self.directory_crowns[dir_key] = crowns

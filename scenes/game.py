@@ -59,9 +59,13 @@ class GameScreen:
         if global_data.hit_sound == 0:
             audio.load_sound(sounds_dir / "hit_sounds" / str(global_data.hit_sound[0]) / "don.wav", 'hitsound_don_1p')
             audio.load_sound(sounds_dir / "hit_sounds" / str(global_data.hit_sound[0]) / "ka.wav", 'hitsound_kat_1p')
+            audio.load_sound(sounds_dir / "hit_sounds" / str(global_data.hit_sound[1]) / "don.wav", 'hitsound_don_2p')
+            audio.load_sound(sounds_dir / "hit_sounds" / str(global_data.hit_sound[1]) / "ka.wav", 'hitsound_kat_2p')
         else:
             audio.load_sound(sounds_dir / "hit_sounds" / str(global_data.hit_sound[0]) / "don.ogg", 'hitsound_don_1p')
             audio.load_sound(sounds_dir / "hit_sounds" / str(global_data.hit_sound[0]) / "ka.ogg", 'hitsound_kat_1p')
+            audio.load_sound(sounds_dir / "hit_sounds" / str(global_data.hit_sound[1]) / "don.ogg", 'hitsound_don_2p')
+            audio.load_sound(sounds_dir / "hit_sounds" / str(global_data.hit_sound[1]) / "ka.ogg", 'hitsound_kat_2p')
 
     def init_tja(self, song: Path):
         """Initialize the TJA file"""
