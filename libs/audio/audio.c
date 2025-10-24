@@ -268,11 +268,11 @@ void list_host_apis(void)
 {
     PaHostApiIndex hostApiCount = Pa_GetHostApiCount();
     if (hostApiCount < 0) {
-        TRACELOG(LOG_WARNING, "AUDIO: Failed to get host API count: %s", Pa_GetErrorText(hostApiCount));
+        TRACELOG(LOG_WARNING, "Failed to get host API count: %s", Pa_GetErrorText(hostApiCount));
         return;
     }
 
-    TRACELOG(LOG_INFO, "AUDIO: Available host APIs:");
+    TRACELOG(LOG_INFO, "Available host APIs:");
     for (PaHostApiIndex i = 0; i < hostApiCount; i++) {
         const PaHostApiInfo *info = Pa_GetHostApiInfo(i);
         if (info) {
@@ -309,19 +309,19 @@ void init_audio_device(PaHostApiIndex host_api, double sample_rate, unsigned lon
 {
     PaError err = Pa_Initialize();
     if (err != paNoError) {
-        TRACELOG(LOG_WARNING, "AUDIO: Failed to initialize PortAudio: %s", Pa_GetErrorText(err));
+        TRACELOG(LOG_WARNING, "Failed to initialize PortAudio: %s", Pa_GetErrorText(err));
         return;
     }
 
     if (pthread_mutex_init(&AUDIO.System.lock, NULL) != 0) {
-        TRACELOG(LOG_WARNING, "AUDIO: Failed to create mutex for mixing");
+        TRACELOG(LOG_WARNING, "Failed to create mutex for mixing");
         Pa_Terminate();
         return;
     }
 
     AUDIO.System.outputParameters.device = get_best_output_device_for_host_api(host_api);
     if (AUDIO.System.outputParameters.device == paNoDevice) {
-        TRACELOG(LOG_WARNING, "AUDIO: No usable output device found");
+        TRACELOG(LOG_WARNING, "No usable output device found");
         pthread_mutex_destroy(&AUDIO.System.lock);
         Pa_Terminate();
         return;
@@ -343,7 +343,7 @@ void init_audio_device(PaHostApiIndex host_api, double sample_rate, unsigned lon
                                                           &minSize, &maxSize, &preferredSize, &granularity);
 
         if (asioErr == paNoError) {
-            TRACELOG(LOG_INFO, "AUDIO: ASIO buffer size constraints:");
+            TRACELOG(LOG_INFO, "ASIO buffer size constraints:");
             TRACELOG(LOG_INFO, "    > Minimum:       %ld samples", minSize);
             TRACELOG(LOG_INFO, "    > Maximum:       %ld samples", maxSize);
             TRACELOG(LOG_INFO, "    > Preferred:     %ld samples", preferredSize);
@@ -357,16 +357,16 @@ void init_audio_device(PaHostApiIndex host_api, double sample_rate, unsigned lon
 
             // Warn if requested buffer size is out of range
             if (buffer_size > 0 && buffer_size < minSize) {
-                TRACELOG(LOG_WARNING, "AUDIO: Requested buffer size (%lu) is below ASIO minimum (%ld)", buffer_size, minSize);
-                TRACELOG(LOG_WARNING, "AUDIO: Driver will use %ld samples instead", minSize);
+                TRACELOG(LOG_WARNING, "Requested buffer size (%lu) is below ASIO minimum (%ld)", buffer_size, minSize);
+                TRACELOG(LOG_WARNING, "Driver will use %ld samples instead", minSize);
             } else if (buffer_size > maxSize) {
-                TRACELOG(LOG_WARNING, "AUDIO: Requested buffer size (%lu) exceeds ASIO maximum (%ld)", buffer_size, maxSize);
-                TRACELOG(LOG_WARNING, "AUDIO: Driver will use %ld samples instead", maxSize);
+                TRACELOG(LOG_WARNING, "Requested buffer size (%lu) exceeds ASIO maximum (%ld)", buffer_size, maxSize);
+                TRACELOG(LOG_WARNING, "Driver will use %ld samples instead", maxSize);
             } else if (buffer_size == 0) {
-                TRACELOG(LOG_INFO, "AUDIO: Buffer size not specified, driver will choose (likely %ld samples)", preferredSize);
+                TRACELOG(LOG_INFO, "Buffer size not specified, driver will choose (likely %ld samples)", preferredSize);
             }
         } else {
-            TRACELOG(LOG_WARNING, "AUDIO: Failed to query ASIO buffer sizes: %s", Pa_GetErrorText(asioErr));
+            TRACELOG(LOG_WARNING, "Failed to query ASIO buffer sizes: %s", Pa_GetErrorText(asioErr));
         }
     }
 #endif
@@ -381,7 +381,7 @@ void init_audio_device(PaHostApiIndex host_api, double sample_rate, unsigned lon
                         NULL);                             // User data
 
     if (err != paNoError) {
-        TRACELOG(LOG_WARNING, "AUDIO: Failed to open audio stream: %s", Pa_GetErrorText(err));
+        TRACELOG(LOG_WARNING, "Failed to open audio stream: %s", Pa_GetErrorText(err));
         pthread_mutex_destroy(&AUDIO.System.lock);
         Pa_Terminate();
         return;
@@ -389,7 +389,7 @@ void init_audio_device(PaHostApiIndex host_api, double sample_rate, unsigned lon
 
     err = Pa_StartStream(AUDIO.System.stream);
     if (err != paNoError) {
-        TRACELOG(LOG_WARNING, "AUDIO: Failed to start audio stream: %s", Pa_GetErrorText(err));
+        TRACELOG(LOG_WARNING, "Failed to start audio stream: %s", Pa_GetErrorText(err));
         Pa_CloseStream(AUDIO.System.stream);
         pthread_mutex_destroy(&AUDIO.System.lock);
         Pa_Terminate();
@@ -398,7 +398,7 @@ void init_audio_device(PaHostApiIndex host_api, double sample_rate, unsigned lon
 
     AUDIO.System.isReady = true;
 
-    TRACELOG(LOG_INFO, "AUDIO: Device initialized successfully");
+    TRACELOG(LOG_INFO, "Device initialized successfully");
     TRACELOG(LOG_INFO, "    > Backend:       PortAudio | %s", hostApiInfo->name);
     TRACELOG(LOG_INFO, "    > Device:        %s", deviceInfo->name);
     TRACELOG(LOG_INFO, "    > Format:        %s", "Float32");
@@ -423,12 +423,12 @@ void close_audio_device(void)
     if (AUDIO.System.isReady) {
         PaError err = Pa_StopStream(AUDIO.System.stream);
         if (err != paNoError) {
-            TRACELOG(LOG_WARNING, "AUDIO: Error stopping stream: %s", Pa_GetErrorText(err));
+            TRACELOG(LOG_WARNING, "Error stopping stream: %s", Pa_GetErrorText(err));
         }
 
         err = Pa_CloseStream(AUDIO.System.stream);
         if (err != paNoError) {
-            TRACELOG(LOG_WARNING, "AUDIO: Error closing stream: %s", Pa_GetErrorText(err));
+            TRACELOG(LOG_WARNING, "Error closing stream: %s", Pa_GetErrorText(err));
         }
 
         pthread_mutex_destroy(&AUDIO.System.lock);
@@ -439,10 +439,10 @@ void close_audio_device(void)
         AUDIO.System.pcmBuffer = NULL;
         AUDIO.System.pcmBufferSize = 0;
 
-        TRACELOG(LOG_INFO, "AUDIO: Device closed successfully");
+        TRACELOG(LOG_INFO, "Device closed successfully");
     }
     else {
-        TRACELOG(LOG_WARNING, "AUDIO: Device could not be closed, not currently initialized");
+        TRACELOG(LOG_WARNING, "Device could not be closed, not currently initialized");
     }
 }
 
@@ -471,13 +471,13 @@ struct audio_buffer *load_audio_buffer(uint32_t channels, uint32_t size_in_frame
     struct audio_buffer *buffer = (struct audio_buffer*)calloc(1, sizeof(struct audio_buffer));
 
     if (buffer == NULL) {
-        TRACELOG(LOG_WARNING, "AUDIO: Failed to allocate memory for buffer");
+        TRACELOG(LOG_WARNING, "Failed to allocate memory for buffer");
         return NULL;
     }
 
     buffer->data = calloc(size_in_frames*channels*sizeof(float), 1);
     if (buffer->data == NULL) {
-        TRACELOG(LOG_WARNING, "AUDIO: Failed to allocate memory for buffer data");
+        TRACELOG(LOG_WARNING, "Failed to allocate memory for buffer data");
         FREE(buffer);
         return NULL;
     }
@@ -631,7 +631,7 @@ wave load_wave(const char* filename) {
 
     snd_file = sf_open(filename, SFM_READ, &sf_info);
     if (snd_file == NULL) {
-        TRACELOG(LOG_ERROR, "AUDIO: Failed to open file '%s'\n", filename);
+        TRACELOG(LOG_ERROR, "Failed to open file '%s'\n", filename);
         return wave;
     }
     wave.frameCount = (unsigned int)sf_info.frames;
@@ -642,7 +642,7 @@ wave load_wave(const char* filename) {
     size_t total_samples = sf_info.frames * sf_info.channels;
     wave.data = malloc(total_samples * sizeof(float));
     if (wave.data == NULL) {
-        TRACELOG(LOG_ERROR, "AUDIO: Failed to allocate memory for wave data");
+        TRACELOG(LOG_ERROR, "Failed to allocate memory for wave data");
         sf_close(snd_file);
         return wave;
     }
@@ -674,7 +674,7 @@ sound load_sound_from_wave(wave wave) {
     bool is_resampled = false;
 
     if (wave.sampleRate != AUDIO.System.sampleRate) {
-        TRACELOG(LOG_INFO, "AUDIO: Resampling wave from %d Hz to %f Hz", wave.sampleRate, AUDIO.System.sampleRate);
+        TRACELOG(LOG_INFO, "Resampling wave from %d Hz to %f Hz", wave.sampleRate, AUDIO.System.sampleRate);
 
         SRC_DATA src_data;
         src_data.data_in = wave.data;
@@ -684,14 +684,14 @@ sound load_sound_from_wave(wave wave) {
 
         resampled_wave.data = calloc(src_data.output_frames * wave.channels, sizeof(float));
         if (resampled_wave.data == NULL) {
-            TRACELOG(LOG_WARNING, "AUDIO: Failed to allocate memory for resampling");
+            TRACELOG(LOG_WARNING, "Failed to allocate memory for resampling");
             return sound;
         }
         src_data.data_out = resampled_wave.data;
 
         int error = src_simple(&src_data, SRC_SINC_BEST_QUALITY, wave.channels);
         if (error) {
-            TRACELOG(LOG_WARNING, "AUDIO: Resampling failed: %s", src_strerror(error));
+            TRACELOG(LOG_WARNING, "Resampling failed: %s", src_strerror(error));
             FREE(resampled_wave.data);
             return sound;
         }
@@ -887,18 +887,18 @@ music load_music_stream(const char* filename) {
     if (snd_file != NULL) {
         music_ctx *ctx = calloc(1, sizeof(music_ctx));
         if (ctx == NULL) {
-            TRACELOG(LOG_WARNING, "AUDIO: Failed to allocate memory for music context");
+            TRACELOG(LOG_WARNING, "Failed to allocate memory for music context");
             sf_close(snd_file);
             return music;
         }
         ctx->snd_file = snd_file;
 
         if (sf_info.samplerate != AUDIO.System.sampleRate) {
-            TRACELOG(LOG_INFO, "AUDIO: Resampling music from %d Hz to %f Hz", sf_info.samplerate, AUDIO.System.sampleRate);
+            TRACELOG(LOG_INFO, "Resampling music from %d Hz to %f Hz", sf_info.samplerate, AUDIO.System.sampleRate);
             int error;
             ctx->resampler = src_new(SRC_SINC_FASTEST, sf_info.channels, &error);
             if (ctx->resampler == NULL) {
-                TRACELOG(LOG_WARNING, "AUDIO: Failed to create resampler: %s", src_strerror(error));
+                TRACELOG(LOG_WARNING, "Failed to create resampler: %s", src_strerror(error));
                 free(ctx);
                 sf_close(snd_file);
                 return music;
@@ -1029,7 +1029,7 @@ void update_music_stream(music music) {
 
                 int error = src_process(ctx->resampler, &src_data);
                 if (error) {
-                    TRACELOG(LOG_WARNING, "AUDIO: Resampling failed: %s", src_strerror(error));
+                    TRACELOG(LOG_WARNING, "Resampling failed: %s", src_strerror(error));
                 }
                 frames_written = src_data.output_frames_gen;
             } else {
