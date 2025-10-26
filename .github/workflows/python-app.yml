@@ -171,6 +171,7 @@ jobs:
               libflac-dev \
               libvorbis-dev \
               libogg-dev \
+              libpulse-dev \
               ccache
 
       - name: Build static audio library (Unix)
