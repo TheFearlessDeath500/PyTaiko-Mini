@@ -18,7 +18,8 @@ class Background:
         "ANIMAL": libs.bg_collabs.animal.Background,
         "BUTTOBURST": libs.bg_collabs.buttoburst.Background,
         "OSHIRI": libs.bg_collabs.oshiri.Background,
-        "IMAS": libs.bg_collabs.imas.Background
+        "IMAS": libs.bg_collabs.imas.Background,
+        "DAN": libs.bg_collabs.dan.Background
     }
     def __init__(self, player_num: int, bpm: float, scene_preset: str = ''):
         """
@@ -91,13 +92,15 @@ class Background:
             player_num (int): The player number.
             bad (bool): Whether the chibi is bad.
         """
-        self.chibi.add_chibi(player_num, bad)
+        if self.chibi is not None:
+            self.chibi.add_chibi(player_num, bad)
 
     def add_renda(self):
         """
         Add a renda to the background.
         """
-        self.renda.add_renda()
+        if self.renda is not None:
+            self.renda.add_renda()
 
     def update(self, current_time_ms: float, bpm: float, gauge_1p, gauge_2p = None):
         """
@@ -135,32 +138,39 @@ class Background:
             self.fever.update(current_time_ms, bpm)
         if self.dancer is not None:
             self.dancer.update(current_time_ms, bpm)
-        self.renda.update(current_time_ms)
-        self.chibi.update(current_time_ms, bpm)
+        if self.renda is not None:
+            self.renda.update(current_time_ms)
+        if self.chibi is not None:
+            self.chibi.update(current_time_ms, bpm)
 
     def draw(self):
         """
         Draw the background.
         """
         if self.bg_normal is not None:
-            if self.is_clear and not self.bg_fever.transitioned:
-                self.bg_normal.draw(self.tex_wrapper)
-                self.bg_fever.draw(self.tex_wrapper)
-            elif self.is_clear:
-                self.bg_fever.draw(self.tex_wrapper)
+            if self.bg_fever is not None:
+                if self.is_clear and not self.bg_fever.transitioned:
+                    self.bg_normal.draw(self.tex_wrapper)
+                    self.bg_fever.draw(self.tex_wrapper)
+                elif self.is_clear:
+                    self.bg_fever.draw(self.tex_wrapper)
+                else:
+                    self.bg_normal.draw(self.tex_wrapper)
             else:
                 self.bg_normal.draw(self.tex_wrapper)
         self.don_bg.draw(self.tex_wrapper)
         if self.don_bg_2 is not None:
             self.don_bg_2.draw(self.tex_wrapper, y=536)
-        self.renda.draw()
+        if self.renda is not None:
+            self.renda.draw()
         if self.dancer is not None:
             self.dancer.draw(self.tex_wrapper)
         if self.footer is not None:
             self.footer.draw(self.tex_wrapper)
         if self.is_rainbow and self.fever is not None:
             self.fever.draw(self.tex_wrapper)
-        self.chibi.draw()
+        if self.chibi is not None:
+            self.chibi.draw()
 
     def unload(self):
         """

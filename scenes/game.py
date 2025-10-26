@@ -1779,9 +1779,9 @@ class GogoTime:
     """Displays the Gogo Time fire and fireworks"""
     def __init__(self, is_2p: bool):
         self.is_2p = is_2p
-        self.explosion_anim = tex.get_animation(23)
-        self.fire_resize = tex.get_animation(24)
-        self.fire_change = tex.get_animation(25)
+        self.explosion_anim = tex.get_animation(23, is_copy=True)
+        self.fire_resize = tex.get_animation(24, is_copy=True)
+        self.fire_change = tex.get_animation(25, is_copy=True)
 
         self.explosion_anim.start()
         self.fire_resize.start()

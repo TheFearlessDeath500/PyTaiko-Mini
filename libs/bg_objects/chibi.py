@@ -85,7 +85,7 @@ class Chibi0(BaseChibi):
 class Chibi2(BaseChibi):
     def __init__(self, index: int, bpm: float, tex: TextureWrapper, is_2p: bool):
         super().__init__(index, bpm, tex, is_2p)
-        self.rotate = Animation.create_move(60000 / self.bpm / 2, total_distance=360, reverse_delay=0)
+        self.rotate = Animation.create_move(60000 / self.bpm, total_distance=360)
         self.rotate.start()
 
     def update(self, current_time_ms: float):
