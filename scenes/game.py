@@ -552,7 +552,7 @@ class Player:
             self.current_notes_draw[0].color += 1
 
         note = self.current_notes_draw[0]
-        if note.type in {5, 6, 7} and len(self.current_notes_draw) > 1:
+        if note.type in {5, 6, 7, 9} and len(self.current_notes_draw) > 1:
             note = self.current_notes_draw[1]
         position = self.get_position_x(SCREEN_WIDTH, current_ms, note.hit_ms, note.pixels_per_frame_x)
         if position < GameScreen.JUDGE_X + 650:
@@ -733,7 +733,7 @@ class Player:
     def drumroll_counter_manager(self, current_time: float):
         """Manages drumroll counter behavior"""
         if self.is_drumroll and self.curr_drumroll_count > 0 and self.drumroll_counter is None:
-            self.drumroll_counter = DrumrollCounter(current_time, self.is_2p)
+            self.drumroll_counter = DrumrollCounter(self.is_2p)
 
         if self.drumroll_counter is not None:
             if self.drumroll_counter.is_finished and not self.is_drumroll:
@@ -984,7 +984,7 @@ class Player:
             current_eighth = int((current_ms - start_ms) // eighth_in_ms)
 
         for note in reversed(self.current_notes_draw):
-            if self.is_balloon and note == self.current_notes_draw[0]:
+            if self.balloon_anim is not None and note == self.current_notes_draw[0]:
                 continue
             if note.type == 8:
                 continue
@@ -1412,30 +1412,26 @@ class NoteArc:
 
 class DrumrollCounter:
     """Displays a drumroll counter, stays alive until is_drumroll is false"""
-    def __init__(self, current_ms: float, is_2p: bool):
+    def __init__(self, is_2p: bool):
         self.is_2p = is_2p
-        self.create_ms = current_ms
         self.is_finished = False
-        self.total_duration = 1349
         self.drumroll_count = 0
         self.fade_animation = tex.get_animation(8)
         self.fade_animation.start()
         self.stretch_animation = tex.get_animation(9)
 
-    def update_count(self, count: int, elapsed_time: float):
-        self.total_duration = elapsed_time + 1349
-        self.fade_animation.delay = self.total_duration - 166
+    def update_count(self, count: int):
         if self.drumroll_count != count:
             self.drumroll_count = count
             self.stretch_animation.start()
+            self.fade_animation.start()
 
     def update(self, current_ms: float, drumroll_count: int):
         self.stretch_animation.update(current_ms)
         self.fade_animation.update(current_ms)
 
-        elapsed_time = current_ms - self.create_ms
         if drumroll_count != 0:
-            self.update_count(drumroll_count, elapsed_time)
+            self.update_count(drumroll_count)
         if self.fade_animation.is_finished:
             self.is_finished = True
 
