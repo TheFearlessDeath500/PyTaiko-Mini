@@ -141,7 +141,6 @@ def build_song_hashes(output_dir=Path("cache")):
             continue
 
         if all_notes == NoteList():
-            print(tja_path)
             continue
 
         hash_val = tja.hash_note_data(all_notes)

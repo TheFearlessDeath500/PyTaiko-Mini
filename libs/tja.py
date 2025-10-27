@@ -808,12 +808,23 @@ class TJAParser:
                             note = Balloon(note)
                         note.count = 1 if not balloon else balloon.pop(0)
                     elif item == '8':
-                        new_pixels_per_ms = curr_note_list[-1].pixels_per_frame_x / (1000 / 60)
+                        if not curr_note_list or curr_note_list[-1].type not in {5, 6, 7, 9}:
+                            if master_notes.play_notes and master_notes.play_notes[-1].type in {5, 6, 7, 9}:
+                                prev_note = master_notes.play_notes[-1]
+                            elif branch_m[-1].play_notes and branch_m[-1].play_notes[-1].type in {5, 6, 7, 9}:
+                                prev_note = branch_m[-1].play_notes[-1]
+                            elif branch_e[-1].play_notes and branch_e[-1].play_notes[-1].type in {5, 6, 7, 9}:
+                                prev_note = branch_e[-1].play_notes[-1]
+                            elif branch_n[-1].play_notes and branch_n[-1].play_notes[-1].type in {5, 6, 7, 9}:
+                                prev_note = branch_n[-1].play_notes[-1]
+                        else:
+                            prev_note = curr_note_list[-1]
+                        new_pixels_per_ms = prev_note.pixels_per_frame_x / (1000 / 60)
                         if new_pixels_per_ms == 0:
                             note.load_ms = note.hit_ms
                         else:
                             note.load_ms = note.hit_ms - (self.distance / new_pixels_per_ms)
-                        note.pixels_per_frame_x = curr_note_list[-1].pixels_per_frame_x
+                        note.pixels_per_frame_x = prev_note.pixels_per_frame_x
                     self.current_ms += increment
                     curr_note_list.append(note)
                     bisect.insort(curr_draw_list, note, key=lambda x: x.load_ms)
