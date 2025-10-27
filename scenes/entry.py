@@ -1,9 +1,12 @@
+import logging
+from typing import Optional
 import pyray as ray
 
 from libs.audio import audio
 from libs.chara_2d import Chara2D
 from libs.global_objects import AllNetIcon, CoinOverlay, Nameplate, Indicator, EntryOverlay, Timer
 from libs.texture import tex
+from libs.screen import Screen
 from libs.utils import (
     OutlinedText,
     get_current_ms,
@@ -14,53 +17,45 @@ from libs.utils import (
     is_r_kat_pressed,
 )
 
+logger = logging.getLogger(__name__)
 
 class State:
     """State enum for the entry screen"""
     SELECT_SIDE = 0
     SELECT_MODE = 1
 
-class EntryScreen:
-    def __init__(self):
-        self.screen_init = False
-
+class EntryScreen(Screen):
     def on_screen_start(self):
-        if not self.screen_init:
-            tex.load_screen_textures('entry')
-            audio.load_screen_sounds('entry')
-            self.side = 1
-            self.is_2p = False
-            self.box_manager = BoxManager()
-            self.state = State.SELECT_SIDE
+        super().on_screen_start()
+        self.side = 1
+        self.is_2p = False
+        self.box_manager = BoxManager()
+        self.state = State.SELECT_SIDE
 
-            # Initial nameplate for side selection
-            plate_info = global_data.config['nameplate_1p']
-            self.nameplate = Nameplate(plate_info['name'], plate_info['title'], -1, -1, False)
+        # Initial nameplate for side selection
+        plate_info = global_data.config['nameplate_1p']
+        self.nameplate = Nameplate(plate_info['name'], plate_info['title'], -1, -1, False)
 
-            self.coin_overlay = CoinOverlay()
-            self.allnet_indicator = AllNetIcon()
-            self.entry_overlay = EntryOverlay()
-            self.timer = Timer(60, get_current_ms(), self.box_manager.select_box)
-            self.screen_init = True
-            self.side_select_fade = tex.get_animation(0)
-            self.bg_flicker = tex.get_animation(1)
-            self.side_select_fade.start()
-            self.chara = Chara2D(0, 100)
-            self.announce_played = False
-            self.players = [None, None]
-            audio.play_sound('bgm', 'music')
+        self.coin_overlay = CoinOverlay()
+        self.allnet_indicator = AllNetIcon()
+        self.entry_overlay = EntryOverlay()
+        self.timer = Timer(60, get_current_ms(), self.box_manager.select_box)
+        self.screen_init = True
+        self.side_select_fade = tex.get_animation(0)
+        self.bg_flicker = tex.get_animation(1)
+        self.side_select_fade.start()
+        self.chara = Chara2D(0, 100)
+        self.announce_played = False
+        self.players: list[Optional[EntryPlayer]] = [None, None]
+        audio.play_sound('bgm', 'music')
 
     def on_screen_end(self, next_screen: str):
-        self.screen_init = False
         audio.stop_sound('bgm')
         self.nameplate.unload()
         for player in self.players:
             if player:
                 player.unload()
-        tex.unload_textures()
-        audio.unload_all_sounds()
-        audio.unload_all_music()
-        return next_screen
+        return super().on_screen_end(next_screen)
 
     def handle_input(self):
         if self.state == State.SELECT_SIDE:
@@ -118,7 +113,7 @@ class EntryScreen:
                 self.side = 1
 
     def update(self):
-        self.on_screen_start()
+        super().update()
         current_time = get_current_ms()
         self.side_select_fade.update(current_time)
         self.bg_flicker.update(current_time)
@@ -130,6 +125,7 @@ class EntryScreen:
             if player:
                 player.update(current_time)
         if self.box_manager.is_finished():
+            logger.info(f"Box selection finished, transitioning to {self.box_manager.selected_box()}")
             return self.on_screen_end(self.box_manager.selected_box())
         for player in self.players:
             if player and player.cloud_fade.is_finished and not audio.is_sound_playing(f'entry_start_{global_data.player_num}p') and not self.announce_played:

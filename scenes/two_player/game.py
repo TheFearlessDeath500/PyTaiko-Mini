@@ -1,3 +1,4 @@
+import logging
 import copy
 from pathlib import Path
 from libs.tja import TJAParser
@@ -8,15 +9,16 @@ from libs.video import VideoPlayer
 import pyray as ray
 from scenes.game import ClearAnimation, FCAnimation, FailAnimation, GameScreen, Player, Background, SCREEN_WIDTH, ResultTransition
 
+logger = logging.getLogger(__name__)
+
 class TwoPlayerGameScreen(GameScreen):
     def on_screen_start(self):
-        if not self.screen_init:
-            super().on_screen_start()
-            scene_preset = self.tja.metadata.scene_preset
-            if self.background is not None:
-                self.background.unload()
-            self.background = Background(3, self.bpm, scene_preset=scene_preset)
-            self.result_transition = ResultTransition(3)
+        super().on_screen_start()
+        scene_preset = self.tja.metadata.scene_preset
+        if self.background is not None:
+            self.background.unload()
+        self.background = Background(3, self.bpm, scene_preset=scene_preset)
+        self.result_transition = ResultTransition(3)
 
     def load_hitsounds(self):
         """Load the hit sounds"""
@@ -26,12 +28,15 @@ class TwoPlayerGameScreen(GameScreen):
         if global_data.hit_sound[0] == -1:
             audio.load_sound(Path('none.wav'), 'hitsound_don_1p')
             audio.load_sound(Path('none.wav'), 'hitsound_kat_1p')
+            logger.info("Loaded default (none) hit sounds for 1P")
         elif global_data.hit_sound[0] == 0:
             audio.load_sound(sounds_dir / "hit_sounds" / str(global_data.hit_sound[0]) / "don.wav", 'hitsound_don_1p')
             audio.load_sound(sounds_dir / "hit_sounds" / str(global_data.hit_sound[0]) / "ka.wav", 'hitsound_kat_1p')
+            logger.info("Loaded wav hit sounds for 1P")
         else:
             audio.load_sound(sounds_dir / "hit_sounds" / str(global_data.hit_sound[0]) / "don.ogg", 'hitsound_don_1p')
             audio.load_sound(sounds_dir / "hit_sounds" / str(global_data.hit_sound[0]) / "ka.ogg", 'hitsound_kat_1p')
+            logger.info("Loaded ogg hit sounds for 1P")
         audio.set_sound_pan('hitsound_don_1p', 1.0)
         audio.set_sound_pan('hitsound_kat_1p', 1.0)
 
@@ -39,12 +44,15 @@ class TwoPlayerGameScreen(GameScreen):
         if global_data.hit_sound[1] == -1:
             audio.load_sound(Path('none.wav'), 'hitsound_don_2p')
             audio.load_sound(Path('none.wav'), 'hitsound_kat_2p')
+            logger.info("Loaded default (none) hit sounds for 2P")
         elif global_data.hit_sound[1] == 0:
             audio.load_sound(sounds_dir / "hit_sounds" / str(global_data.hit_sound[1]) / "don_2p.wav", 'hitsound_don_2p')
             audio.load_sound(sounds_dir / "hit_sounds" / str(global_data.hit_sound[1]) / "ka_2p.wav", 'hitsound_kat_2p')
+            logger.info("Loaded wav hit sounds for 2P")
         else:
             audio.load_sound(sounds_dir / "hit_sounds" / str(global_data.hit_sound[1]) / "don.ogg", 'hitsound_don_2p')
             audio.load_sound(sounds_dir / "hit_sounds" / str(global_data.hit_sound[1]) / "ka.ogg", 'hitsound_kat_2p')
+            logger.info("Loaded ogg hit sounds for 2P")
         audio.set_sound_pan('hitsound_don_2p', 0.0)
         audio.set_sound_pan('hitsound_kat_2p', 0.0)
 
@@ -55,10 +63,12 @@ class TwoPlayerGameScreen(GameScreen):
             self.init_tja(global_data.selected_song)
             audio.play_sound('restart', 'sound')
             self.song_started = False
+            logger.info("F1 pressed: song restarted")
 
         if ray.is_key_pressed(ray.KeyboardKey.KEY_ESCAPE):
             if self.song_music is not None:
                 audio.stop_music_stream(self.song_music)
+            logger.info("Escape pressed: returning to SONG_SELECT_2P")
             return self.on_screen_end('SONG_SELECT_2P')
 
     def init_tja(self, song: Path):
@@ -77,6 +87,7 @@ class TwoPlayerGameScreen(GameScreen):
         self.player_1 = Player(self.tja, 1, global_data.session_data[0].selected_difficulty, False, global_data.modifiers[0])
         self.player_2 = Player(tja_copy, 2, global_data.session_data[1].selected_difficulty, True, global_data.modifiers[1])
         self.start_ms = (get_current_ms() - self.tja.metadata.offset*1000)
+        logger.info(f"TJA initialized for two-player song: {song}")
 
     def spawn_ending_anims(self):
         if global_data.session_data[0].result_bad == 0:
@@ -94,7 +105,7 @@ class TwoPlayerGameScreen(GameScreen):
             self.player_2.ending_anim = FailAnimation(self.player_2.is_2p)
 
     def update(self):
-        self.on_screen_start()
+        super(GameScreen, self).update()
         current_time = get_current_ms()
         self.transition.update(current_time)
         self.current_ms = current_time - self.start_ms

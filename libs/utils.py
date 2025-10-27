@@ -2,6 +2,7 @@ import ctypes
 import hashlib
 import math
 import sys
+import logging
 import time
 import json
 from libs.global_data import global_data
@@ -19,6 +20,7 @@ from raylib import (
 
 from libs.texture import TextureWrapper
 
+logger = logging.getLogger(__name__)
 
 def force_dedicated_gpu():
     """Force Windows to use dedicated GPU for this application"""
@@ -29,13 +31,13 @@ def force_dedicated_gpu():
             if nvapi:
                 ctypes.windll.kernel32.SetEnvironmentVariableW("SHIM_MCCOMPAT", "0x800000001")
         except Exception as e:
-            print(e)
+            logger.error(e)
 
         try:
             # AMD PowerXpress
             ctypes.windll.kernel32.SetEnvironmentVariableW("AMD_VULKAN_ICD", "DISABLE")
         except Exception as e:
-            print(e)
+            logger.error(e)
 
 def rounded(num: float) -> int:
     """Round a number to the nearest integer"""

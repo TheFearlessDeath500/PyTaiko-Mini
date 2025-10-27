@@ -1,3 +1,4 @@
+import logging
 from pathlib import Path
 import random
 from typing import Optional, Union
@@ -11,6 +12,8 @@ import sqlite3
 import pyray as ray
 
 BOX_CENTER = 444
+
+logger = logging.getLogger(__name__)
 
 class SongBox:
     """A box for the song select screen."""
@@ -132,6 +135,8 @@ class SongBox:
             if self.move.is_finished:
                 self.position = self.target_position
                 self.move = None
+                if not (-56 <= self.position <= 1280):
+                    self.reset()
 
     def update(self, is_diff_select):
         self.is_diff_select = is_diff_select
@@ -723,12 +728,14 @@ class FileNavigator:
         self.box_open = False
         self.genre_bg = None
         self.song_count = 0
+        logger.info("FileNavigator initialized")
 
     def initialize(self, root_dirs: list[Path]):
         self.root_dirs = [Path(p) if not isinstance(p, Path) else p for p in root_dirs]
         self._generate_all_objects()
         self._create_virtual_root()
         self.load_current_directory()
+        logger.info(f"FileNavigator initialized with root_dirs: {self.root_dirs}")
 
     def _create_virtual_root(self):
         """Create a virtual root directory containing all root directories"""
@@ -762,12 +769,12 @@ class FileNavigator:
 
     def _generate_all_objects(self):
         """Generate all Directory and SongFile objects in advance"""
-        print("Generating all Directory and SongFile objects...")
+        logging.info("Generating all Directory and SongFile objects...")
 
         # Generate objects for each root directory
         for root_path in self.root_dirs:
             if not root_path.exists():
-                print(f"Root directory does not exist: {root_path}")
+                logging.warning(f"Root directory does not exist: {root_path}")
                 continue
 
             self._generate_objects_recursive(root_path)
@@ -778,7 +785,7 @@ class FileNavigator:
                 if str(song_obj) in self.all_song_files:
                     self.all_song_files[str(song_obj)].box.is_favorite = True
 
-        print(f"Object generation complete. "
+        logging.info(f"Object generation complete. "
                     f"Directories: {len(self.all_directories)}, "
                     f"Songs: {len(self.all_song_files)}")
 
@@ -905,7 +912,7 @@ class FileNavigator:
                         global_data.song_progress = self.song_count / global_data.total_songs
                         self.all_song_files[song_key] = song_obj
                     except Exception as e:
-                        print(f"Error creating SongFile for {tja_path}: {e}")
+                        logger.error(f"Error creating SongFile for {tja_path}: {e}")
                         continue
 
     def is_at_root(self) -> bool:
@@ -1191,7 +1198,7 @@ class FileNavigator:
                     elif line.startswith("#COLLECTION"):
                         collection = line.split(":", 1)[1].strip()
         except Exception as e:
-            print(f"Error parsing box.def in {path}: {e}")
+            logger.error(f"Error parsing box.def in {path}: {e}")
 
         return name, texture_index, collection
 
@@ -1237,7 +1244,7 @@ class FileNavigator:
         if file_updated:
             with open(path / 'song_list.txt', 'w', encoding='utf-8-sig') as song_list:
                 for line in updated_lines:
-                    print("updated", line)
+                    logger.info(f"updated: {line}")
                     song_list.write(line + '\n')
 
         return tja_files
@@ -1323,7 +1330,7 @@ class FileNavigator:
         with open(recents_path, 'w', encoding='utf-8-sig') as song_list:
             song_list.writelines(recent_entries)
 
-        print("Added recent: ", song.hash, song.tja.metadata.title['en'], song.tja.metadata.subtitle['en'])
+        logger.info(f"Added Recent: {song.hash} {song.tja.metadata.title['en']} {song.tja.metadata.subtitle['en']}")
 
     def add_favorite(self) -> bool:
         """Add the current song to the favorites list"""
@@ -1351,11 +1358,11 @@ class FileNavigator:
             with open(favorites_path, 'w', encoding='utf-8-sig') as song_list:
                 for line in lines:
                     song_list.write(line + '\n')
-            print("Removed favorite:", song.hash, song.tja.metadata.title['en'], song.tja.metadata.subtitle['en'])
+            logger.info(f"Removed Favorite: {song.hash} {song.tja.metadata.title['en']} {song.tja.metadata.subtitle['en']}")
         else:
             with open(favorites_path, 'a', encoding='utf-8-sig') as song_list:
                 song_list.write(f'{song.hash}|{song.tja.metadata.title["en"]}|{song.tja.metadata.subtitle["en"]}\n')
-            print("Added favorite: ", song.hash, song.tja.metadata.title['en'], song.tja.metadata.subtitle['en'])
+            logger.info(f"Added Favorite: {song.hash} {song.tja.metadata.title['en']} {song.tja.metadata.subtitle['en']}")
         return True
 
 navigator = FileNavigator()

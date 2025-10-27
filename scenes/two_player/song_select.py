@@ -1,19 +1,22 @@
+import logging
 from libs.file_navigator import SongFile
 from libs.transition import Transition
 from scenes.song_select import DiffSortSelect, SongSelectPlayer, SongSelectScreen, State
 from libs.utils import get_current_ms, global_data
 from libs.audio import audio
 
+logger = logging.getLogger(__name__)
+
 class TwoPlayerSongSelectScreen(SongSelectScreen):
     def on_screen_start(self):
-        if not self.screen_init:
-            super().on_screen_start()
-            self.player_1 = SongSelectPlayer('1', self.text_fade_in)
-            self.player_2 = SongSelectPlayer('2', self.text_fade_in)
+        super().on_screen_start()
+        self.player_1 = SongSelectPlayer('1', self.text_fade_in)
+        self.player_2 = SongSelectPlayer('2', self.text_fade_in)
 
     def finalize_song(self):
         global_data.selected_song = self.navigator.get_current_item().path
         global_data.session_data[0].genre_index = self.navigator.get_current_item().box.name_texture_index
+        logger.info(f"Finalized song selection: {global_data.selected_song}")
 
     def handle_input_browsing(self):
         """Handle input for browsing songs."""
@@ -79,24 +82,25 @@ class TwoPlayerSongSelectScreen(SongSelectScreen):
                 return
             p2_result = True
         if result is not None:
-            print(result, p2_result)
+            logger.info(f"Difficulty selection result: {result}, p2_result={p2_result}")
         if result == "cancel":
             self._cancel_selection()
+            logger.info("Selection cancelled")
         elif result == "confirm":
             if p2_result:
                 self._confirm_selection(2)
             else:
                 self._confirm_selection(1)
+            logger.info("Selection confirmed")
         elif result == "ura_toggle":
             if p2_result:
                 self.ura_switch_animation.start(not self.player_2.is_ura)
             else:
                 self.ura_switch_animation.start(not self.player_1.is_ura)
+            logger.info("Ura toggled")
 
     def handle_input_diff_sort(self):
-        """
-        Handle input for sorting difficulty.
-        """
+        """Handle input for sorting difficulty."""
         if self.diff_sort_selector is None:
             raise Exception("Diff sort selector was not able to be created")
 
@@ -108,6 +112,7 @@ class TwoPlayerSongSelectScreen(SongSelectScreen):
             self.state = State.BROWSING
             self.text_fade_out.reset()
             self.text_fade_in.reset()
+            logger.info(f"Diff sort selected: diff={diff}, level={level}")
             if diff != -1:
                 if level != -1:
                     self.navigator.diff_sort_diff = diff
@@ -117,7 +122,7 @@ class TwoPlayerSongSelectScreen(SongSelectScreen):
     def _cancel_selection(self):
         """Reset to browsing state"""
         super()._cancel_selection()
-        self.player_2.selected_song = None
+        self.player_2.selected_song = False
 
     def _confirm_selection(self, player_selected: int):
         """Confirm song selection and create game transition"""
@@ -133,6 +138,7 @@ class TwoPlayerSongSelectScreen(SongSelectScreen):
             self.player_2.selected_diff_highlight_fade.start()
             self.player_2.selected_diff_text_resize.start()
             self.player_2.selected_diff_text_fadein.start()
+        logger.info(f"Confirmed selection for player {player_selected}")
 
     def check_for_selection(self):
         if (self.player_1.selected_diff_highlight_fade.is_finished and
@@ -148,6 +154,7 @@ class TwoPlayerSongSelectScreen(SongSelectScreen):
                 global_data.config['general']['language'], '')
             self.game_transition = Transition(title, subtitle)
             self.game_transition.start()
+            logger.info(f"Game transition started for song: {title} - {subtitle}")
 
     def update_players(self, current_time):
         self.player_1.update(current_time)
@@ -155,7 +162,8 @@ class TwoPlayerSongSelectScreen(SongSelectScreen):
         if self.text_fade_out.is_finished:
             self.player_1.selected_song = True
             self.player_2.selected_song = True
-        return "GAME_2P"
+        next_screen = "GAME_2P"
+        return next_screen
 
     def draw_background_diffs(self):
         self.player_1.draw_background_diffs(self.state)

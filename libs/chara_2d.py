@@ -1,5 +1,8 @@
+import logging
 from libs.animation import Animation
 from libs.utils import global_tex
+
+logger = logging.getLogger(__name__)
 
 class Chara2D:
     def __init__(self, index: int, bpm: float, path: str = 'chara'):
@@ -33,6 +36,7 @@ class Chara2D:
             textures = [[duration*i, duration*(i+1), index] for i, index in enumerate(keyframes)]
             self.anims[name] = Animation.create_texture_change(total_duration, textures=textures)
             self.anims[name].start()
+        logger.info(f"Chara2D initialized: index={index}, bpm={bpm}, path={path}")
 
     def set_animation(self, name: str):
         """
@@ -62,6 +66,7 @@ class Chara2D:
             self.past_anim = 'gogo'
         self.current_anim = name
         self.anims[name].start()
+        logger.debug(f"Animation set: {name}")
     def update(self, current_time_ms: float, bpm: float, is_clear: bool, is_rainbow: bool):
         """
         Update the character's animation state and appearance.
@@ -75,10 +80,12 @@ class Chara2D:
         if is_rainbow and not self.is_rainbow:
             self.is_rainbow = True
             self.set_animation('soul_in')
+            logger.info("Rainbow state entered, soul_in animation triggered")
         if is_clear and not self.is_clear:
             self.is_clear = True
             self.set_animation('clear_in')
             self.past_anim = 'clear'
+            logger.info("Clear state entered, clear_in animation triggered")
         if bpm != self.bpm:
             self.bpm = bpm
             for name in self.tex.textures[self.name]:
@@ -90,6 +97,7 @@ class Chara2D:
                 textures = [[duration*i, duration*(i+1), index] for i, index in enumerate(keyframes)]
                 self.anims[name] = Animation.create_texture_change(total_duration, textures=textures)
                 self.anims[name].start()
+            logger.info(f"BPM changed, animations updated: bpm={bpm}")
         self.anims[self.current_anim] = self.anims[self.current_anim]
         self.anims[self.current_anim].update(current_time_ms)
         if self.anims[self.current_anim].is_finished:

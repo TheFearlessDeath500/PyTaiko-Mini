@@ -1,5 +1,6 @@
 import configparser
 import csv
+import logging
 import json
 import sqlite3
 import sys
@@ -9,6 +10,7 @@ from pathlib import Path
 from libs.tja import NoteList, TJAParser, test_encodings
 from libs.utils import get_config, global_data
 
+logger = logging.getLogger(__name__)
 
 def diff_hashes_object_hook(obj):
     if "diff_hashes" in obj:
@@ -137,7 +139,7 @@ def build_song_hashes(output_dir=Path("cache")):
                         all_notes.bars.extend(branch.bars)
                 all_notes.bars.extend(diff_notes.bars)
         except Exception as e:
-            print(f"Failed to parse TJA {tja_path}: {e}")
+            logger.error(f"Failed to parse TJA {tja_path}: {e}")
             continue
 
         if all_notes == NoteList():
@@ -190,7 +192,7 @@ def build_song_hashes(output_dir=Path("cache")):
                 """, (diff_hashes[i], en_name, jp_name, i, imported_scores[i], clear, bads))
                 if cursor.rowcount > 0:
                     action = "Added" if not existing_record else "Updated"
-                    print(f"{action} entry for {en_name} ({i}) - Score: {imported_scores[i]}")
+                    logger.info(f"{action} entry for {en_name} ({i}) - Score: {imported_scores[i]}")
             conn.commit()
             conn.close()
 
@@ -213,18 +215,18 @@ def build_song_hashes(output_dir=Path("cache")):
                     WHERE (en_name = ? AND jp_name = ?) AND diff = ?
                 """, (diff_hash, en_name, jp_name, diff))
                 if cursor.rowcount > 0:
-                    print(f"Updated {cursor.rowcount} entries for {en_name} ({diff})")
+                    logger.info(f"Updated {cursor.rowcount} entries for {en_name} ({diff})")
 
             conn.commit()
             conn.close()
-            print(f"Database update completed. Processed {len(db_updates)} difficulty hash updates.")
+            logger.info(f"Database update completed. Processed {len(db_updates)} difficulty hash updates.")
 
         except sqlite3.Error as e:
-            print(f"Database error: {e}")
+            logger.error(f"Database error: {e}")
         except Exception as e:
-            print(f"Error updating database: {e}")
+            logger.error(f"Error updating database: {e}")
     elif db_updates:
-        print(f"Warning: scores.db not found, skipping {len(db_updates)} database updates")
+        logger.warning(f"Warning: scores.db not found, skipping {len(db_updates)} database updates")
 
     # Save both files
     with open(output_path, "w", encoding="utf-8") as f:
@@ -345,11 +347,11 @@ def get_japanese_songs_for_version(csv_file_path, version_column):
         if len(matches) == 1:
             path = matches[0][1]
         elif len(matches) > 1:
-            print(
+            logger.info(
                 f"Multiple matches found for '{title.split('／')[0]} ({title.split('／')[1] if len(title.split('／')) > 1 else ''})':"
             )
             for i, (key, path_val) in enumerate(matches, 1):
-                print(f"{i}. {key}: {path_val}")
+                logger.info(f"{i}. {key}: {path_val}")
             choice = int(input("Choose number: ")) - 1
             path = matches[choice][1]
         else:
@@ -362,7 +364,7 @@ def get_japanese_songs_for_version(csv_file_path, version_column):
         text_files[genre].append(
             f"{hash}|{tja_parse.metadata.title['en'].strip()}|{tja_parse.metadata.subtitle['en'].strip()}"
         )
-        print(f"Added {title}: {path}")
+        logger.info(f"Added {title}: {path}")
     for genre in text_files:
         if not Path(version_column).exists():
             Path(version_column).mkdir()

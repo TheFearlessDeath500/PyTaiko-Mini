@@ -1,3 +1,4 @@
+import logging
 import random
 from pathlib import Path
 
@@ -12,15 +13,18 @@ from libs.utils import (
     is_r_don_pressed,
 )
 from libs.video import VideoPlayer
+from libs.screen import Screen
 
+logger = logging.getLogger(__name__)
 
 class State:
     OP_VIDEO = 0
     WARNING = 1
     ATTRACT_VIDEO = 2
 
-class TitleScreen:
-    def __init__(self):
+class TitleScreen(Screen):
+    def __init__(self, name: str):
+        super().__init__(name)
         #normalize to accept both stings and lists in toml
         #maybe normalize centrally? but it's used only here
         vp = global_data.config["paths"]["video_path"]
@@ -31,33 +35,27 @@ class TitleScreen:
             base = Path(base)
             self.op_video_list += list((base/"op_videos").glob("**/*.mp4"))
             self.attract_video_list += list((base/"attract_videos").glob("**/*.mp4"))
-        self.screen_init = False
         self.coin_overlay = CoinOverlay()
         self.allnet_indicator = AllNetIcon()
         self.entry_overlay = EntryOverlay()
 
     def on_screen_start(self):
-        if not self.screen_init:
-            self.screen_init = True
-            tex.load_screen_textures('title')
-            audio.load_screen_sounds('title')
-            self.state = State.OP_VIDEO
-            self.op_video = None
-            self.attract_video = None
-            self.warning_board = None
-            self.fade_out = tex.get_animation(13)
-            self.text_overlay_fade = tex.get_animation(14)
+        super().on_screen_start()
+        self.state = State.OP_VIDEO
+        self.op_video = None
+        self.attract_video = None
+        self.warning_board = None
+        self.fade_out = tex.get_animation(13)
+        self.text_overlay_fade = tex.get_animation(14)
 
-    def on_screen_end(self) -> str:
+    def on_screen_end(self, next_screen) -> str:
         if self.op_video is not None:
             self.op_video.stop()
+            logger.info("OP video stopped")
         if self.attract_video is not None:
             self.attract_video.stop()
-        audio.unload_all_sounds()
-        audio.unload_all_music()
-        tex.unload_textures()
-        self.screen_init = False
-        return "ENTRY"
+            logger.info("Attract video stopped")
+        return super().on_screen_end(next_screen)
 
     def scene_manager(self, current_time):
         """Manage the scene transitions"""
@@ -65,38 +63,44 @@ class TitleScreen:
             if self.op_video is None:
                 self.op_video = VideoPlayer(random.choice(self.op_video_list))
                 self.op_video.start(current_time)
+                logger.info("Started OP video")
             self.op_video.update()
             if self.op_video.is_finished():
                 self.op_video.stop()
                 self.op_video = None
                 self.state = State.WARNING
+                logger.info("OP video finished, transitioning to WARNING state")
         elif self.state == State.WARNING:
             if self.warning_board is None:
                 self.warning_board = WarningScreen(current_time)
+                logger.info("Warning screen started")
             self.warning_board.update(current_time)
             if self.warning_board.is_finished:
                 self.state = State.ATTRACT_VIDEO
                 self.warning_board = None
+                logger.info("Warning finished, transitioning to ATTRACT_VIDEO state")
         elif self.state == State.ATTRACT_VIDEO:
             if self.attract_video is None:
                 self.attract_video = VideoPlayer(random.choice(self.attract_video_list))
                 self.attract_video.start(current_time)
+                logger.info("Started attract video")
             self.attract_video.update()
             if self.attract_video.is_finished():
                 self.attract_video.stop()
                 self.attract_video = None
                 self.state = State.OP_VIDEO
+                logger.info("Attract video finished, transitioning to OP_VIDEO state")
 
 
     def update(self):
-        self.on_screen_start()
+        super().update()
         current_time = get_current_ms()
 
         self.text_overlay_fade.update(current_time)
         self.fade_out.update(current_time)
         if self.fade_out.is_finished:
             self.fade_out.update(current_time)
-            return self.on_screen_end()
+            return self.on_screen_end("ENTRY")
 
         self.scene_manager(current_time)
         if is_l_don_pressed() or is_r_don_pressed():
@@ -119,9 +123,6 @@ class TitleScreen:
 
         global_tex.draw_texture('overlay', 'hit_taiko_to_start', index=0, fade=self.text_overlay_fade.attribute)
         global_tex.draw_texture('overlay', 'hit_taiko_to_start', index=1, fade=self.text_overlay_fade.attribute)
-
-    def draw_3d(self):
-        pass
 
 class WarningScreen:
     """Warning screen for the game"""

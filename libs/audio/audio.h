@@ -78,6 +78,10 @@ void set_log_level(int level);
  */
 void list_host_apis(void);
 /**
+ * Get the name of a host API by index
+ */
+const char* get_host_api_name(PaHostApiIndex hostApi);
+/**
  * Initialize the audio device and system
  * Must be called before using any other audio functions
  */

@@ -1,20 +1,24 @@
+import logging
 import threading
 
 import pyray as ray
 
 from libs.animation import Animation
 from libs.global_objects import AllNetIcon
+from libs.screen import Screen
 from libs.song_hash import build_song_hashes
 from libs.texture import tex
 from libs.utils import get_current_ms, global_data
 from libs.file_navigator import navigator
 
 
-class LoadScreen:
-    def __init__(self):
+logger = logging.getLogger(__name__)
+
+class LoadScreen(Screen):
+    def __init__(self, name: str):
+        super().__init__(name)
         self.width = 1280
         self.height = 720
-        self.screen_init = False
         self.songs_loaded = False
         self.navigator_started = False
         self.loading_complete = False
@@ -37,42 +41,44 @@ class LoadScreen:
         """Background thread function to load song hashes"""
         global_data.song_hashes = build_song_hashes()
         self.songs_loaded = True
+        logger.info("Song hashes loaded")
 
     def _load_navigator(self):
         """Background thread function to load navigator"""
         self.navigator.initialize(global_data.config["paths"]["tja_path"])
         self.loading_complete = True
+        logger.info("Navigator initialized")
 
     def on_screen_start(self):
-        if not self.screen_init:
-            tex.load_screen_textures('loading')
-            self.loading_thread = threading.Thread(target=self._load_song_hashes)
-            self.loading_thread.daemon = True
-            self.loading_thread.start()
-            self.screen_init = True
+        super().on_screen_start()
+        self.loading_thread = threading.Thread(target=self._load_song_hashes)
+        self.loading_thread.daemon = True
+        self.loading_thread.start()
+        logger.info("Started song hashes loading thread")
 
     def on_screen_end(self, next_screen: str):
-        self.screen_init = False
-        tex.unload_textures()
         if self.loading_thread and self.loading_thread.is_alive():
             self.loading_thread.join(timeout=1.0)
+            logger.info("Joined song hashes loading thread")
         if self.navigator_thread and self.navigator_thread.is_alive():
             self.navigator_thread.join(timeout=1.0)
-
-        return next_screen
+            logger.info("Joined navigator loading thread")
+        return super().on_screen_end(next_screen)
 
     def update(self):
-        self.on_screen_start()
+        super().update()
 
         if self.songs_loaded and not self.navigator_started:
             self.navigator_thread = threading.Thread(target=self._load_navigator)
             self.navigator_thread.daemon = True
             self.navigator_thread.start()
             self.navigator_started = True
+            logger.info("Started navigator loading thread")
 
         if self.loading_complete and self.fade_in is None:
             self.fade_in = Animation.create_fade(1000, initial_opacity=0.0, final_opacity=1.0, ease_in='cubic')
             self.fade_in.start()
+            logger.info("Fade-in animation started")
 
         if self.fade_in is not None:
             self.fade_in.update(get_current_ms())
@@ -107,5 +113,3 @@ class LoadScreen:
         if self.fade_in is not None:
             ray.draw_rectangle(0, 0, self.width, self.height, ray.fade(ray.WHITE, self.fade_in.attribute))
         self.allnet_indicator.draw()
-    def draw_3d(self):
-        pass

@@ -1,9 +1,11 @@
+import logging
 import pyray as ray
 
 from libs.global_data import reset_session
 from libs.audio import audio
 from libs.chara_2d import Chara2D
 from libs.global_objects import AllNetIcon, CoinOverlay, Nameplate
+from libs.screen import Screen
 from libs.texture import tex
 from libs.utils import (
     OutlinedText,
@@ -13,46 +15,32 @@ from libs.utils import (
     is_r_don_pressed
 )
 
+logger = logging.getLogger(__name__)
 
 class State:
-    """
-    Enum representing the state of the result screen.
-    """
+    """Enum representing the state of the result screen."""
     FAIL = 0
     CLEAR = 1
     RAINBOW = 2
 
-class ResultScreen:
-    def __init__(self):
-        self.width = 1280
-        self.height = 720
-        self.screen_init = False
-
+class ResultScreen(Screen):
     def on_screen_start(self):
-        if not self.screen_init:
-            tex.load_screen_textures('result')
-            audio.load_screen_sounds('result')
-            self.screen_init = True
-            self.song_info = OutlinedText(global_data.session_data[0].song_title, 40, ray.WHITE, ray.BLACK, outline_thickness=5)
-            audio.play_sound('bgm', 'music')
-            self.fade_in = FadeIn(str(global_data.player_num))
-            self.fade_out = tex.get_animation(0)
-            self.coin_overlay = CoinOverlay()
-            self.allnet_indicator = AllNetIcon()
-            self.start_ms = get_current_ms()
-            self.is_skipped = False
-            self.background = Background(str(global_data.player_num), self.width)
-            self.player_1 = ResultPlayer(str(global_data.player_num), False, False)
+        super().on_screen_start()
+        self.song_info = OutlinedText(global_data.session_data[0].song_title, 40, ray.WHITE, ray.BLACK, outline_thickness=5)
+        audio.play_sound('bgm', 'music')
+        self.fade_in = FadeIn(str(global_data.player_num))
+        self.fade_out = tex.get_animation(0)
+        self.coin_overlay = CoinOverlay()
+        self.allnet_indicator = AllNetIcon()
+        self.start_ms = get_current_ms()
+        self.is_skipped = False
+        self.background = Background(str(global_data.player_num), 1280)
+        self.player_1 = ResultPlayer(str(global_data.player_num), False, False)
 
     def on_screen_end(self, next_screen: str):
-        self.screen_init = False
         global_data.songs_played += 1
-        tex.unload_textures()
-        audio.stop_sound('bgm')
-        audio.unload_all_sounds()
-        audio.unload_all_music()
         reset_session()
-        return next_screen
+        return super().on_screen_end(next_screen)
 
     def handle_input(self):
         if is_r_don_pressed() or is_l_don_pressed():
@@ -63,7 +51,7 @@ class ResultScreen:
             audio.play_sound('don', 'sound')
 
     def update(self):
-        self.on_screen_start()
+        super().update()
         current_time = get_current_ms()
         self.fade_in.update(current_time)
         self.player_1.update(current_time, self.fade_in.is_finished, self.is_skipped)
@@ -78,7 +66,7 @@ class ResultScreen:
 
     def draw_overlay(self):
         self.fade_in.draw()
-        ray.draw_rectangle(0, 0, self.width, self.height, ray.fade(ray.BLACK, self.fade_out.attribute))
+        ray.draw_rectangle(0, 0, 1280, 720, ray.fade(ray.BLACK, self.fade_out.attribute))
         self.coin_overlay.draw()
         self.allnet_indicator.draw()
 

@@ -1,6 +1,6 @@
 import cffi
-import ctypes
 import platform
+import logging
 from pathlib import Path
 
 from libs.utils import get_config
@@ -43,6 +43,7 @@ ffi.cdef("""
 
     // Device management
     void list_host_apis(void);
+    const char* get_host_api_name(PaHostApiIndex hostApi);
     void init_audio_device(PaHostApiIndex host_api, double sample_rate, unsigned long buffer_size);
     void close_audio_device(void);
     bool is_audio_device_ready(void);
@@ -102,6 +103,8 @@ ffi.cdef("""
     void free(void *ptr);
 """)
 
+logger = logging.getLogger(__name__)
+
 try:
     if platform.system() == "Windows":
         lib = ffi.dlopen("libaudio.dll")
@@ -110,22 +113,8 @@ try:
     else:  # Assume Linux/Unix
         lib = ffi.dlopen("./libaudio.so")
 except OSError as e:
-    print(f"Failed to load shared library: {e}")
+    logger.error(f"Failed to load shared library: {e}")
     raise
-
-def get_short_path_name(long_path: str) -> str:
-    """Convert long path to Windows short path (8.3 format)"""
-    if platform.system() != 'Windows':
-        return long_path
-
-    # Get short path name
-    buffer = ctypes.create_unicode_buffer(512)
-    get_short_path = ctypes.windll.kernel32.GetShortPathNameW
-    ret = get_short_path(long_path, buffer, 512)
-
-    if ret:
-        return buffer.value
-    return long_path
 
 class AudioEngine:
     """Initialize an audio engine for playing sounds and music."""
@@ -150,6 +139,11 @@ class AudioEngine:
         """Prints a list of available host APIs to the console"""
         lib.list_host_apis() # type: ignore
 
+    def get_host_api_name(self, api_id: int) -> str:
+        """Returns the name of the host API with the given ID"""
+        result = lib.get_host_api_name(api_id) # type: ignore
+        return ffi.string(result).decode('utf-8')
+
     def init_audio_device(self) -> bool:
         """Initialize the audio device"""
         try:
@@ -160,10 +154,10 @@ class AudioEngine:
             file_path_str = str(self.sounds_path / 'ka.wav').encode('utf-8')
             self.kat = lib.load_sound(file_path_str) # type: ignore
             if self.audio_device_ready:
-                print("Audio device initialized successfully")
+                logger.info("Audio device initialized successfully")
             return self.audio_device_ready
         except Exception as e:
-            print(f"Failed to initialize audio device: {e}")
+            logger.error(f"Failed to initialize audio device: {e}")
             return False
 
     def close_audio_device(self) -> None:
@@ -179,9 +173,9 @@ class AudioEngine:
             lib.unload_sound(self.kat) # type: ignore
             lib.close_audio_device() # type: ignore
             self.audio_device_ready = False
-            print("Audio device closed")
+            logger.info("Audio device closed")
         except Exception as e:
-            print(f"Error closing audio device: {e}")
+            logger.error(f"Error closing audio device: {e}")
 
     def is_audio_device_ready(self) -> bool:
         """Check if audio device is ready"""
@@ -210,10 +204,10 @@ class AudioEngine:
                 self.sounds[name] = sound
                 return name
             else:
-                print(f"Failed to load sound: {file_path}")
+                logger.error(f"Failed to load sound: {file_path}")
                 return ""
         except Exception as e:
-            print(f"Error loading sound {file_path}: {e}")
+            logger.error(f"Error loading sound {file_path}: {e}")
             return ""
 
     def unload_sound(self, name: str) -> None:
@@ -222,11 +216,14 @@ class AudioEngine:
             lib.unload_sound(self.sounds[name]) # type: ignore
             del self.sounds[name]
         else:
-            print(f"Sound {name} not found")
+            logger.warning(f"Sound {name} not found")
 
     def load_screen_sounds(self, screen_name: str) -> None:
         """Load sounds for a given screen"""
         path = self.sounds_path / screen_name
+        if not path.exists():
+            logger.warning(f"Sounds for {screen_name} not found")
+            return
         for sound in path.iterdir():
             if sound.is_dir():
                 for file in sound.iterdir():
@@ -263,7 +260,7 @@ class AudioEngine:
                 lib.set_sound_volume(sound, self.volume_presets[volume_preset]) # type: ignore
             lib.play_sound(sound) # type: ignore
         else:
-            print(f"Sound {name} not found")
+            logger.warning(f"Sound {name} not found")
 
     def stop_sound(self, name: str) -> None:
         """Stop a sound"""
@@ -275,7 +272,7 @@ class AudioEngine:
             sound = self.sounds[name]
             lib.stop_sound(sound) # type: ignore
         else:
-            print(f"Sound {name} not found")
+            logger.warning(f"Sound {name} not found")
 
     def is_sound_playing(self, name: str) -> bool:
         """Check if a sound is playing"""
@@ -287,7 +284,7 @@ class AudioEngine:
             sound = self.sounds[name]
             return lib.is_sound_playing(sound) # type: ignore
         else:
-            print(f"Sound {name} not found")
+            logger.warning(f"Sound {name} not found")
             return False
 
     def set_sound_volume(self, name: str, volume: float) -> None:
@@ -300,7 +297,7 @@ class AudioEngine:
             sound = self.sounds[name]
             lib.set_sound_volume(sound, volume) # type: ignore
         else:
-            print(f"Sound {name} not found")
+            logger.warning(f"Sound {name} not found")
 
     def set_sound_pan(self, name: str, pan: float) -> None:
         """Set the pan of a specific sound"""
@@ -312,7 +309,7 @@ class AudioEngine:
             sound = self.sounds[name]
             lib.set_sound_pan(sound, pan) # type: ignore
         else:
-            print(f"Sound {name} not found")
+            logger.warning(f"Sound {name} not found")
 
     # Music management
     def load_music_stream(self, file_path: Path, name: str) -> str:
@@ -326,10 +323,10 @@ class AudioEngine:
 
         if lib.is_music_valid(music): # type: ignore
             self.music_streams[name] = music
-            print(f"Loaded music stream from {file_path} as {name}")
+            logger.info(f"Loaded music stream from {file_path} as {name}")
             return name
         else:
-            print(f"Failed to load music: {file_path}")
+            logger.error(f"Failed to load music: {file_path}")
             return ""
 
     def play_music_stream(self, name: str, volume_preset: str) -> None:
@@ -341,7 +338,7 @@ class AudioEngine:
                 lib.set_music_volume(music, self.volume_presets[volume_preset]) # type: ignore
             lib.play_music_stream(music) # type: ignore
         else:
-            print(f"Music stream {name} not found")
+            logger.warning(f"Music stream {name} not found")
 
     def update_music_stream(self, name: str) -> None:
         """Update a music stream"""
@@ -349,7 +346,7 @@ class AudioEngine:
             music = self.music_streams[name]
             lib.update_music_stream(music) # type: ignore
         else:
-            print(f"Music stream {name} not found")
+            logger.warning(f"Music stream {name} not found")
 
     def get_music_time_length(self, name: str) -> float:
         """Get the time length of a music stream"""
@@ -357,7 +354,7 @@ class AudioEngine:
             music = self.music_streams[name]
             return lib.get_music_time_length(music) # type: ignore
         else:
-            print(f"Music stream {name} not found")
+            logger.warning(f"Music stream {name} not found")
             return 0.0
 
     def get_music_time_played(self, name: str) -> float:
@@ -366,7 +363,7 @@ class AudioEngine:
             music = self.music_streams[name]
             return lib.get_music_time_played(music) # type: ignore
         else:
-            print(f"Music stream {name} not found")
+            logger.warning(f"Music stream {name} not found")
             return 0.0
 
     def set_music_volume(self, name: str, volume: float) -> None:
@@ -375,7 +372,7 @@ class AudioEngine:
             music = self.music_streams[name]
             lib.set_music_volume(music, volume) # type: ignore
         else:
-            print(f"Music stream {name} not found")
+            logger.warning(f"Music stream {name} not found")
 
     def is_music_stream_playing(self, name: str) -> bool:
         """Check if a music stream is playing"""
@@ -383,7 +380,7 @@ class AudioEngine:
             music = self.music_streams[name]
             return lib.is_music_stream_playing(music) # type: ignore
         else:
-            print(f"Music stream {name} not found")
+            logger.warning(f"Music stream {name} not found")
             return False
 
     def stop_music_stream(self, name: str) -> None:
@@ -392,7 +389,7 @@ class AudioEngine:
             music = self.music_streams[name]
             lib.stop_music_stream(music) # type: ignore
         else:
-            print(f"Music stream {name} not found")
+            logger.warning(f"Music stream {name} not found")
 
     def unload_music_stream(self, name: str) -> None:
         """Unload a music stream"""
@@ -401,7 +398,7 @@ class AudioEngine:
             lib.unload_music_stream(music) # type: ignore
             del self.music_streams[name]
         else:
-            print(f"Music stream {name} not found")
+            logger.warning(f"Music stream {name} not found")
 
     def unload_all_music(self) -> None:
         """Unload all music streams"""
@@ -414,7 +411,7 @@ class AudioEngine:
             music = self.music_streams[name]
             lib.seek_music_stream(music, position) # type: ignore
         else:
-            print(f"Music stream {name} not found")
+            logger.warning(f"Music stream {name} not found")
 
 # Create the global audio instance
 audio = AudioEngine(get_config()["audio"]["device_type"], get_config()["audio"]["sample_rate"], get_config()["audio"]["buffer_size"], get_config()["volume"])

@@ -116,6 +116,7 @@ typedef struct AudioData {
 } AudioData;
 
 void list_host_apis(void);
+const char* get_host_api_name(PaHostApiIndex hostApi);
 void init_audio_device(PaHostApiIndex host_api, double sample_rate, unsigned long buffer_size);
 void close_audio_device(void);
 bool is_audio_device_ready(void);
@@ -287,6 +288,16 @@ void list_host_apis(void)
             TRACELOG(LOG_INFO, "    [%d] %s (%d devices)", i, info->name, info->deviceCount);
         }
     }
+}
+
+const char* get_host_api_name(PaHostApiIndex hostApi)
+{
+    const PaHostApiInfo *hostApiInfo = Pa_GetHostApiInfo(hostApi);
+    if (!hostApiInfo) {
+        return NULL;
+    }
+
+    return hostApiInfo->name;
 }
 
 PaDeviceIndex get_best_output_device_for_host_api(PaHostApiIndex hostApi)

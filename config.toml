@@ -8,6 +8,7 @@ touch_enabled = false
 timer_frozen = true
 judge_counter = false
 nijiiro_notes = false
+log_level = 30
 
 [nameplate_1p]
 name = 'どんちゃん'
@@ -47,7 +48,7 @@ right_kat = [12]
 [audio]
 # device_type: 0 = default, check console output from list_host_apis() for other options
 # Windows users should generally pick 3 (WASAPI) and Linux users should pick 0 (ALSA)
-device_type = 3
+device_type = 0
 # sample_rate: -1 = use device default (usually 44100 or 48000)
 sample_rate = -1
 # buffer_size: Size in samples per audio buffer
@@ -67,4 +68,4 @@ screen_height = 720
 fullscreen = false
 borderless = false
 target_fps = -1
-vsync = true
+vsync = false

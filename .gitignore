@@ -3,6 +3,5 @@ __pycache__
 scores.db
 cache
 dev-config.toml
-.env
 libaudio.so
-win-libs
+latest.log

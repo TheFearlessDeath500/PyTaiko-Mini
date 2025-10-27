@@ -1,4 +1,5 @@
 from pathlib import Path
+import logging
 
 import pyray as ray
 from moviepy import VideoFileClip
@@ -6,6 +7,7 @@ from moviepy import VideoFileClip
 from libs.audio import audio
 from libs.utils import get_current_ms
 
+logger = logging.getLogger(__name__)
 
 class VideoPlayer:
     def __init__(self, path: Path):
@@ -61,7 +63,7 @@ class VideoPlayer:
 
             return texture
         except Exception as e:
-            print(f"Error loading frame at index {index}: {e}")
+            logger.error(f"Error loading frame at index {index}: {e}")
             return None
 
     def _manage_buffer(self):

@@ -1,6 +1,7 @@
 import bisect
 import hashlib
 import math
+import logging
 import random
 from collections import deque
 from dataclasses import dataclass, field, fields
@@ -285,6 +286,7 @@ def test_encodings(file_path):
             continue
     return final_encoding
 
+logger = logging.getLogger(__name__)
 
 class TJAParser:
     """Parse a TJA file and extract metadata and data.
@@ -318,6 +320,7 @@ class TJAParser:
 
         self.metadata = TJAMetadata()
         self.ex_data = TJAEXData()
+        logger.debug(f"Parsing TJA file: {self.file_path}")
         self.get_metadata()
 
         self.distance = distance

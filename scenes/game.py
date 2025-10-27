@@ -1,5 +1,6 @@
 import bisect
 import math
+import logging
 import sqlite3
 from collections import deque
 from pathlib import Path
@@ -13,6 +14,7 @@ from libs.background import Background
 from libs.chara_2d import Chara2D
 from libs.global_data import Modifiers
 from libs.global_objects import AllNetIcon, Nameplate
+from libs.screen import Screen
 from libs.texture import tex
 from libs.tja import (
     Balloon,
@@ -33,22 +35,70 @@ from libs.utils import (
     is_l_kat_pressed,
     is_r_don_pressed,
     is_r_kat_pressed,
-    rounded
 )
 from libs.video import VideoPlayer
 
 SCREEN_WIDTH = 1280
 SCREEN_HEIGHT = 720
 
-class GameScreen:
+logger = logging.getLogger(__name__)
+
+class GameScreen(Screen):
     JUDGE_X = 414
-    def __init__(self):
+    def on_screen_start(self):
+        super().on_screen_start()
+        self.mask_shader = ray.load_shader("shader/outline.vs", "shader/mask.fs")
         self.current_ms = 0
-        self.screen_init = False
         self.end_ms = 0
         self.start_delay = 1000
         self.song_started = False
-        self.mask_shader = ray.load_shader("shader/outline.vs", "shader/mask.fs")
+        self.screen_init = True
+        self.movie = None
+        self.song_music = None
+        tex.load_screen_textures('game')
+        logger.info("Game screen textures loaded")
+        if global_data.config["general"]["nijiiro_notes"]:
+            # drop original
+            if "notes" in tex.textures:
+                del tex.textures["notes"]
+            # load nijiiro, rename "notes"
+            # to leave hardcoded 'notes' in calls below
+            tex.load_zip("game", "notes_nijiiro")
+            tex.textures["notes"] = tex.textures.pop("notes_nijiiro")
+            logger.info("Loaded nijiiro notes textures")
+        audio.load_screen_sounds('game')
+        logger.info("Game screen sounds loaded")
+        ray.set_shader_value_texture(self.mask_shader, ray.get_shader_location(self.mask_shader, "texture0"), tex.textures['balloon']['rainbow_mask'].texture)
+        ray.set_shader_value_texture(self.mask_shader, ray.get_shader_location(self.mask_shader, "texture1"), tex.textures['balloon']['rainbow'].texture)
+        session_data = global_data.session_data[global_data.player_num-1]
+        self.init_tja(global_data.selected_song)
+        logger.info(f"TJA initialized for song: {global_data.selected_song}")
+        self.load_hitsounds()
+        self.song_info = SongInfo(session_data.song_title, session_data.genre_index)
+        self.result_transition = ResultTransition(global_data.player_num)
+        subtitle = self.tja.metadata.subtitle.get(global_data.config['general']['language'].lower(), '')
+        self.bpm = self.tja.metadata.bpm
+        scene_preset = self.tja.metadata.scene_preset
+        if self.movie is None:
+            self.background = Background(global_data.player_num, self.bpm, scene_preset=scene_preset)
+            logger.info("Background initialized")
+        else:
+            self.background = None
+            logger.info("Movie initialized")
+        self.transition = Transition(session_data.song_title, subtitle, is_second=True)
+        self.allnet_indicator = AllNetIcon()
+        self.transition.start()
+
+    def on_screen_end(self, next_screen):
+        self.song_started = False
+        self.end_ms = 0
+        if self.movie is not None:
+            self.movie.stop()
+            logger.info("Movie stopped")
+        if self.background is not None:
+            self.background.unload()
+            logger.info("Background unloaded")
+        return super().on_screen_end(next_screen)
 
     def load_hitsounds(self):
         """Load the hit sounds"""
@@ -56,16 +106,19 @@ class GameScreen:
         if global_data.hit_sound == -1:
             audio.load_sound(Path('none.wav'), 'hitsound_don_1p')
             audio.load_sound(Path('none.wav'), 'hitsound_kat_1p')
+            logger.info("Loaded default (none) hit sounds for 1P")
         if global_data.hit_sound == 0:
             audio.load_sound(sounds_dir / "hit_sounds" / str(global_data.hit_sound[0]) / "don.wav", 'hitsound_don_1p')
             audio.load_sound(sounds_dir / "hit_sounds" / str(global_data.hit_sound[0]) / "ka.wav", 'hitsound_kat_1p')
             audio.load_sound(sounds_dir / "hit_sounds" / str(global_data.hit_sound[1]) / "don.wav", 'hitsound_don_2p')
             audio.load_sound(sounds_dir / "hit_sounds" / str(global_data.hit_sound[1]) / "ka.wav", 'hitsound_kat_2p')
+            logger.info("Loaded wav hit sounds for 1P and 2P")
         else:
             audio.load_sound(sounds_dir / "hit_sounds" / str(global_data.hit_sound[0]) / "don.ogg", 'hitsound_don_1p')
             audio.load_sound(sounds_dir / "hit_sounds" / str(global_data.hit_sound[0]) / "ka.ogg", 'hitsound_kat_1p')
             audio.load_sound(sounds_dir / "hit_sounds" / str(global_data.hit_sound[1]) / "don.ogg", 'hitsound_don_2p')
             audio.load_sound(sounds_dir / "hit_sounds" / str(global_data.hit_sound[1]) / "ka.ogg", 'hitsound_kat_2p')
+            logger.info("Loaded ogg hit sounds for 1P and 2P")
 
     def init_tja(self, song: Path):
         """Initialize the TJA file"""
@@ -81,52 +134,6 @@ class GameScreen:
 
         self.player_1 = Player(self.tja, global_data.player_num, global_data.session_data[global_data.player_num-1].selected_difficulty, False, global_data.modifiers[0])
         self.start_ms = (get_current_ms() - self.tja.metadata.offset*1000)
-
-    def on_screen_start(self):
-        if not self.screen_init:
-            self.screen_init = True
-            self.movie = None
-            self.song_music = None
-            tex.load_screen_textures('game')
-            if global_data.config["general"]["nijiiro_notes"]:
-                # drop original
-                if "notes" in tex.textures:
-                    del tex.textures["notes"]
-                # load nijiiro, rename "notes"
-                # to leave hardcoded 'notes' in calls below
-                tex.load_zip("game", "notes_nijiiro")
-                tex.textures["notes"] = tex.textures.pop("notes_nijiiro")
-            audio.load_screen_sounds('game')
-            ray.set_shader_value_texture(self.mask_shader, ray.get_shader_location(self.mask_shader, "texture0"), tex.textures['balloon']['rainbow_mask'].texture)
-            ray.set_shader_value_texture(self.mask_shader, ray.get_shader_location(self.mask_shader, "texture1"), tex.textures['balloon']['rainbow'].texture)
-            session_data = global_data.session_data[global_data.player_num-1]
-            self.init_tja(global_data.selected_song)
-            self.load_hitsounds()
-            self.song_info = SongInfo(session_data.song_title, session_data.genre_index)
-            self.result_transition = ResultTransition(global_data.player_num)
-            subtitle = self.tja.metadata.subtitle.get(global_data.config['general']['language'].lower(), '')
-            self.bpm = self.tja.metadata.bpm
-            scene_preset = self.tja.metadata.scene_preset
-            if self.movie is None:
-                self.background = Background(global_data.player_num, self.bpm, scene_preset=scene_preset)
-            else:
-                self.background = None
-            self.transition = Transition(session_data.song_title, subtitle, is_second=True)
-            self.allnet_indicator = AllNetIcon()
-            self.transition.start()
-
-    def on_screen_end(self, next_screen):
-        self.screen_init = False
-        tex.unload_textures()
-        audio.unload_all_sounds()
-        audio.unload_all_music()
-        self.song_started = False
-        self.end_ms = 0
-        if self.movie is not None:
-            self.movie.stop()
-        if self.background is not None:
-            self.background.unload()
-        return next_screen
 
     def write_score(self):
         """Write the score to the database"""
@@ -193,7 +200,7 @@ class GameScreen:
         if (self.current_ms >= self.tja.metadata.offset*1000 + self.start_delay - global_data.config["general"]["audio_offset"]) and not self.song_started:
             if self.song_music is not None:
                 audio.play_music_stream(self.song_music, 'music')
-                print(f"Song started at {self.current_ms}")
+                logger.info(f"Song started at {self.current_ms}")
             if self.movie is not None:
                 self.movie.start(current_time)
             self.song_started = True
@@ -229,7 +236,7 @@ class GameScreen:
                 self.background.update(current_time, self.bpm, self.player_1.gauge, None)
 
     def update(self):
-        self.on_screen_start()
+        super().update()
         current_time = get_current_ms()
         self.transition.update(current_time)
         self.current_ms = current_time - self.start_ms
@@ -243,6 +250,7 @@ class GameScreen:
         self.song_info.update(current_time)
         self.result_transition.update(current_time)
         if self.result_transition.is_finished and not audio.is_sound_playing('result_transition'):
+            logger.info("Result transition finished, moving to RESULT screen")
             return self.on_screen_end('RESULT')
         elif self.current_ms >= self.player_1.end_time:
             session_data = global_data.session_data[global_data.player_num-1]
@@ -252,11 +260,13 @@ class GameScreen:
                 if current_time >= self.end_ms + 1000:
                     if self.player_1.ending_anim is None:
                         self.write_score()
+                        logger.info("Score written and ending animations spawned")
                         self.spawn_ending_anims()
                 if current_time >= self.end_ms + 8533.34:
                     if not self.result_transition.is_started:
                         self.result_transition.start()
                         audio.play_sound('result_transition', 'voice')
+                        logger.info("Result transition started and voice played")
             else:
                 self.end_ms = current_time
 
@@ -692,7 +702,7 @@ class Player:
 
             big = curr_note.type == 3 or curr_note.type == 4
             if (curr_note.hit_ms - good_window_ms) <= ms_from_start <= (curr_note.hit_ms + good_window_ms):
-                self.draw_judge_list.append(Judgement('GOOD', big, self.is_2p, ms_display=ms_from_start - curr_note.hit_ms))
+                self.draw_judge_list.append(Judgement('GOOD', big, self.is_2p))
                 self.lane_hit_effect = LaneHitEffect('GOOD', self.is_2p)
                 self.good_count += 1
                 self.score += self.base_score
@@ -708,7 +718,7 @@ class Player:
                         background.add_chibi(False, 1)
 
             elif (curr_note.hit_ms - ok_window_ms) <= ms_from_start <= (curr_note.hit_ms + ok_window_ms):
-                self.draw_judge_list.append(Judgement('OK', big, self.is_2p, ms_display=ms_from_start - curr_note.hit_ms))
+                self.draw_judge_list.append(Judgement('OK', big, self.is_2p))
                 self.ok_count += 1
                 self.score += 10 * math.floor(self.base_score / 2 / 10)
                 self.base_score_list.append(ScoreCounterAnimation(self.player_number, 10 * math.floor(self.base_score / 2 / 10), self.is_2p))
@@ -723,7 +733,7 @@ class Player:
                         background.add_chibi(False, 1)
 
             elif (curr_note.hit_ms - bad_window_ms) <= ms_from_start <= (curr_note.hit_ms + bad_window_ms):
-                self.draw_judge_list.append(Judgement('BAD', big, self.is_2p, ms_display=ms_from_start - curr_note.hit_ms))
+                self.draw_judge_list.append(Judgement('BAD', big, self.is_2p))
                 self.bad_count += 1
                 self.combo = 0
                 # Remove from both the specific note list and the main play_notes list
@@ -1109,14 +1119,11 @@ class Player:
 
 class Judgement:
     """Shows the judgement of the player's hit"""
-    def __init__(self, type: str, big: bool, is_2p: bool, ms_display: Optional[float]=None):
+    def __init__(self, type: str, big: bool, is_2p: bool):
         self.is_2p = is_2p
         self.type = type
         self.big = big
         self.is_finished = False
-        self.curr_hit_ms = None
-        if ms_display is not None:
-            self.curr_hit_ms = str(round(ms_display, 2))
 
         self.fade_animation_1 = Animation.create_fade(132, initial_opacity=0.5, delay=100)
         self.fade_animation_1.start()
@@ -2120,14 +2127,14 @@ class JudgeCounter:
         total_notes = self.good + self.ok + self.bad
         if total_notes == 0:
             total_notes = 1
-        self.draw_counter(self.good / total_notes * 100, 260, 440, 23, ray.Color(253, 161, 0, 255))
-        self.draw_counter(self.ok / total_notes * 100, 260, 477, 23, ray.Color(253, 161, 0, 255))
-        self.draw_counter(self.bad / total_notes * 100, 260, 515, 23, ray.Color(253, 161, 0, 255))
-        self.draw_counter((self.good + self.ok) / total_notes * 100, 270, 388, 23, ray.Color(253, 161, 0, 255))
-        self.draw_counter(self.good, 180, 440, 23, ray.WHITE)
-        self.draw_counter(self.ok, 180, 477, 23, ray.WHITE)
-        self.draw_counter(self.bad, 180, 515, 23, ray.WHITE)
-        self.draw_counter(self.drumrolls, 180, 577, 23, ray.WHITE)
+        self.draw_counter(self.good / total_notes * 100, 260, 440, 23, self.orange)
+        self.draw_counter(self.ok / total_notes * 100, 260, 477, 23, self.orange)
+        self.draw_counter(self.bad / total_notes * 100, 260, 515, 23, self.orange)
+        self.draw_counter((self.good + self.ok) / total_notes * 100, 270, 388, 23, self.orange)
+        self.draw_counter(self.good, 180, 440, 23, self.white)
+        self.draw_counter(self.ok, 180, 477, 23, self.white)
+        self.draw_counter(self.bad, 180, 515, 23, self.white)
+        self.draw_counter(self.drumrolls, 180, 577, 23, self.white)
 
 class Gauge:
     """The player's gauge"""

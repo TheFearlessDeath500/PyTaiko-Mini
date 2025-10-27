@@ -3,6 +3,7 @@ from dataclasses import fields
 from pathlib import Path
 
 import pyray as ray
+import logging
 
 from libs.file_navigator import navigator
 from libs.audio import audio
@@ -10,6 +11,7 @@ from libs.chara_2d import Chara2D
 from libs.file_navigator import Directory, SongBox, SongFile
 from libs.global_data import Modifiers
 from libs.global_objects import AllNetIcon, CoinOverlay, Nameplate, Indicator, Timer
+from libs.screen import Screen
 from libs.texture import tex
 from libs.transition import Transition
 from libs.utils import (
@@ -22,63 +24,59 @@ from libs.utils import (
     is_r_kat_pressed,
 )
 
+logger = logging.getLogger(__name__)
+
 class State:
     BROWSING = 0
     SONG_SELECTED = 1
     DIFF_SORTING = 2
 
-class SongSelectScreen:
+class SongSelectScreen(Screen):
     BOX_CENTER = 444
-    def __init__(self, screen_width: int = 1280):
-        self.screen_init = False
-        self.screen_width = screen_width
-        self.indicator = Indicator(Indicator.State.SELECT)
-        self.navigator = navigator
-
     def on_screen_start(self):
-        if not self.screen_init:
-            tex.load_screen_textures('song_select')
-            audio.load_screen_sounds('song_select')
-            audio.set_sound_volume('ura_switch', 0.25)
-            audio.set_sound_volume('add_favorite', 3.0)
-            audio.play_sound('bgm', 'music')
-            audio.play_sound('voice_enter', 'voice')
-            self.background_move = tex.get_animation(0)
-            self.move_away = tex.get_animation(1)
-            self.diff_fade_out = tex.get_animation(2)
-            self.text_fade_out = tex.get_animation(3)
-            self.text_fade_in = tex.get_animation(4)
-            self.background_fade_change = tex.get_animation(5)
-            self.blue_arrow_fade = tex.get_animation(29)
-            self.blue_arrow_move = tex.get_animation(30)
-            self.blue_arrow_fade.start()
-            self.blue_arrow_move.start()
-            self.state = State.BROWSING
-            self.game_transition = None
-            self.demo_song = None
-            self.diff_sort_selector = None
-            self.coin_overlay = CoinOverlay()
-            self.allnet_indicator = AllNetIcon()
-            self.texture_index = SongBox.DEFAULT_INDEX
-            self.last_texture_index = SongBox.DEFAULT_INDEX
-            self.last_moved = get_current_ms()
-            self.timer_browsing = Timer(100, get_current_ms(), self.navigator.select_current_item)
-            self.timer_selected = Timer(40, get_current_ms(), self._confirm_selection_wrapper)
-            self.screen_init = True
-            self.ura_switch_animation = UraSwitchAnimation()
+        super().on_screen_start()
+        audio.set_sound_volume('ura_switch', 0.25)
+        audio.set_sound_volume('add_favorite', 3.0)
+        audio.play_sound('bgm', 'music')
+        audio.play_sound('voice_enter', 'voice')
+        self.navigator = navigator
+        self.background_move = tex.get_animation(0)
+        self.move_away = tex.get_animation(1)
+        self.diff_fade_out = tex.get_animation(2)
+        self.text_fade_out = tex.get_animation(3)
+        self.text_fade_in = tex.get_animation(4)
+        self.background_fade_change = tex.get_animation(5)
+        self.blue_arrow_fade = tex.get_animation(29)
+        self.blue_arrow_move = tex.get_animation(30)
+        self.blue_arrow_fade.start()
+        self.blue_arrow_move.start()
+        self.state = State.BROWSING
+        self.game_transition = None
+        self.demo_song = None
+        self.diff_sort_selector = None
+        self.coin_overlay = CoinOverlay()
+        self.allnet_indicator = AllNetIcon()
+        self.indicator = Indicator(Indicator.State.SELECT)
+        self.texture_index = SongBox.DEFAULT_INDEX
+        self.last_texture_index = SongBox.DEFAULT_INDEX
+        self.last_moved = get_current_ms()
+        self.timer_browsing = Timer(100, get_current_ms(), self.navigator.select_current_item)
+        self.timer_selected = Timer(40, get_current_ms(), self._confirm_selection_wrapper)
+        self.screen_init = True
+        self.ura_switch_animation = UraSwitchAnimation()
 
-            self.player_1 = SongSelectPlayer(str(global_data.player_num), self.text_fade_in)
+        self.player_1 = SongSelectPlayer(str(global_data.player_num), self.text_fade_in)
 
-            if self.navigator.items == []:
-                return self.on_screen_end("ENTRY")
+        if self.navigator.items == []:
+            logger.warning("No navigator items found, returning to ENTRY screen")
+            return self.on_screen_end("ENTRY")
 
-            if str(global_data.selected_song) in self.navigator.all_song_files:
-                self.navigator.mark_crowns_dirty_for_song(self.navigator.all_song_files[str(global_data.selected_song)])
+        if str(global_data.selected_song) in self.navigator.all_song_files:
+            self.navigator.mark_crowns_dirty_for_song(self.navigator.all_song_files[str(global_data.selected_song)])
 
-            self.navigator.reset_items()
-            curr_item = self.navigator.get_current_item()
-            curr_item.box.get_scores()
-            self.navigator.add_recent()
+        curr_item = self.navigator.get_current_item()
+        curr_item.box.get_scores()
+        self.navigator.add_recent()
 
     def finalize_song(self):
         global_data.selected_song = self.navigator.get_current_item().path
@@ -88,13 +86,10 @@ class SongSelectScreen:
     def on_screen_end(self, next_screen):
         self.screen_init = False
         self.reset_demo_music()
-        self.navigator.reset_items()
         self.finalize_song()
-        audio.unload_all_sounds()
-        audio.unload_all_music()
-        tex.unload_textures()
         self.player_1.nameplate.unload()
-        return next_screen
+        self.navigator.get_current_item().box.yellow_box.create_anim()
+        return super().on_screen_end(next_screen)
 
     def reset_demo_music(self):
         """Reset the preview music to the song select bgm."""
@@ -199,7 +194,7 @@ class SongSelectScreen:
         """Wrapper for timer callback"""
         self._confirm_selection()
 
-    def _confirm_selection(self):
+    def _confirm_selection(self, player_selected: int = 1):
         """Confirm song selection and create game transition"""
         audio.play_sound('don', 'sound')
         audio.play_sound(f'voice_start_song_{global_data.player_num}p', 'voice')
@@ -214,7 +209,8 @@ class SongSelectScreen:
         self.player_1.update(current_time)
         if self.text_fade_out.is_finished:
             self.player_1.selected_song = True
-        return "GAME"
+        next_screen = "GAME"
+        return next_screen
 
     def check_for_selection(self):
         if self.player_1.selected_diff_highlight_fade.is_finished and not audio.is_sound_playing(f'voice_start_song_{global_data.player_num}p') and self.game_transition is None:
@@ -230,7 +226,7 @@ class SongSelectScreen:
             self.game_transition.start()
 
     def update(self):
-        ret_val = self.on_screen_start()
+        ret_val = super().update()
         if ret_val is not None:
             return ret_val
         current_time = get_current_ms()
@@ -288,12 +284,14 @@ class SongSelectScreen:
                         audio.play_music_stream(self.demo_song, 'music')
                         audio.seek_music_stream(self.demo_song, song.tja.metadata.demostart)
                         audio.stop_sound('bgm')
+                        logger.info(f"Demo song loaded and playing for {song.tja.metadata.title}")
             if song.box.is_open:
                 current_box = song.box
                 if not current_box.is_back and get_current_ms() >= song.box.wait + (83.33*3):
                     self.texture_index = current_box.texture_index
 
         if ray.is_key_pressed(ray.KeyboardKey.KEY_ESCAPE):
+            logger.info("Escape key pressed, returning to ENTRY screen")
             return self.on_screen_end('ENTRY')
 
     def draw_background_diffs(self):
@@ -315,7 +313,7 @@ class SongSelectScreen:
 
         for item in self.navigator.items:
             box = item.box
-            if -156 <= box.position <= self.screen_width + 144:
+            if -156 <= box.position <= 1280 + 144:
                 if box.position <= 500:
                     box.draw(box.position - int(self.move_away.attribute), 95, self.player_1.is_ura, fade_override=self.diff_fade_out.attribute)
                 else:
@@ -534,6 +532,7 @@ class SongSelectPlayer:
                 raise Exception("Directory was chosen instead of song")
             diffs = sorted(selected_song.tja.metadata.course_data)
             prev_diff = self.selected_difficulty
+            ret_val = None
 
             if is_l_kat_pressed(self.player_num):
                 ret_val = self._navigate_difficulty_left(diffs)
@@ -616,7 +615,7 @@ class SongSelectPlayer:
         self.selected_difficulty = 7 - self.selected_difficulty
         return "ura_toggle"
 
-    def draw_selector(self, state: State, is_half: bool):
+    def draw_selector(self, is_half: bool):
         fade = 0.5 if (self.neiro_selector is not None or self.modifier_selector is not None) else self.text_fade_in.attribute
         direction = 1 if self.diff_select_move_right else -1
         if self.selected_difficulty <= -1 or self.prev_diff == -1:
@@ -660,7 +659,7 @@ class SongSelectPlayer:
                 name = f'{self.player_num}p_outline_half' if is_half else f'{self.player_num}p_outline'
                 tex.draw_texture('diff_select', name, x=(difficulty * 115))
 
-    def draw_background_diffs(self, state: State):
+    def draw_background_diffs(self, state: int):
         if (self.selected_song and state == State.SONG_SELECTED and self.selected_difficulty >= 0):
             if self.player_num == '2':
                 tex.draw_texture('global', 'background_diff', frame=self.selected_difficulty, fade=min(0.5, self.selected_diff_fadein.attribute), x=1025, y=-self.selected_diff_bounce.attribute, y2=self.selected_diff_bounce.attribute)
@@ -677,9 +676,9 @@ class SongSelectPlayer:
                 tex.draw_texture('global', 'bg_diff_text_bg', fade=min(0.5, self.selected_diff_text_fadein.attribute), scale=self.selected_diff_text_resize.attribute, center=True)
                 tex.draw_texture('global', 'bg_diff_text', frame=min(3, self.selected_difficulty), fade=self.selected_diff_text_fadein.attribute, scale=self.selected_diff_text_resize.attribute, center=True)
 
-    def draw(self, state: State, is_half: bool = False):
+    def draw(self, state: int, is_half: bool = False):
         if (self.selected_song and state == State.SONG_SELECTED):
-            self.draw_selector(state, is_half)
+            self.draw_selector(is_half)
 
         offset = 0
         if self.neiro_selector is not None:

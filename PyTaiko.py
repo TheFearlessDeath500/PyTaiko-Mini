@@ -1,7 +1,9 @@
+import logging
+import os
+
 import sqlite3
 
 import pyray as ray
-from raylib import CAMERA_ORTHOGRAPHIC
 from raylib.defines import (
     RL_FUNC_ADD,
     RL_ONE,
@@ -29,6 +31,8 @@ from scenes.title import TitleScreen
 from scenes.two_player.song_select import TwoPlayerSongSelectScreen
 
 
+logger = logging.getLogger(__name__)
+
 class Screens:
     TITLE = "TITLE"
     ENTRY = "ENTRY"
@@ -41,6 +45,22 @@ class Screens:
     SETTINGS = "SETTINGS"
     DEV_MENU = "DEV_MENU"
     LOADING = "LOADING"
+
+class ColoredFormatter(logging.Formatter):
+    COLORS = {
+        'DEBUG': '\033[36m',    # Cyan
+        'INFO': '\033[32m',     # Green
+        'WARNING': '\033[33m',  # Yellow
+        'ERROR': '\033[31m',    # Red
+        'CRITICAL': '\033[35m', # Magenta
+    }
+    RESET = '\033[0m'
+
+    def format(self, record):
+        log_color = self.COLORS.get(record.levelname, self.RESET)
+        record = logging.makeLogRecord(record.__dict__)
+        record.levelname = f"{log_color}{record.levelname}{self.RESET}"
+        return super().format(record)
 
 def create_song_db():
     """Create the scores database if it doesn't exist
@@ -64,62 +84,78 @@ def create_song_db():
         '''
         cursor.execute(create_table_query)
         con.commit()
-        # Migrate existing records: set clear=2 for full combos (bad=0)
-        cursor.execute("""
-            UPDATE Scores
-            SET clear = 2
-            WHERE bad = 0 AND (clear IS NULL OR clear <> 2)
-        """)
-        con.commit()
-        print("Scores database created successfully")
+        logger.info("Scores database created successfully")
 
 def main():
     force_dedicated_gpu()
     global_data.config = get_config()
+    log_level = global_data.config["general"]["log_level"]
+    colored_formatter = ColoredFormatter('[%(levelname)s] %(name)s: %(message)s')
+    plain_formatter = logging.Formatter('[%(levelname)s] %(name)s: %(message)s')
+    console_handler = logging.StreamHandler()
+    console_handler.setFormatter(colored_formatter)
+
+    file_handler = logging.FileHandler("latest.log")
+    file_handler.setFormatter(plain_formatter)
+    logging.basicConfig(
+        level=log_level,
+        handlers=[console_handler, file_handler]
+    )
+    logger.info("Starting PyTaiko")
+
+    logger.debug(f"Loaded config: {global_data.config}")
     screen_width: int = global_data.config["video"]["screen_width"]
     screen_height: int = global_data.config["video"]["screen_height"]
 
     if global_data.config["video"]["vsync"]:
         ray.set_config_flags(ray.ConfigFlags.FLAG_VSYNC_HINT)
+        logger.info("VSync enabled")
     if global_data.config["video"]["target_fps"] != -1:
         ray.set_target_fps(global_data.config["video"]["target_fps"])
+        logger.info(f"Target FPS set to {global_data.config['video']['target_fps']}")
     ray.set_config_flags(ray.ConfigFlags.FLAG_MSAA_4X_HINT)
     ray.set_trace_log_level(ray.TraceLogLevel.LOG_WARNING)
 
-    camera = ray.Camera3D()
-    camera.position = ray.Vector3(0.0, 0.0, 10.0)  # Camera position
-    camera.target = ray.Vector3(0.0, 0.0, 0.0)     # Camera looking at point
-    camera.up = ray.Vector3(0.0, 1.0, 0.0)         # Camera up vector
-    camera.fovy = screen_height  # For orthographic, this acts as the view height
-    camera.projection = CAMERA_ORTHOGRAPHIC
-
     ray.init_window(screen_width, screen_height, "PyTaiko")
+    logger.info(f"Window initialized: {screen_width}x{screen_height}")
     global_tex.load_screen_textures('global')
+    logger.info("Global screen textures loaded")
     global_tex.load_zip('chara', 'chara_0')
     global_tex.load_zip('chara', 'chara_1')
+    logger.info("Chara textures loaded")
     if global_data.config["video"]["borderless"]:
         ray.toggle_borderless_windowed()
+        logger.info("Borderless window enabled")
     if global_data.config["video"]["fullscreen"]:
         ray.toggle_fullscreen()
+        logger.info("Fullscreen enabled")
 
     current_screen = Screens.LOADING
+    logger.info(f"Initial screen: {current_screen}")
 
     audio.set_log_level(1)
+    old_stderr = os.dup(2)
+    devnull = os.open(os.devnull, os.O_WRONLY)
+    os.dup2(devnull, 2)
+    os.close(devnull)
     audio.init_audio_device()
+    os.dup2(old_stderr, 2)
+    os.close(old_stderr)
+    logger.info("Audio device initialized")
 
     create_song_db()
 
-    title_screen = TitleScreen()
-    entry_screen = EntryScreen()
-    song_select_screen = SongSelectScreen()
-    song_select_screen_2p = TwoPlayerSongSelectScreen()
-    load_screen = LoadScreen()
-    game_screen = GameScreen()
-    game_screen_2p = TwoPlayerGameScreen()
-    result_screen = ResultScreen()
-    result_screen_2p = TwoPlayerResultScreen()
-    settings_screen = SettingsScreen()
-    dev_screen = DevScreen()
+    title_screen = TitleScreen('title')
+    entry_screen = EntryScreen('entry')
+    song_select_screen = SongSelectScreen('song_select')
+    song_select_screen_2p = TwoPlayerSongSelectScreen('song_select')
+    load_screen = LoadScreen('loading')
+    game_screen = GameScreen('game')
+    game_screen_2p = TwoPlayerGameScreen('game')
+    result_screen = ResultScreen('result')
+    result_screen_2p = TwoPlayerResultScreen('result')
+    settings_screen = SettingsScreen('settings')
+    dev_screen = DevScreen('dev')
 
     screen_mapping = {
         Screens.ENTRY: entry_screen,
@@ -141,12 +177,15 @@ def main():
     ray.set_exit_key(ord(global_data.config["keys_1p"]["exit_key"]))
 
     ray.hide_cursor()
+    logger.info("Cursor hidden")
 
     while not ray.window_should_close():
         if ray.is_key_pressed(ray.KeyboardKey.KEY_F11):
             ray.toggle_fullscreen()
+            logger.info("Toggled fullscreen")
         elif ray.is_key_pressed(ray.KeyboardKey.KEY_F10):
             ray.toggle_borderless_windowed()
+            logger.info("Toggled borderless windowed mode")
 
         ray.begin_texture_mode(target)
         ray.begin_blend_mode(ray.BlendMode.BLEND_CUSTOM_SEPARATE)
@@ -154,13 +193,12 @@ def main():
         screen = screen_mapping[current_screen]
 
         next_screen = screen.update()
-        ray.clear_background(ray.BLACK)
-        screen.draw()
-        #ray.begin_mode_3d(camera)
-        #screen.draw_3d()
-       # ray.end_mode_3d()
+        if screen.screen_init:
+            ray.clear_background(ray.BLACK)
+            screen.draw()
 
         if next_screen is not None:
+            logger.info(f"Screen changed from {current_screen} to {next_screen}")
             current_screen = next_screen
             global_data.input_locked = 0
 
@@ -181,6 +219,7 @@ def main():
         ray.end_drawing()
     ray.close_window()
     audio.close_audio_device()
+    logger.info("Window closed and audio device shut down")
 
 if __name__ == "__main__":
     main()

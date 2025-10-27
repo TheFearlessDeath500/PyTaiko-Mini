@@ -1,3 +1,4 @@
+import logging
 import random
 
 import libs.bg_collabs
@@ -10,6 +11,8 @@ from libs.bg_objects.fever import Fever
 from libs.bg_objects.footer import Footer
 from libs.bg_objects.renda import RendaController
 from libs.texture import TextureWrapper
+
+logger = logging.getLogger(__name__)
 
 class Background:
     """The background class for the game."""
@@ -24,6 +27,7 @@ class Background:
         "IMAS_SIDEM": (libs.bg_collabs.imas_sidem.Background, 'background/collab/imas_sidem', 3),
         "DAN": (libs.bg_collabs.dan.Background, 'background/collab/dan', 1)
     }
+
     def __init__(self, player_num: int, bpm: float, scene_preset: str = ''):
         """
         Initialize the background class.
@@ -87,7 +91,8 @@ class Background:
             self.chibi = collab_bg.chibi
         self.is_clear = False
         self.is_rainbow = False
-        self.last_milestone = 0
+        self.last_milestone = 1
+        logger.info(f"Background initialized for player {player_num}, bpm={bpm}, scene_preset={scene_preset}")
 
     def add_chibi(self, bad: bool, player_num: int):
         """
@@ -122,14 +127,17 @@ class Background:
                 current_milestone = min(self.max_dancers - 1, int(gauge_1p.gauge_length / (clear_threshold / self.max_dancers)))
             else:
                 current_milestone = self.max_dancers
-            if current_milestone > self.last_milestone and current_milestone < self.max_dancers:
+            if current_milestone > self.last_milestone and current_milestone <= self.max_dancers:
                 self.dancer.add_dancer()
                 self.last_milestone = current_milestone
+                logger.info(f"Dancer milestone reached: {current_milestone}/{self.max_dancers}")
         if self.bg_fever is not None:
             if not self.is_clear and gauge_1p.is_clear:
                 self.bg_fever.start()
+                logger.info("Fever started")
             if not self.is_rainbow and gauge_1p.is_rainbow and self.fever is not None:
                 self.fever.start()
+                logger.info("Rainbow fever started")
         self.is_clear = gauge_1p.is_clear
         self.is_rainbow = gauge_1p.is_rainbow
         self.don_bg.update(current_time_ms, self.is_clear)
@@ -182,3 +190,4 @@ class Background:
         Unload the background.
         """
         self.tex_wrapper.unload_textures()
+        logger.info("Background textures unloaded")

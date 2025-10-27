@@ -1,20 +1,20 @@
+import logging
 from libs.utils import get_current_ms
 from scenes.result import Background, FadeIn, ResultPlayer, ResultScreen
 
-class TwoPlayerResultScreen(ResultScreen):
-    def __init__(self):
-        super().__init__()
+logger = logging.getLogger(__name__)
 
+class TwoPlayerResultScreen(ResultScreen):
     def on_screen_start(self):
-        if not self.screen_init:
-            super().on_screen_start()
-            self.background = Background('3', self.width)
-            self.fade_in = FadeIn('3')
-            self.player_1 = ResultPlayer('1', True, False)
-            self.player_2 = ResultPlayer('2', True, True)
+        super().on_screen_start()
+        self.background = Background('3', 1280)
+        self.fade_in = FadeIn('3')
+        self.player_1 = ResultPlayer('1', True, False)
+        self.player_2 = ResultPlayer('2', True, True)
+        logger.info("TwoPlayerResultScreen started, background and players initialized")
 
     def update(self):
-        self.on_screen_start()
+        super(ResultScreen, self).update()
         current_time = get_current_ms()
         self.fade_in.update(current_time)
         self.player_1.update(current_time, self.fade_in.is_finished, self.is_skipped)

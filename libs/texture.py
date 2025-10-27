@@ -1,6 +1,7 @@
 import copy
 import json
 import os
+import logging
 import tempfile
 import zipfile
 from pathlib import Path
@@ -12,6 +13,8 @@ from libs.animation import BaseAnimation, parse_animations
 
 SCREEN_WIDTH = 1280
 SCREEN_HEIGHT = 720
+
+logger = logging.getLogger(__name__)
 
 class Texture:
     """Texture class for managing textures and animations."""
@@ -42,14 +45,28 @@ class TextureWrapper:
 
     def unload_textures(self):
         """Unload all textures and animations."""
+        ids = {}  # Map ID to texture name
         for zip in self.textures:
             for file in self.textures[zip]:
                 tex_object = self.textures[zip][file]
                 if isinstance(tex_object.texture, list):
-                    for texture in tex_object.texture:
-                        ray.unload_texture(texture)
+                    for i, texture in enumerate(tex_object.texture):
+                        if texture.id in ids:
+                            logger.warning(f"Duplicate texture ID {texture.id}: {ids[texture.id]} and {zip}/{file}[{i}]")
+                        else:
+                            ids[texture.id] = f"{zip}/{file}[{i}]"
+                            ray.unload_texture(texture)
                 else:
-                    ray.unload_texture(tex_object.texture)
+                    if tex_object.texture.id in ids:
+                        logger.warning(f"Duplicate texture ID {tex_object.texture.id}: {ids[tex_object.texture.id]} and {zip}/{file}")
+                    else:
+                        ids[tex_object.texture.id] = f"{zip}/{file}"
+                        ray.unload_texture(tex_object.texture)
+
+        self.textures.clear()
+        self.animations.clear()
+
+        logger.info("All textures unloaded")
 
     def get_animation(self, index: int, is_copy: bool = False):
         """Get an animation by ID and returns a reference.
@@ -93,52 +110,57 @@ class TextureWrapper:
         if (screen_path / 'animation.json').exists():
             with open(screen_path / 'animation.json') as json_file:
                 self.animations = parse_animations(json.loads(json_file.read()))
+            logger.info(f"Animations loaded for screen: {screen_name}")
 
     def load_zip(self, screen_name: str, subset: str):
         """Load textures from a zip file."""
         zip = (self.graphics_path / screen_name / subset).with_suffix('.zip')
         if screen_name in self.textures and subset in self.textures[screen_name]:
             return
-        with zipfile.ZipFile(zip, 'r') as zip_ref:
-            if 'texture.json' not in zip_ref.namelist():
-                raise Exception(f"texture.json file missing from {zip}")
+        try:
+            with zipfile.ZipFile(zip, 'r') as zip_ref:
+                if 'texture.json' not in zip_ref.namelist():
+                    raise Exception(f"texture.json file missing from {zip}")
 
-            with zip_ref.open('texture.json') as json_file:
-                tex_mapping_data = json.loads(json_file.read().decode('utf-8'))
-                self.textures[zip.stem] = dict()
+                with zip_ref.open('texture.json') as json_file:
+                    tex_mapping_data = json.loads(json_file.read().decode('utf-8'))
+                    self.textures[zip.stem] = dict()
 
-            for tex_name in tex_mapping_data:
-                if f"{tex_name}/" in zip_ref.namelist():
-                    tex_mapping = tex_mapping_data[tex_name]
+                for tex_name in tex_mapping_data:
+                    if f"{tex_name}/" in zip_ref.namelist():
+                        tex_mapping = tex_mapping_data[tex_name]
 
-                    with tempfile.TemporaryDirectory() as temp_dir:
-                        zip_ref.extractall(temp_dir, members=[name for name in zip_ref.namelist()
-                                                            if name.startswith(tex_name)])
+                        with tempfile.TemporaryDirectory() as temp_dir:
+                            zip_ref.extractall(temp_dir, members=[name for name in zip_ref.namelist()
+                                                                if name.startswith(tex_name)])
 
-                        extracted_path = Path(temp_dir) / tex_name
-                        if extracted_path.is_dir():
-                            frames = [ray.load_texture(str(frame)) for frame in sorted(extracted_path.iterdir(),
-                                      key=lambda x: int(x.stem)) if frame.is_file()]
-                        else:
-                            frames = [ray.load_texture(str(extracted_path))]
-                    self.textures[zip.stem][tex_name] = Texture(tex_name, frames, tex_mapping)
-                    self._read_tex_obj_data(tex_mapping, self.textures[zip.stem][tex_name])
-                elif f"{tex_name}.png" in zip_ref.namelist():
-                    tex_mapping = tex_mapping_data[tex_name]
-
-                    png_filename = f"{tex_name}.png"
-                    with tempfile.NamedTemporaryFile(suffix='.png', delete=False) as temp_file:
-                        temp_file.write(zip_ref.read(png_filename))
-                        temp_path = temp_file.name
-
-                    try:
-                        tex = ray.load_texture(temp_path)
-                        self.textures[zip.stem][tex_name] = Texture(tex_name, tex, tex_mapping)
+                            extracted_path = Path(temp_dir) / tex_name
+                            if extracted_path.is_dir():
+                                frames = [ray.load_texture(str(frame)) for frame in sorted(extracted_path.iterdir(),
+                                          key=lambda x: int(x.stem)) if frame.is_file()]
+                            else:
+                                frames = [ray.load_texture(str(extracted_path))]
+                        self.textures[zip.stem][tex_name] = Texture(tex_name, frames, tex_mapping)
                         self._read_tex_obj_data(tex_mapping, self.textures[zip.stem][tex_name])
-                    finally:
-                        os.unlink(temp_path)
-                else:
-                    raise Exception(f"Texture {tex_name} was not found in {zip}")
+                    elif f"{tex_name}.png" in zip_ref.namelist():
+                        tex_mapping = tex_mapping_data[tex_name]
+
+                        png_filename = f"{tex_name}.png"
+                        with tempfile.NamedTemporaryFile(suffix='.png', delete=False) as temp_file:
+                            temp_file.write(zip_ref.read(png_filename))
+                            temp_path = temp_file.name
+
+                        try:
+                            tex = ray.load_texture(temp_path)
+                            self.textures[zip.stem][tex_name] = Texture(tex_name, tex, tex_mapping)
+                            self._read_tex_obj_data(tex_mapping, self.textures[zip.stem][tex_name])
+                        finally:
+                            os.unlink(temp_path)
+                    else:
+                        raise Exception(f"Texture {tex_name} was not found in {zip}")
+            logger.info(f"Textures loaded from zip: {zip}")
+        except Exception as e:
+            logger.error(f"Failed to load textures from zip {zip}: {e}")
 
     def load_screen_textures(self, screen_name: str) -> None:
         """Load textures for a screen."""
@@ -146,10 +168,12 @@ class TextureWrapper:
         if (screen_path / 'animation.json').exists():
             with open(screen_path / 'animation.json') as json_file:
                 self.animations = parse_animations(json.loads(json_file.read()))
+            logger.info(f"Animations loaded for screen: {screen_name}")
         for zip in screen_path.iterdir():
             if zip.is_dir() or zip.suffix != ".zip":
                 continue
             self.load_zip(screen_name, zip.name)
+        logger.info(f"Screen textures loaded for: {screen_name}")
 
     def control(self, tex_object: Texture, index: int = 0):
         '''debug function'''
@@ -158,16 +182,16 @@ class TextureWrapper:
             distance = 10
         if ray.is_key_pressed(ray.KeyboardKey.KEY_LEFT):
             tex_object.x[index] -= distance
-            print(f"{tex_object.name}: {tex_object.x[index]}, {tex_object.y[index]}")
+            logger.info(f"{tex_object.name}: {tex_object.x[index]}, {tex_object.y[index]}")
         if ray.is_key_pressed(ray.KeyboardKey.KEY_RIGHT):
             tex_object.x[index] += distance
-            print(f"{tex_object.name}: {tex_object.x[index]}, {tex_object.y[index]}")
+            logger.info(f"{tex_object.name}: {tex_object.x[index]}, {tex_object.y[index]}")
         if ray.is_key_pressed(ray.KeyboardKey.KEY_UP):
             tex_object.y[index] -= distance
-            print(f"{tex_object.name}: {tex_object.x[index]}, {tex_object.y[index]}")
+            logger.info(f"{tex_object.name}: {tex_object.x[index]}, {tex_object.y[index]}")
         if ray.is_key_pressed(ray.KeyboardKey.KEY_DOWN):
             tex_object.y[index] += distance
-            print(f"{tex_object.name}: {tex_object.x[index]}, {tex_object.y[index]}")
+            logger.info(f"{tex_object.name}: {tex_object.x[index]}, {tex_object.y[index]}")
 
     def draw_texture(self, subset: str, texture: str, color: ray.Color=ray.WHITE, frame: int = 0, scale: float = 1.0, center: bool = False,
                             mirror: str = '', x: float = 0, y: float = 0, x2: float = 0, y2: float = 0,
