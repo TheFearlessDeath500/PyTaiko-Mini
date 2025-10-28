@@ -18,13 +18,13 @@ class VideoPlayer:
             self.video.audio.write_audiofile("cache/temp_audio.wav", logger=None)
             self.audio = audio.load_music_stream(Path("cache/temp_audio.wav"), 'video')
 
-        self.buffer_size = 10  # Number of frames to keep in memory
-        self.frame_buffer: dict[float, ray.Texture] = dict()  # Dictionary to store frames {timestamp: texture}
+        self.texture = None
+        self.current_frame_data = None
+
         self.frame_timestamps: list[float] = [(i * 1000) / self.video.fps for i in range(int(self.video.duration * self.video.fps) + 1)]
 
         self.start_ms = None
         self.frame_index = 0
-        self.current_frame = None
         self.fps = self.video.fps
         self.frame_duration = 1000 / self.fps
         self.audio_played = False
@@ -41,47 +41,28 @@ class VideoPlayer:
         self.is_finished_list[1] = audio.get_music_time_length(self.audio) <= audio.get_music_time_played(self.audio)
 
     def _load_frame(self, index: int):
-        """Load a specific frame into the buffer"""
+        """Load a specific frame and update the texture"""
         if index >= len(self.frame_timestamps) or index < 0:
-            return None
-
-        timestamp = self.frame_timestamps[index]
-
-        if timestamp in self.frame_buffer:
-            return self.frame_buffer[timestamp]
+            return False
 
         try:
+            timestamp = self.frame_timestamps[index]
             time_sec = timestamp / 1000
             frame_data = self.video.get_frame(time_sec)
 
-            image = ray.Image(frame_data, self.video.w, self.video.h, 1, ray.PixelFormat.PIXELFORMAT_UNCOMPRESSED_R8G8B8)
-            texture = ray.load_texture_from_image(image)
+            if self.texture is None:
+                image = ray.Image(frame_data, self.video.w, self.video.h, 1, ray.PixelFormat.PIXELFORMAT_UNCOMPRESSED_R8G8B8)
+                self.texture = ray.load_texture_from_image(image)
+            else:
+                frame_bytes = frame_data.tobytes()
+                pixels_ptr = ray.ffi.cast('void *', ray.ffi.from_buffer('unsigned char[]', frame_bytes))
+                ray.update_texture(self.texture, pixels_ptr)
 
-            self.frame_buffer[timestamp] = texture
-
-            self._manage_buffer()
-
-            return texture
+            self.current_frame_data = frame_data
+            return True
         except Exception as e:
             logger.error(f"Error loading frame at index {index}: {e}")
-            return None
-
-    def _manage_buffer(self):
-        if len(self.frame_buffer) > self.buffer_size:
-            keep_range = set()
-            half_buffer = self.buffer_size // 2
-
-            for i in range(max(0, self.frame_index - half_buffer),
-                          min(len(self.frame_timestamps), self.frame_index + half_buffer + 1)):
-                keep_range.add(self.frame_timestamps[i])
-
-            buffer_timestamps = list(self.frame_buffer.keys())
-            buffer_timestamps.sort()
-
-            for ts in buffer_timestamps:
-                if ts not in keep_range and len(self.frame_buffer) > self.buffer_size:
-                    texture = self.frame_buffer.pop(ts)
-                    ray.unload_texture(texture)
+            return False
 
     def is_started(self) -> bool:
         """Returns boolean value if the video has begun"""
@@ -90,8 +71,7 @@ class VideoPlayer:
     def start(self, current_ms: float) -> None:
         """Start video playback at call time"""
         self.start_ms = current_ms
-        for i in range(min(self.buffer_size, len(self.frame_timestamps))):
-            self._load_frame(i)
+        self._load_frame(0)
 
     def is_finished(self) -> bool:
         """Check if video is finished playing"""
@@ -120,25 +100,25 @@ class VideoPlayer:
 
         current_index = max(0, self.frame_index - 1)
 
-        self.current_frame = self._load_frame(current_index)
-
-        for i in range(1, 5):
-            if current_index + i < len(self.frame_timestamps):
-                self._load_frame(current_index + i)
+        self._load_frame(current_index)
 
     def draw(self):
         """Draw video frames to the raylib canvas"""
-        if self.current_frame is not None:
-            ray.draw_texture(self.current_frame, 0, 0, ray.WHITE)
+        if self.texture is not None:
+            ray.draw_texture(self.texture, 0, 0, ray.WHITE)
 
     def stop(self):
         """Stops the video, audio, and clears its buffer"""
         self.video.close()
-        for timestamp, texture in self.frame_buffer.items():
-            ray.unload_texture(texture)
-        self.frame_buffer.clear()
 
-        if audio.is_music_stream_playing(self.audio):
-            audio.stop_music_stream(self.audio)
-        audio.unload_music_stream(self.audio)
-        Path("cache/temp_audio.wav").unlink()
+        if self.texture is not None:
+            ray.unload_texture(self.texture)
+            self.texture = None
+
+        if self.audio is not None:
+            if audio.is_music_stream_playing(self.audio):
+                audio.stop_music_stream(self.audio)
+            audio.unload_music_stream(self.audio)
+
+        if Path("cache/temp_audio.wav").exists():
+            Path("cache/temp_audio.wav").unlink()
