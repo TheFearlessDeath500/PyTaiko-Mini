@@ -107,7 +107,6 @@ def is_l_don_pressed(player_num: str = '0') -> bool:
     for key in keys:
         if len(key) == 1 and key.isalnum():
             key_code = ord(key.upper())
-            print(key_code)
         else:
             key_code = getattr(ray, f"KEY_{key.upper()}", None)
             if key_code is None:
