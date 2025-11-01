@@ -888,7 +888,7 @@ class DanCourse(FileSystemItem):
         super().__init__(path, name)
         if name != "dan.json":
             self.logging.error(f"Invalid dan course file: {path}")
-        with open(path, 'r') as f:
+        with open(path, 'r', encoding='utf-8') as f:
             data = json.load(f)
             self.title = data["title"]
             self.color = data["color"]

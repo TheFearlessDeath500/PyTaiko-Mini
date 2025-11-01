@@ -12,7 +12,7 @@ from libs.tja import TJAParser
 from libs.transition import Transition
 from libs.utils import OutlinedText, get_current_ms
 from libs.texture import tex
-from scenes.game import GameScreen, ResultTransition, SongInfo
+from scenes.game import ClearAnimation, FCAnimation, FailAnimation, GameScreen, ResultTransition, SongInfo
 
 logger = logging.getLogger(__name__)
 
@@ -100,6 +100,7 @@ class DanGameScreen(GameScreen):
         self.player_1.tja = self.tja
         self.player_1.reset_chart()
         self.dan_transition.start()
+        self.song_info = SongInfo(self.tja.metadata.title.get(global_data.config["general"]["language"], "en"), genre_index)
         self.start_ms = (get_current_ms() - self.tja.metadata.offset*1000)
 
     def _calculate_dan_info(self):
@@ -171,6 +172,13 @@ class DanGameScreen(GameScreen):
             return self.on_screen_end('DAN_SELECT')
 
     @override
+    def spawn_ending_anims(self):
+        if self.player_1.gauge.is_clear and not any(self.exam_failed):
+            self.player_1.ending_anim = ClearAnimation(self.player_1.is_2p)
+        elif not self.player_1.gauge.is_clear:
+            self.player_1.ending_anim = FailAnimation(self.player_1.is_2p)
+
+    @override
     def update(self):
         super(GameScreen, self).update()
         current_time = get_current_ms()
@@ -190,7 +198,7 @@ class DanGameScreen(GameScreen):
         self.dan_info_cache = self._calculate_dan_info()
         self._check_exam_failures()
 
-        if self.result_transition.is_finished and not audio.is_sound_playing('result_transition'):
+        if self.result_transition.is_finished and not audio.is_sound_playing('dan_transition'):
             logger.info("Result transition finished, moving to RESULT screen")
             return self.on_screen_end('RESULT')
         elif self.current_ms >= self.player_1.end_time + 1000:
@@ -203,7 +211,7 @@ class DanGameScreen(GameScreen):
                     if current_time >= self.end_ms + 8533.34:
                         if not self.result_transition.is_started:
                             self.result_transition.start()
-                            audio.play_sound('result_transition', 'voice')
+                            audio.play_sound('dan_transition', 'voice')
                             logger.info("Result transition started and voice played")
                 else:
                     self.end_ms = current_time
