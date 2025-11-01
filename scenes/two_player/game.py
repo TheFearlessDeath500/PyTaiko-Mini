@@ -60,7 +60,7 @@ class TwoPlayerGameScreen(GameScreen):
         if ray.is_key_pressed(ray.KeyboardKey.KEY_F1):
             if self.song_music is not None:
                 audio.stop_music_stream(self.song_music)
-            self.init_tja(global_data.selected_song)
+            self.init_tja(global_data.session_data[global_data.player_num-1].selected_song)
             audio.play_sound('restart', 'sound')
             self.song_started = False
             logger.info("F1 pressed: song restarted")
@@ -124,10 +124,10 @@ class TwoPlayerGameScreen(GameScreen):
         elif self.current_ms >= self.player_1.end_time:
             session_data = global_data.session_data[0]
             session_data.result_score, session_data.result_good, session_data.result_ok, session_data.result_bad, session_data.result_max_combo, session_data.result_total_drumroll = self.player_1.get_result_score()
-            session_data.result_gauge_length = self.player_1.gauge.gauge_length
+            session_data.result_gauge_length = int(self.player_1.gauge.gauge_length)
             session_data = global_data.session_data[1]
             session_data.result_score, session_data.result_good, session_data.result_ok, session_data.result_bad, session_data.result_max_combo, session_data.result_total_drumroll = self.player_2.get_result_score()
-            session_data.result_gauge_length = self.player_2.gauge.gauge_length
+            session_data.result_gauge_length = int(self.player_2.gauge.gauge_length)
             if self.end_ms != 0:
                 if current_time >= self.end_ms + 1000:
                     if self.player_1.ending_anim is None:

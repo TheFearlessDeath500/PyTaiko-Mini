@@ -13,6 +13,7 @@ class GeneralConfig(TypedDict):
     judge_counter: bool
     nijiiro_notes: bool
     log_level: int
+    fake_online: bool
 
 class NameplateConfig(TypedDict):
     name: str

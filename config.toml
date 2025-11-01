@@ -9,6 +9,7 @@ timer_frozen = true
 judge_counter = false
 nijiiro_notes = false
 log_level = 30
+fake_online = false
 
 [nameplate_1p]
 name = 'どんちゃん'

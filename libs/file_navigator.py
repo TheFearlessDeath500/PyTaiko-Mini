@@ -538,7 +538,7 @@ class DanBox:
                     self.reset()
 
     def reset(self):
-        if self.name is None:
+        if self.name is not None:
             self.name.unload()
             self.name = None
 
@@ -887,7 +887,7 @@ class DanCourse(FileSystemItem):
     def __init__(self, path: Path, name: str):
         super().__init__(path, name)
         if name != "dan.json":
-            self.logging.error(f"Invalid dan course file: {path}")
+            logger.error(f"Invalid dan course file: {path}")
         with open(path, 'r', encoding='utf-8') as f:
             data = json.load(f)
             self.title = data["title"]
@@ -902,6 +902,8 @@ class DanCourse(FileSystemItem):
                     path = Path(global_data.song_hashes[hash][0]["file_path"])
                     if (path.parent.parent / "box.def").exists():
                         _, genre_index, _ = parse_box_def(path.parent.parent)
+                    else:
+                        genre_index = 9
                     self.charts.append((TJAParser(path), genre_index, difficulty))
                 else:
                     pass
@@ -918,7 +920,7 @@ class FileNavigator:
 
         # Pre-generated objects storage
         self.all_directories: dict[str, Directory] = {}  # path -> Directory
-        self.all_song_files: dict[str, SongFile] = {}    # path -> SongFile
+        self.all_song_files: dict[str, Union[SongFile, DanCourse]] = {}    # path -> SongFile
         self.directory_contents: dict[str, list[Union[Directory, SongFile]]] = {}  # path -> list of items
 
         # OPTION 2: Lazy crown calculation with caching
@@ -995,7 +997,10 @@ class FileNavigator:
             song_list = self._read_song_list(self.favorite_folder.path)
             for song_obj in song_list:
                 if str(song_obj) in self.all_song_files:
-                    self.all_song_files[str(song_obj)].box.is_favorite = True
+                    if isinstance(self.all_song_files[str(song_obj)].box, DanBox):
+                        logger.warning(f"Cannot favorite DanCourse: {song_obj}")
+                    else:
+                        self.all_song_files[str(song_obj)].box.is_favorite = True
 
         logging.info(f"Object generation complete. "
                     f"Directories: {len(self.all_directories)}, "

@@ -125,20 +125,20 @@ class AllNetIcon:
     """All.Net status icon for the game."""
     def __init__(self):
         """Initialize the All.Net status icon."""
-        pass
+        self.online = get_config()["general"]["fake_online"]
     def update(self, current_time_ms: float):
         """Update the All.Net status icon."""
         pass
     def draw(self, x: int = 0, y: int = 0):
         """Draw the All.Net status icon. Only drawn offline for now"""
         tex = global_tex
-        tex.draw_texture('overlay', 'allnet_indicator', x=x, y=y, frame=0)
+        tex.draw_texture('overlay', 'allnet_indicator', x=x, y=y, frame=2 if self.online else 0)
 
 class EntryOverlay:
     """Banapass and Camera status icons"""
     def __init__(self):
         """Initialize the Banapass and Camera status icons."""
-        self.online = False
+        self.online = get_config()["general"]["fake_online"]
     def update(self, current_time_ms: float):
         """Update the Banapass and Camera status icons."""
         pass
@@ -151,7 +151,7 @@ class EntryOverlay:
         if not self.online:
             tex.draw_texture('overlay', 'banapass_no', x=x, y=y, frame=self.online)
 
-        tex.draw_texture('overlay', 'camera', x=x, y=y, frame=0)
+        tex.draw_texture('overlay', 'camera', x=x, y=y, frame=self.online)
 
 class Timer:
     """Timer class for displaying countdown timers."""
