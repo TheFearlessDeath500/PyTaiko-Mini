@@ -204,7 +204,7 @@ class GameScreen(Screen):
         if ray.is_key_pressed(ray.KeyboardKey.KEY_F1):
             if self.song_music is not None:
                 audio.stop_music_stream(self.song_music)
-            self.init_tja(global_data.selected_song)
+            self.init_tja(global_data.session_data[global_data.player_num-1].selected_song)
             audio.play_sound('restart', 'sound')
             self.song_started = False
 
@@ -530,7 +530,7 @@ class Player:
             return
 
         note = self.other_notes[0]
-        if note.hit_ms + Player.TIMING_BAD < current_ms:
+        if note.hit_ms < current_ms:
             if note.type != 8:
                 if len(self.other_notes) > 1:
                     tail = self.other_notes[1]
