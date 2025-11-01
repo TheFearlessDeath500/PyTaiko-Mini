@@ -143,7 +143,7 @@ class WarningScreen:
             self.fadein_2.update(current_ms)
 
             if self.resize.attribute > 1 and not self.sound_played:
-                audio.play_sound('error', 'sound')
+                audio.play_sound('error', 'attract_mode')
                 self.sound_played = True
 
         def draw_bg(self):
@@ -162,7 +162,7 @@ class WarningScreen:
 
         def update(self, current_ms: float):
             if not self.sound_played:
-                audio.play_sound('bachi_hit', 'sound')
+                audio.play_sound('bachi_hit', 'attract_mode')
                 self.sound_played = True
                 self.fadein.start()
                 self.resize.start()
@@ -261,8 +261,8 @@ class WarningScreen:
         else:
             self.fade_out.delay = elapsed_time + 500
             if delay <= elapsed_time and not audio.is_sound_playing('bachi_swipe'):
-                audio.play_sound('warning_voiceover', 'voice')
-                audio.play_sound('bachi_swipe', 'sound')
+                audio.play_sound('warning_voiceover', 'attract_mode')
+                audio.play_sound('bachi_swipe', 'attract_mode')
 
         self.is_finished = self.fade_out.is_finished
 
