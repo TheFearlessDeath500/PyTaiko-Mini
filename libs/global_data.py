@@ -21,6 +21,7 @@ class NameplateConfig(TypedDict):
     title_bg: int
     dan: int
     gold: bool
+    rainbow: bool
 
 class PathsConfig(TypedDict):
     tja_path: list[str]
