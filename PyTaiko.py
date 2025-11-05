@@ -12,6 +12,7 @@ from raylib.defines import (
 )
 
 from libs.audio import audio
+from libs.screen import Screen
 from libs.utils import (
     force_dedicated_gpu,
     get_config,
@@ -108,8 +109,8 @@ def main():
     logger.info("Starting PyTaiko")
 
     logger.debug(f"Loaded config: {global_data.config}")
-    screen_width: int = global_data.config["video"]["screen_width"]
-    screen_height: int = global_data.config["video"]["screen_height"]
+    screen_width = global_data.config["video"]["screen_width"]
+    screen_height = global_data.config["video"]["screen_height"]
 
     if global_data.config["video"]["vsync"]:
         ray.set_config_flags(ray.ConfigFlags.FLAG_VSYNC_HINT)
@@ -163,7 +164,7 @@ def main():
     dan_select_screen = DanSelectScreen('dan_select')
     game_screen_dan = DanGameScreen('game_dan')
 
-    screen_mapping = {
+    screen_mapping: dict[str, Screen] = {
         Screens.ENTRY: entry_screen,
         Screens.TITLE: title_screen,
         Screens.SONG_SELECT: song_select_screen,

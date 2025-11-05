@@ -142,7 +142,7 @@ class GlobalData:
         session_data (list[SessionData]): Session data for both players.
     """
     songs_played: int = 0
-    config: dict = field(default_factory=dict)
+    config: Config = field(default_factory=dict)
     song_hashes: dict[str, list[dict]] = field(default_factory=lambda: dict()) #Hash to path
     song_paths: dict[Path, str] = field(default_factory=lambda: dict()) #path to hash
     song_progress: float = 0.0
