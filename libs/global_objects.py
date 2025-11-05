@@ -7,7 +7,7 @@ from libs.audio import audio
 
 class Nameplate:
     """Nameplate for displaying player information."""
-    def __init__(self, name: str, title: str, player_num: int, dan: int, is_gold: bool, title_bg: int):
+    def __init__(self, name: str, title: str, player_num: int, dan: int, is_gold: bool, is_rainbow: bool, title_bg: int):
         """Initialize a Nameplate object.
 
         Args:
@@ -16,21 +16,29 @@ class Nameplate:
             player_num (int): The player's number.
             dan (int): The player's dan level.
             is_gold (bool): Whether the player's dan is gold.
+            is_rainbow (bool): Whether the player's nameplate background is rainbow.
+            title_bg (int): The player's non-rainbow nameplate background.
         """
         self.name = OutlinedText(name, 22, ray.WHITE, outline_thickness=3.0)
         self.title = OutlinedText(title, 20, ray.BLACK, outline_thickness=0)
         self.dan_index = dan
         self.player_num = player_num
         self.is_gold = is_gold
+        self.is_rainbow = is_rainbow
         self.title_bg = title_bg
+        if self.is_rainbow == True:
+            self.rainbow_animation = global_tex.get_animation(12)
+            self.rainbow_animation.start()
     def update(self, current_time_ms: float):
         """Update the Nameplate object.
 
         Args:
             current_time_ms (float): The current time in milliseconds.
-        Currently unused as rainbow nameplates are not implemented.
         """
-        pass
+        if self.is_rainbow == True:
+            self.rainbow_animation.update(current_time_ms)
+            if self.rainbow_animation.is_finished:
+                self.rainbow_animation.restart()
 
     def unload(self):
         """Unload the Nameplate object."""
@@ -52,7 +60,12 @@ class Nameplate:
         else:
             frame = self.title_bg
             title_offset = 14
-        tex.draw_texture('nameplate', 'frame_top', frame=frame, x=x, y=y, fade=fade)
+        if self.is_rainbow == True:
+            if 0 < self.rainbow_animation.attribute < 6:
+                tex.draw_texture('nameplate', 'frame_top_rainbow', frame=self.rainbow_animation.attribute-1, x=x, y=y, fade=fade)
+            tex.draw_texture('nameplate', 'frame_top_rainbow', frame=self.rainbow_animation.attribute, x=x, y=y, fade=fade)
+        else:
+            tex.draw_texture('nameplate', 'frame_top', frame=frame, x=x, y=y, fade=fade)
         tex.draw_texture('nameplate', 'outline', x=x, y=y, fade=fade)
         offset = 0
         if self.dan_index != -1:

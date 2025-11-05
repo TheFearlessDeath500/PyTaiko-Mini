@@ -17,6 +17,7 @@ title = 'ドンだーデビュー！'
 title_bg = 0
 dan = -1
 gold = false
+rainbow = false
 
 [nameplate_2p]
 name = 'かつちゃん'
@@ -24,6 +25,7 @@ title = 'ドンだーデビュー！'
 title_bg = 1
 dan = -1
 gold = false
+rainbow = false
 
 [paths]
 tja_path = ['Songs']
