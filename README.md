@@ -1,44 +1,53 @@
+# PyTaiko
+
+A TJA player and Taiko simulator written in Python using the [raylib](https://www.raylib.com/) library.
+
+![License](https://img.shields.io/github/license/Yonokid/PyTaiko)
+![Platform](https://img.shields.io/badge/platform-Windows%20%7C%20macOS%20%7C%20Linux-blue)
 [![GitHub Releases Downloads](https://img.shields.io/github/downloads/Yonokid/PyTaiko/total)](https://github.com/Yonokid/PyTaiko/releases)
 [![GitHub Stars](https://img.shields.io/github/stars/Yonokid/PyTaiko?style=flat&label=stars)](https://github.com/Yonokid/PyTaiko/stargazers)
 [![Discord Members](https://img.shields.io/discord/722513061419810946.svg?label=Discord&logo=discord)](https://discord.gg/XHcVYKW)
 [![Builds](https://github.com/Yonokid/PyTaiko/actions/workflows/python-app.yml/badge.svg)](https://github.com/Yonokid/PyTaiko/actions/workflows/python-app.yml)
-# PyTaiko
-
-This is a TJA player / Taiko simulator written in Python and uses the [raylib](https://www.raylib.com/) library.
 
 <img src="/docs/demo.gif">
 
+## Features
 
-## Video demo
+- Cross-platform compatibility (Windows, macOS, Linux)
+- Controller Support
+- Low latency audio via ASIO
+- Recursive Song Select Menu
 
-[![DEMO VIDEO](https://img.youtube.com/vi/b-2pODPl0II/0.jpg)](https://www.youtube.com/watch?v=b-2pODPl0II)
+## System Requirements
+
+- **Windows**: Windows 10 or higher
+- **macOS**: macOS 10.14 (Mojave) or higher
+- **Linux**: Ubuntu 20.04 or higher (other distributions may work but are untested)
+
+> **Note**: Operating systems below these requirements are not supported.
 
 ## Installation
 
-Windows 10, Mac OS X 10.14 and Ubuntu 20.04 and higher are supported.
-Any operating system below these requirements will not work.
-Any Linux distro not listed is up to your own discretion
-Download for OS of choice on releases page
+### Pre-built Binaries
 
-How to run:
-Windows:
-Install VC redistributable package from Microsoft
-```
-  Run PyTaiko.exe
-```
-MacOS:
-```
-Run with Python directly
-```
-Linux:
-```
-    Attempt to run PyTaiko.bin compiled, otherwise fall back to Python
-```
-Nix OS:
-Use the provided shell.nix code and run with Python:
-```
+Download the latest release for your operating system from the [releases page](https://github.com/Yonokid/PyTaiko/releases).
+
+#### Windows
+1. Install the [Visual C++ Redistributable](https://aka.ms/vs/17/release/vc_redist.x64.exe) from Microsoft
+2. Run `PyTaiko.exe`
+
+#### macOS
+- Run with Python directly (see [Building from Source](#building-from-source))
+
+#### Linux
+- Try running the compiled `PyTaiko.bin` binary
+- If that doesn't work, fall back to running with Python (see [Building from Source](#building-from-source))
+
+#### NixOS
+
+Use the provided `shell.nix` environment:
+```nix
 { pkgs ? import <nixpkgs> {} }:
-
 (pkgs.buildFHSEnv {
   name = "PyTaiko-env";
   targetPkgs = pkgs: (with pkgs; [
@@ -52,88 +61,95 @@ Use the provided shell.nix code and run with Python:
     python312Packages.pyaudio
     python312Packages.nuitka
     python312Packages.numpy
-
-          alsa-lib
-          xorg.libX11 xorg.libxcb xorg.libXcomposite
-          xorg.libXdamage xorg.libXext xorg.libXfixes
-          xorg.libXrender xorg.libxshmfence xorg.libXtst
-          xorg.libXi
-          xorg.xcbutilkeysyms
+    alsa-lib
+    xorg.libX11 xorg.libxcb xorg.libXcomposite
+    xorg.libXdamage xorg.libXext xorg.libXfixes
+    xorg.libXrender xorg.libxshmfence xorg.libXtst
+    xorg.libXi
+    xorg.xcbutilkeysyms
   ]);
   runScript = "bash";
 }).env
 ```
 
-## Roadmap
+Then run with Python as described in the Building from Source section.
 
-See "enhancements" on issues page
+## Building from Source
 
+### Prerequisites
 
-## Known Issues
+- [uv](https://docs.astral.sh/uv/) package manager
+- Python 3.12+
+- Git
 
-See "bugs" on issues page
-
-
-## Run Locally
-
-If not installed, install [uv](https://docs.astral.sh/uv/)
-
-Clone the project
-
+### C Libraries
 ```bash
-  git clone https://github.com/Yonokid/PyTaiko
+sudo apt install libsamplerate libsndfile
 ```
 
-Go to the project directory
-
+Some distributions may also require [patchelf](https://github.com/NixOS/patchelf) and this symbolic link:
 ```bash
-  cd PyTaiko
-````
-
-Either reuse the dlls/libraries from the compiled version or compile them yourself
-(Optional)
-```
-cd libs/audio
-make
-```
-Then move the compiled dlls to the main directory
-
-Start the game
-
-```bash
-  uv run PyTaiko.py
-```
-
-## Compilation
-Windows/Mac OS:
-```
-uv add nuitka
-uv run nuitka --mode=app --noinclude-setuptools-mode=nofollow --noinclude-IPython-mode=nofollow --assume-yes-for-downloads PyTaiko.py
-```
-Linux:
-Install portaudio with `sudo apt install portaudio19-dev`
-
-Some Linux distributions may need this:
-Install [patchelf](https://github.com/NixOS/patchelf)
-Run this command
-```
 sudo ln -s /lib/libatomic.so /lib/libatomic.a
 ```
 
-## FAQ
+### Build Steps
 
-#### Keybinds?
+1. Clone the repository:
+```bash
+git clone https://github.com/Yonokid/PyTaiko
+cd PyTaiko
+```
 
-Hit F1 in entry screen to access settings menu
-Hit F1 in game to quick restart
-Generic drum keybinds can be found in config.toml or the settings screen ingame
+2. **(Optional)** Compile audio libraries:
+```bash
+cd libs/audio
+make
+# Move compiled libraries to main directory
+```
+You can also reuse the DLLs/libraries from the pre-built releases.
+This step is required for MacOS.
 
-#### Why does it look like Gen 3 instead of Nijiiro?
+3. Run the game:
+```bash
+uv run PyTaiko.py
+```
 
-I like it
+### Creating Executables
+
+#### Windows/macOS/Linux
+```bash
+uv add nuitka
+uv run nuitka --mode=app --noinclude-setuptools-mode=nofollow --noinclude-IPython-mode=nofollow --assume-yes-for-downloads PyTaiko.py
+```
+
+## Controls
+
+- Press **F1** during gameplay for quick restart
+- Press **ESC** during any screen to go back
+- Generic drum keybinds can be customized in `config.toml` or through the in-game settings menu
 
 ## Contributing
 
-[![Ask DeepWiki](https://deepwiki.com/badge.svg)](https://deepwiki.com/Yonokid/PyTaiko)
+Contributions are welcome! Please keep in mind:
+- Be mindful of existing built-in functions for animations, videos, and other features
+- Check the [issues page](https://github.com/Yonokid/PyTaiko/issues) for enhancements and bugs before starting work
+- Feel free to open new issues for bugs or feature requests
 
-Contributions are now open. I don't have any particular contribution guidelines other than be mindful of what builtin functions already exist in this project (ie, for animations, videos, etc)
+## Known Issues
+
+See the [issues page](https://github.com/Yonokid/PyTaiko/issues) for current bugs and planned enhancements.
+
+## License
+
+This project is licensed under the terms specified in the LICENSE file.
+
+## Acknowledgments
+
+Built with [raylib](https://www.raylib.com/) - A simple and easy-to-use library to enjoy videogames programming.
+More credits coming soon
+
+## Video demo
+
+[![DEMO VIDEO](https://img.youtube.com/vi/b-2pODPl0II/0.jpg)](https://www.youtube.com/watch?v=b-2pODPl0II)
+
+---
