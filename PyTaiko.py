@@ -201,7 +201,7 @@ def main():
 
         if curr_screen_width == 0 or curr_screen_height == 0:
             dest_rect = ray.Rectangle(0, 0, screen_width, screen_height)
-        else:    
+        else:
             scale = min(curr_screen_width / screen_width, curr_screen_height / screen_height)
             dest_rect = ray.Rectangle((curr_screen_width - (screen_width * scale)) * 0.5,
                 (curr_screen_height - (screen_height * scale)) * 0.5,

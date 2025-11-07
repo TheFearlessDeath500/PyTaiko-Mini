@@ -130,50 +130,47 @@ class GameScreen(Screen):
         self.player_1 = Player(self.tja, global_data.player_num, global_data.session_data[global_data.player_num-1].selected_difficulty, False, global_data.modifiers[0])
         self.start_ms = (get_current_ms() - self.tja.metadata.offset*1000)
 
+    def get_song_hash(self, song: Path):
+        notes, branch_m, branch_e, branch_n = TJAParser.notes_to_position(TJAParser(song), self.player_1.difficulty)
+        if branch_m:
+            for branch in branch_m:
+                notes.play_notes.extend(branch.play_notes)
+                notes.draw_notes.extend(branch.draw_notes)
+                notes.bars.extend(branch.bars)
+        if branch_e:
+            for branch in branch_e:
+                notes.play_notes.extend(branch.play_notes)
+                notes.draw_notes.extend(branch.draw_notes)
+                notes.bars.extend(branch.bars)
+        if branch_n:
+            for branch in branch_n:
+                notes.play_notes.extend(branch.play_notes)
+                notes.draw_notes.extend(branch.draw_notes)
+                notes.bars.extend(branch.bars)
+        hash = self.tja.hash_note_data(notes)
+        return hash
+
     def write_score(self):
         """Write the score to the database"""
-        if self.tja is None:
-            return
         if global_data.modifiers[global_data.player_num-1].auto:
             return
         with sqlite3.connect('scores.db') as con:
             session_data = global_data.session_data[global_data.player_num-1]
             cursor = con.cursor()
-            notes, branch_m, branch_e, branch_n = TJAParser.notes_to_position(TJAParser(self.tja.file_path), self.player_1.difficulty)
-            if branch_m:
-                for branch in branch_m:
-                    notes.play_notes.extend(branch.play_notes)
-                    notes.draw_notes.extend(branch.draw_notes)
-                    notes.bars.extend(branch.bars)
-            if branch_e:
-                for branch in branch_e:
-                    notes.play_notes.extend(branch.play_notes)
-                    notes.draw_notes.extend(branch.draw_notes)
-                    notes.bars.extend(branch.bars)
-            if branch_n:
-                for branch in branch_n:
-                    notes.play_notes.extend(branch.play_notes)
-                    notes.draw_notes.extend(branch.draw_notes)
-                    notes.bars.extend(branch.bars)
-            hash = self.tja.hash_note_data(notes)
+            hash = self.get_song_hash(session_data.selected_song)
             check_query = "SELECT score, clear FROM Scores WHERE hash = ? LIMIT 1"
             cursor.execute(check_query, (hash,))
             result = cursor.fetchone()
             existing_score = result[0] if result is not None else None
-            existing_clear = result[1] if result is not None and len(result) > 1 and result[1] is not None else 0
-
-            # Determine clear value for this run: 2 for full combo (no bads), 1 for clear gauge, 0 otherwise
-            run_clear = 2 if session_data.result_bad == 0 else (1 if self.player_1.gauge.is_clear else 0)
-            best_clear = max(existing_clear, run_clear)
-
+            existing_crown = result[1] if result is not None and len(result) > 1 and result[1] is not None else 0
+            crown = 0
+            if session_data.result_bad and session_data.result_ok == 0:
+                crown = 3
+            elif session_data.result_bad == 0:
+                crown = 2
+            elif self.player_1.gauge.is_clear:
+                crown = 1
             if result is None or (existing_score is not None and session_data.result_score > existing_score):
-                if result is None:
-                    session_data.prev_score = 0
-                else:
-                    if not isinstance(existing_score, int):
-                        session_data.prev_score = 0
-                    else:
-                        session_data.prev_score = existing_score
                 insert_query = '''
                 INSERT OR REPLACE INTO Scores (hash, en_name, jp_name, diff, score, good, ok, bad, drumroll, combo, clear)
                 VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);
@@ -182,14 +179,12 @@ class GameScreen(Screen):
                         self.tja.metadata.title.get('ja', ''), self.player_1.difficulty,
                         session_data.result_score, session_data.result_good,
                         session_data.result_ok, session_data.result_bad,
-                        session_data.result_total_drumroll, session_data.result_max_combo, best_clear)
+                        session_data.result_total_drumroll, session_data.result_max_combo, crown)
                 cursor.execute(insert_query, data)
                 con.commit()
-            else:
-                # Score didn't improve; if clear improved, update only the clear column to preserve best crown
-                if run_clear > existing_clear:
-                    cursor.execute("UPDATE Scores SET clear = ? WHERE hash = ?", (run_clear, hash))
-                    con.commit()
+            if result is None or (existing_crown is not None and crown > existing_crown):
+                cursor.execute("UPDATE Scores SET crown = ? WHERE hash = ?", (crown, hash))
+                con.commit()
 
     def start_song(self, current_time):
         if (self.current_ms >= self.tja.metadata.offset*1000 + self.start_delay - global_data.config["general"]["audio_offset"]) and not self.song_started:
