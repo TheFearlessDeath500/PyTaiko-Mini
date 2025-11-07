@@ -1,0 +1,301 @@
+{
+  "repo_notes": [
+    {
+      "content": ""
+    }
+  ],
+  "pages": [
+    {
+      "title": "Overview",
+      "purpose": "Introduce PyTaiko, a TJA player and Taiko simulator built with Python and raylib, summarizing its architecture and key features",
+      "page_notes": [
+        {
+          "content": ""
+        }
+      ]
+    },
+    {
+      "title": "Core Game Systems",
+      "purpose": "Document the fundamental systems that drive the application's lifecycle and game flow",
+      "page_notes": [
+        {
+          "content": ""
+        }
+      ]
+    },
+    {
+      "title": "Application Lifecycle and Main Loop",
+      "purpose": "Detail PyTaiko.py's main function, initialization sequence, and per-frame update loop",
+      "parent": "Core Game Systems",
+      "page_notes": [
+        {
+          "content": ""
+        }
+      ]
+    },
+    {
+      "title": "Screen Management and Scene Flow",
+      "purpose": "Explain the Screen base class architecture and state machine for transitioning between game screens",
+      "parent": "Core Game Systems",
+      "page_notes": [
+        {
+          "content": ""
+        }
+      ]
+    },
+    {
+      "title": "Configuration and Global State",
+      "purpose": "Document config.toml structure and global_data singleton for application-wide state management",
+      "parent": "Core Game Systems",
+      "page_notes": [
+        {
+          "content": ""
+        }
+      ]
+    },
+    {
+      "title": "Input System",
+      "purpose": "Explain the unified input handling for keyboard, gamepad, and touch controls across different screens",
+      "parent": "Core Game Systems",
+      "page_notes": [
+        {
+          "content": ""
+        }
+      ]
+    },
+    {
+      "title": "Gameplay Systems",
+      "purpose": "Cover the systems that implement the core rhythm game mechanics from song selection to results",
+      "page_notes": [
+        {
+          "content": ""
+        }
+      ]
+    },
+    {
+      "title": "Song Selection and File Navigation",
+      "purpose": "Document the FileNavigator system for browsing songs, directories, and collections with SongBox visualization",
+      "parent": "Gameplay Systems",
+      "page_notes": [
+        {
+          "content": ""
+        }
+      ]
+    },
+    {
+      "title": "Core Gameplay Loop",
+      "purpose": "Detail the GameScreen's per-frame update cycle, Player class architecture, and note rendering pipeline",
+      "parent": "Gameplay Systems",
+      "page_notes": [
+        {
+          "content": ""
+        }
+      ]
+    },
+    {
+      "title": "Note Processing and Hit Detection",
+      "purpose": "Explain note timing windows, hit detection algorithms, and the note queue system",
+      "parent": "Gameplay Systems",
+      "page_notes": [
+        {
+          "content": ""
+        }
+      ]
+    },
+    {
+      "title": "Scoring and Results",
+      "purpose": "Document score calculation, database persistence with hash-based indexing, and result screen display",
+      "parent": "Gameplay Systems",
+      "page_notes": [
+        {
+          "content": ""
+        }
+      ]
+    },
+    {
+      "title": "Media Processing Systems",
+      "purpose": "Explain how PyTaiko processes and manages song charts, audio, and video content",
+      "page_notes": [
+        {
+          "content": ""
+        }
+      ]
+    },
+    {
+      "title": "TJA Chart File Processing",
+      "purpose": "Detail the TJAParser class, note data structures, and chart-to-gameplay conversion",
+      "parent": "Media Processing Systems",
+      "page_notes": [
+        {
+          "content": ""
+        }
+      ]
+    },
+    {
+      "title": "Song Indexing and Caching",
+      "purpose": "Explain build_song_hashes system, hash-based caching, and score migration from TJAPlayer3",
+      "parent": "Media Processing Systems",
+      "page_notes": [
+        {
+          "content": ""
+        }
+      ]
+    },
+    {
+      "title": "Audio Engine Architecture",
+      "purpose": "Document the Python AudioEngine wrapper, CFFI interface, and audio.c implementation details",
+      "parent": "Media Processing Systems",
+      "page_notes": [
+        {
+          "content": ""
+        }
+      ]
+    },
+    {
+      "title": "Audio Library Build System",
+      "purpose": "Explain the cross-platform Makefile, platform-specific optimizations, and dependency management",
+      "parent": "Media Processing Systems",
+      "page_notes": [
+        {
+          "content": ""
+        }
+      ]
+    },
+    {
+      "title": "Video Playback System",
+      "purpose": "Document video background support and integration with gameplay",
+      "parent": "Media Processing Systems",
+      "page_notes": [
+        {
+          "content": ""
+        }
+      ]
+    },
+    {
+      "title": "Graphics and Visual Systems",
+      "purpose": "Cover the rendering pipeline, asset management, animations, and visual effects",
+      "page_notes": [
+        {
+          "content": ""
+        }
+      ]
+    },
+    {
+      "title": "Texture and Asset Management",
+      "purpose": "Explain TextureWrapper, ZIP archive loading, and texture.json metadata format",
+      "parent": "Graphics and Visual Systems",
+      "page_notes": [
+        {
+          "content": ""
+        }
+      ]
+    },
+    {
+      "title": "Animation Framework",
+      "purpose": "Document the animation system architecture, JSON-driven definitions, and animation types (fade, move, texture_change, etc.)",
+      "parent": "Graphics and Visual Systems",
+      "page_notes": [
+        {
+          "content": ""
+        }
+      ]
+    },
+    {
+      "title": "Background System",
+      "purpose": "Explain the multi-layer background architecture, state transitions (normal/fever/rainbow), and collaboration themes",
+      "parent": "Graphics and Visual Systems",
+      "page_notes": [
+        {
+          "content": ""
+        }
+      ]
+    },
+    {
+      "title": "Character Animation Systems",
+      "purpose": "Document Dancer, Chibi, and Chara2D systems with BPM-synchronized animations",
+      "parent": "Graphics and Visual Systems",
+      "page_notes": [
+        {
+          "content": ""
+        }
+      ]
+    },
+    {
+      "title": "UI Components and Effects",
+      "purpose": "Document reusable UI components like Nameplate, Timer, Indicator, and their animations",
+      "parent": "Graphics and Visual Systems",
+      "page_notes": [
+        {
+          "content": ""
+        }
+      ]
+    },
+    {
+      "title": "Content and Asset Organization",
+      "purpose": "Explain how songs, graphics, and audio content are organized and packaged",
+      "page_notes": [
+        {
+          "content": ""
+        }
+      ]
+    },
+    {
+      "title": "Song Directory Structure",
+      "purpose": "Document the Songs/ directory layout, box.def configuration, and collection types",
+      "parent": "Content and Asset Organization",
+      "page_notes": [
+        {
+          "content": ""
+        }
+      ]
+    },
+    {
+      "title": "Graphics Asset Organization",
+      "purpose": "Explain the Graphics/ directory structure, ZIP archive conventions, and asset naming patterns",
+      "parent": "Content and Asset Organization",
+      "page_notes": [
+        {
+          "content": ""
+        }
+      ]
+    },
+    {
+      "title": "Audio and Sound Effects",
+      "purpose": "Document sound effect organization, hit sounds, and voice samples",
+      "parent": "Content and Asset Organization",
+      "page_notes": [
+        {
+          "content": ""
+        }
+      ]
+    },
+    {
+      "title": "Development and Deployment",
+      "purpose": "Cover build processes, CI/CD pipeline, and development environment setup",
+      "page_notes": [
+        {
+          "content": ""
+        }
+      ]
+    },
+    {
+      "title": "Modding and Asset Replacement",
+      "purpose": "Cover asset customization with and without modifying source code",
+      "page_notes": [
+        {
+          "content": ""
+        }
+      ]
+    },
+    {
+      "title": "Implementing Custom Backgrounds",
+      "purpose": "Guide the creation of custom collaborative backgrounds",
+      "parent": "Modding",
+      "page_notes": [
+        {
+          "content": ""
+        }
+      ]
+    }
+  ]
+}
