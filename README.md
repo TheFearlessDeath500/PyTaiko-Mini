@@ -18,6 +18,12 @@ A TJA player and Taiko simulator written in Python using the [raylib](https://ww
 - Low latency audio via ASIO
 - Recursive Song Select Menu
 
+## Modes
+
+- **1 Player**: Single player mode. Default
+- **2 Player**: Use both keybinds on the entry screen to access
+- **Dan Mode**: Access by creating a dan dojo folder and placing dan course jsons in it
+
 ## System Requirements
 
 - **Windows**: Windows 10 or higher
