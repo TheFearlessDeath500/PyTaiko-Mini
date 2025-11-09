@@ -791,6 +791,7 @@ def parse_box_def(path: Path):
     """Parse box.def file for directory metadata"""
     texture_index = SongBox.DEFAULT_INDEX
     name = path.name
+    genre = ''
     collection = None
     encoding = test_encodings(path / "box.def")
 
@@ -810,6 +811,11 @@ def parse_box_def(path: Path):
                         name = line.split(":", 1)[1].strip()
                 elif line.startswith("#COLLECTION"):
                     collection = line.split(":", 1)[1].strip()
+                if name == '':
+                    if genre:
+                        name = genre
+                    else:
+                        name = path.name
     except Exception as e:
         logger.error(f"Error parsing box.def in {path}: {e}")
 

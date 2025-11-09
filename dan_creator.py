@@ -6,7 +6,7 @@ from pathlib import Path
 def create_dan(cache_path: Path):
     dan_data = {}
     dan_data["title"] = input("Enter the title: ")
-    dan_data["color"] = int(input("Enter the color: "))
+    dan_data["color"] = int(input("Enter the color (0 10th Kyuu, 1 5th Kyuu, 2 Shodan, 3 6th Dan, 4 Kurouto, 5 Tatsujin, 6 Gaidan): "))
     dan_data["exams"] = []
     for i in range(3):
         exam = dict()

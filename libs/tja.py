@@ -265,7 +265,7 @@ def calculate_base_score(notes: NoteList) -> int:
         return 1000000
     return math.ceil((1000000 - (balloon_count * 100) - (16.920079999994086 * drumroll_msec / 1000 * 100)) / total_notes / 10) * 10
 
-def test_encodings(file_path):
+def test_encodings(file_path: Path):
     """Test the encoding of a file by trying different encodings.
 
     Args:
@@ -274,7 +274,7 @@ def test_encodings(file_path):
     Returns:
         str: The encoding that successfully decoded the file.
     """
-    encodings = ['utf-8-sig', 'shift-jis', 'utf-8']
+    encodings = ['utf-8-sig', 'shift-jis', 'utf-8', 'utf-16', 'mac_roman']
     final_encoding = None
 
     for encoding in encodings:
@@ -427,19 +427,19 @@ class TJAParser:
                     if balloon_data == '':
                         logger.debug(f"Invalid BALLOONNOR value: {balloon_data} in TJA file {self.file_path}")
                         continue
-                    self.metadata.course_data[current_diff].balloon.extend([int(x) for x in balloon_data.split(',') if x != ''])
+                    self.metadata.course_data[current_diff].balloon.extend([int(x) for x in balloon_data.replace('.', ',').split(',') if x != ''])
                 elif item.startswith('BALLOONEXP'):
                     balloon_data = item.split(':')[1]
                     if balloon_data == '':
                         logger.debug(f"Invalid BALLOONEXP value: {balloon_data} in TJA file {self.file_path}")
                         continue
-                    self.metadata.course_data[current_diff].balloon.extend([int(x) for x in balloon_data.split(',') if x != ''])
+                    self.metadata.course_data[current_diff].balloon.extend([int(x) for x in balloon_data.replace('.', ',').split(',') if x != ''])
                 elif item.startswith('BALLOONMAS'):
                     balloon_data = item.split(':')[1]
                     if balloon_data == '':
                         logger.debug(f"Invalid BALLOONMAS value: {balloon_data} in TJA file {self.file_path}")
                         continue
-                    self.metadata.course_data[current_diff].balloon = [int(x) for x in balloon_data.split(',') if x != '']
+                    self.metadata.course_data[current_diff].balloon = [int(x) for x in balloon_data.replace('.', ',').split(',') if x != '']
                 elif item.startswith('BALLOON'):
                     if item.find(':') == -1:
                         self.metadata.course_data[current_diff].balloon = []
@@ -447,13 +447,13 @@ class TJAParser:
                     balloon_data = item.split(':')[1]
                     if balloon_data == '':
                         continue
-                    self.metadata.course_data[current_diff].balloon = [int(x) for x in balloon_data.split(',') if x != '']
+                    self.metadata.course_data[current_diff].balloon = [int(x) for x in balloon_data.replace('.', ',').split(',') if x != '']
                 elif item.startswith('SCOREINIT'):
                     score_init = item.split(':')[1]
                     if score_init == '':
                         continue
                     try:
-                        self.metadata.course_data[current_diff].scoreinit = [int(x) for x in score_init.split(',') if x != '']
+                        self.metadata.course_data[current_diff].scoreinit = [int(x) for x in score_init.replace('.', ',').split(',') if x != '']
                     except Exception as e:
                         logger.error(f"Failed to parse SCOREINIT: {e} in TJA file {self.file_path}")
                         self.metadata.course_data[current_diff].scoreinit = [0, 0]
