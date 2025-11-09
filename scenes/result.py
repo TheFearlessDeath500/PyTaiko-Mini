@@ -141,7 +141,7 @@ class ResultPlayer:
         Update the score animation if a high score is achieved.
         """
         if is_skipped:
-            if self.update_index == len(self.update_list) - 1:
+            if self.update_index == len(self.update_list):
                 return
             setattr(self, self.update_list[self.update_index][0], self.update_list[self.update_index][1])
             self.update_index += 1
