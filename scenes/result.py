@@ -487,7 +487,7 @@ class Gauge:
         self.is_finished = self.gauge_fade_in.is_finished
         if self.gauge_length == self.gauge_max:
             self.state = State.RAINBOW
-        elif self.gauge_length > self.clear_start[self.difficulty]:
+        elif self.gauge_length >= self.clear_start[self.difficulty] - 1:
             self.state = State.CLEAR
         else:
             self.state = State.FAIL
@@ -509,24 +509,15 @@ class Gauge:
                 tex.draw_texture('gauge', 'rainbow'  + self.string_diff, frame=self.rainbow_animation.attribute-1, scale=scale, fade=self.gauge_fade_in.attribute, index=self.is_2p)
             tex.draw_texture('gauge', 'rainbow'  + self.string_diff, frame=self.rainbow_animation.attribute, scale=scale, fade=self.gauge_fade_in.attribute, index=self.is_2p)
         else:
-            for i in range(gauge_length+1):
-                width = int(i * 7.2)
-                if i == self.clear_start[self.difficulty] - 1:
-                    tex.draw_texture('gauge', 'bar_clear_transition', x=width, scale=scale, fade=self.gauge_fade_in.attribute, index=self.is_2p)
-                elif i > self.clear_start[self.difficulty] - 1:
-                    if i % 5 == 0:
-                        tex.draw_texture('gauge', 'bar_clear_top', x=width, scale=scale, fade=self.gauge_fade_in.attribute, index=self.is_2p)
-                        tex.draw_texture('gauge', 'bar_clear_bottom', x=width, scale=scale, fade=self.gauge_fade_in.attribute, index=self.is_2p)
-                    tex.draw_texture('gauge', 'bar_clear_top', x=width+1, scale=scale, fade=self.gauge_fade_in.attribute, index=self.is_2p)
-                    tex.draw_texture('gauge', 'bar_clear_bottom', x=width+1, scale=scale, fade=self.gauge_fade_in.attribute, index=self.is_2p)
-                else:
-                    if i % 5 == 0:
-                        tex.draw_texture('gauge', f'{self.player_num}p_bar', x=width, scale=scale, fade=self.gauge_fade_in.attribute, index=self.is_2p)
-                    tex.draw_texture('gauge', f'{self.player_num}p_bar', x=width+1, scale=scale, fade=self.gauge_fade_in.attribute, index=self.is_2p)
+            tex.draw_texture('gauge', f'{self.player_num}p_bar', x2=(gauge_length*8)-48, scale=scale, fade=self.gauge_fade_in.attribute, index=self.is_2p)
+            if gauge_length >= self.clear_start[self.difficulty] - 1:
+                tex.draw_texture('gauge', 'bar_clear_transition', x=(self.clear_start[self.difficulty]*8)-56, scale=scale, fade=self.gauge_fade_in.attribute, index=self.is_2p)
+                tex.draw_texture('gauge', 'bar_clear_top', x=(self.clear_start[self.difficulty]*8)-48, x2=(gauge_length - self.clear_start[self.difficulty])*8, scale=scale, fade=self.gauge_fade_in.attribute, index=self.is_2p)
+                tex.draw_texture('gauge', 'bar_clear_bottom', x=(self.clear_start[self.difficulty]*8)-48, x2=(gauge_length - self.clear_start[self.difficulty])*8, scale=scale, fade=self.gauge_fade_in.attribute, index=self.is_2p)
         tex.draw_texture('gauge', 'overlay' + self.string_diff, scale=scale, fade=min(0.15, self.gauge_fade_in.attribute), index=self.is_2p)
         tex.draw_texture('gauge', 'footer', scale=scale, fade=self.gauge_fade_in.attribute, index=self.is_2p)
 
-        if gauge_length >= self.clear_start[self.difficulty]:
+        if gauge_length >= self.clear_start[self.difficulty] - 1:
             tex.draw_texture('gauge', 'clear', scale=scale, fade=self.gauge_fade_in.attribute, index=self.difficulty+(self.is_2p*3))
             if self.state == State.RAINBOW:
                 tex.draw_texture('gauge', 'tamashii_fire', scale=0.75 * scale, center=True, frame=self.tamashii_fire_change.attribute, fade=self.gauge_fade_in.attribute, index=self.is_2p)
