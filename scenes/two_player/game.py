@@ -90,14 +90,14 @@ class TwoPlayerGameScreen(GameScreen):
         logger.info(f"TJA initialized for two-player song: {song}")
 
     def spawn_ending_anims(self):
-        if global_data.session_data[0].result_bad == 0:
+        if global_data.session_data[0].result_data.bad == 0:
             self.player_1.ending_anim = FCAnimation(self.player_1.is_2p)
         elif self.player_1.gauge.is_clear:
             self.player_1.ending_anim = ClearAnimation(self.player_1.is_2p)
         elif not self.player_1.gauge.is_clear:
             self.player_1.ending_anim = FailAnimation(self.player_1.is_2p)
 
-        if global_data.session_data[1].result_bad == 0:
+        if global_data.session_data[1].result_data.bad == 0:
             self.player_2.ending_anim = FCAnimation(self.player_2.is_2p)
         elif self.player_2.gauge.is_clear:
             self.player_2.ending_anim = ClearAnimation(self.player_2.is_2p)
@@ -123,11 +123,11 @@ class TwoPlayerGameScreen(GameScreen):
             return self.on_screen_end('RESULT_2P')
         elif self.current_ms >= self.player_1.end_time:
             session_data = global_data.session_data[0]
-            session_data.result_score, session_data.result_good, session_data.result_ok, session_data.result_bad, session_data.result_max_combo, session_data.result_total_drumroll = self.player_1.get_result_score()
-            session_data.result_gauge_length = int(self.player_1.gauge.gauge_length)
+            session_data.result_data.score, session_data.result_data.good, session_data.result_data.ok, session_data.result_data.bad, session_data.result_data.max_combo, session_data.result_data.total_drumroll = self.player_1.get_result_score()
+            session_data.result_data.gauge_length = int(self.player_1.gauge.gauge_length)
             session_data = global_data.session_data[1]
-            session_data.result_score, session_data.result_good, session_data.result_ok, session_data.result_bad, session_data.result_max_combo, session_data.result_total_drumroll = self.player_2.get_result_score()
-            session_data.result_gauge_length = int(self.player_2.gauge.gauge_length)
+            session_data.result_data.score, session_data.result_data.good, session_data.result_data.ok, session_data.result_data.bad, session_data.result_data.max_combo, session_data.result_data.total_drumroll = self.player_2.get_result_score()
+            session_data.result_data.gauge_length = int(self.player_2.gauge.gauge_length)
             if self.end_ms != 0:
                 if current_time >= self.end_ms + 1000:
                     if self.player_1.ending_anim is None:

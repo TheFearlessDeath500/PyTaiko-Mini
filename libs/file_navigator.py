@@ -787,31 +787,6 @@ class ScoreHistory:
         for i in range(len(counter)):
             tex.draw_texture('leaderboard', 'counter', frame=int(counter[i]), x=-(total_width // 2) + (i * 14), y=50, color=ray.WHITE)
 
-class FileSystemItem:
-    GENRE_MAP = {
-        'J-POP': 1,
-        'アニメ': 2,
-        'VOCALOID': 3,
-        'どうよう': 4,
-        'バラエティー': 5,
-        'クラシック': 6,
-        'ゲームミュージック': 7,
-        'ナムコオリジナル': 8,
-        'RECOMMENDED': 10,
-        'FAVORITE': 11,
-        'RECENT': 12,
-        '段位道場': 13,
-        'DIFFICULTY': 14
-    }
-    GENRE_MAP_2 = {
-        'ボーカロイド': 3,
-        'バラエティ': 5
-    }
-    """Base class for files and directories in the navigation system"""
-    def __init__(self, path: Path, name: str):
-        self.path = path
-        self.name = name
-
 def parse_box_def(path: Path):
     """Parse box.def file for directory metadata"""
     texture_index = SongBox.DEFAULT_INDEX
@@ -839,6 +814,31 @@ def parse_box_def(path: Path):
         logger.error(f"Error parsing box.def in {path}: {e}")
 
     return name, texture_index, collection
+
+class FileSystemItem:
+    GENRE_MAP = {
+        'J-POP': 1,
+        'アニメ': 2,
+        'VOCALOID': 3,
+        'どうよう': 4,
+        'バラエティー': 5,
+        'クラシック': 6,
+        'ゲームミュージック': 7,
+        'ナムコオリジナル': 8,
+        'RECOMMENDED': 10,
+        'FAVORITE': 11,
+        'RECENT': 12,
+        '段位道場': 13,
+        'DIFFICULTY': 14
+    }
+    GENRE_MAP_2 = {
+        'ボーカロイド': 3,
+        'バラエティ': 5
+    }
+    """Base class for files and directories in the navigation system"""
+    def __init__(self, path: Path, name: str):
+        self.path = path
+        self.name = name
 
 class Directory(FileSystemItem):
     """Represents a directory in the navigation system"""
@@ -1081,8 +1081,16 @@ class FileNavigator:
             for tja_path in sorted(tja_files):
                 song_key = str(tja_path)
                 if song_key not in self.all_song_files and tja_path.name == "dan.json":
-                    song_obj = DanCourse(tja_path, tja_path.name)
-                    self.all_song_files[song_key] = song_obj
+                    valid_dan = True
+                    with open(tja_path, 'r', encoding='utf-8') as file:
+                        dan_data = json.load(file)
+                        for chart in dan_data["charts"]:
+                            hash = chart["hash"]
+                            if hash not in global_data.song_hashes:
+                                valid_dan = False
+                    if valid_dan:
+                        song_obj = DanCourse(tja_path, tja_path.name)
+                        self.all_song_files[song_key] = song_obj
                 elif song_key not in self.all_song_files and tja_path in global_data.song_paths:
                     song_obj = SongFile(tja_path, tja_path.name, texture_index)
                     song_obj.box.get_scores()

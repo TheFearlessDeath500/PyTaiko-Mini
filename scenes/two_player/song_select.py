@@ -18,6 +18,12 @@ class TwoPlayerSongSelectScreen(SongSelectScreen):
         global_data.session_data[0].genre_index = self.navigator.get_current_item().box.name_texture_index
         logger.info(f"Finalized song selection: {global_data.session_data[0].selected_song}")
 
+    def handle_input(self):
+        if self.player_1.is_ready:
+            self.player_2.handle_input(self.state, self)
+        else:
+            self.player_1.handle_input(self.state, self)
+
     def handle_input_browsing(self):
         """Handle input for browsing songs."""
         action = self.player_1.handle_input_browsing(self.last_moved, self.navigator.items[self.navigator.selected_index] if self.navigator.items else None)
