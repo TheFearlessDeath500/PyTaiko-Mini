@@ -341,6 +341,22 @@ wheels = [
 ]
 
 [[package]]
+name = "pyrefly"
+version = "0.40.1"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/72/d3/5e3fe52f38099810054d486f84513133ec1cfa18e42d0e5ab935ab8c339e/pyrefly-0.40.1.tar.gz", hash = "sha256:9e7975292fbb64fdf69ee7f71b46c032eacdd6d71910103c012d6d46ff5bcd34", size = 3691680, upload-time = "2025-11-07T19:02:10.184Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/dc/08/0ac510399c601aa920d2b2d6d5cd7f7d8930c09dd20d6de18295da042460/pyrefly-0.40.1-py3-none-macosx_10_12_x86_64.whl", hash = "sha256:1899722f7ae5fcd7d2ec74119289d04f14d97e9ad9d44dbb36725a6769b3a328", size = 9275616, upload-time = "2025-11-07T19:01:51.249Z" },
+    { url = "https://files.pythonhosted.org/packages/4c/fc/6b0a4d48cdc7b3c2fc95f86a82c528db5d53fef6d69114c2325865e2e52f/pyrefly-0.40.1-py3-none-macosx_11_0_arm64.whl", hash = "sha256:c4e956ce758139c2d5357ec202aa93cbcb0102fc882160b5c51c526f80858ace", size = 8811737, upload-time = "2025-11-07T19:01:54.001Z" },
+    { url = "https://files.pythonhosted.org/packages/da/9a/6f088a8dc4c37c2a7a01a2e2e2e3d3141c39ff2124cb0aa7b6fa08668ef3/pyrefly-0.40.1-py3-none-manylinux_2_17_aarch64.manylinux2014_aarch64.whl", hash = "sha256:435f3d757f127313a6accc941441fe2e5564a4d60e990daa815a58382a9551b3", size = 9032074, upload-time = "2025-11-07T19:01:56.428Z" },
+    { url = "https://files.pythonhosted.org/packages/56/d5/141d15d52ef1d9905d8cf5f3118908a8dc00877271a5bc310a26f9b3a089/pyrefly-0.40.1-py3-none-manylinux_2_17_i686.manylinux2014_i686.whl", hash = "sha256:49aa72dbf47e0eb940443f81aa20cbdc1dee8fdedbedfa5defa45185cb75fd22", size = 9932653, upload-time = "2025-11-07T19:01:58.495Z" },
+    { url = "https://files.pythonhosted.org/packages/da/05/36d0354f25d72d78612aadb9ee16a8e4c8d3ac08ed7e9107a22390494a4a/pyrefly-0.40.1-py3-none-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:a009c91ceb16e578c664c8e82b354249d63a316c4c951742608faac0aea37e99", size = 9566494, upload-time = "2025-11-07T19:02:00.715Z" },
+    { url = "https://files.pythonhosted.org/packages/ef/d4/3b4329d101ab59e530ab1389c9f89e9e92cc8a449fc3bedaf316d7cbead9/pyrefly-0.40.1-py3-none-win32.whl", hash = "sha256:0540b4b68048d2b96208b0e60500125cc511360fc0179eaf010de3431fcca5f9", size = 9091751, upload-time = "2025-11-07T19:02:03.157Z" },
+    { url = "https://files.pythonhosted.org/packages/46/30/006380355a1d02ee7f0c9e8519d2e50597ed5a7978474d2357100b82943e/pyrefly-0.40.1-py3-none-win_amd64.whl", hash = "sha256:6c66bb4f132ddf23812a299e490ee9d1209dcb72f02e6c770fc07f8c681e3089", size = 9556642, upload-time = "2025-11-07T19:02:05.62Z" },
+    { url = "https://files.pythonhosted.org/packages/a7/c4/60de39397cc474ccbd154d5d24907f7caeb9bff1e5cac800f491bd65f2df/pyrefly-0.40.1-py3-none-win_arm64.whl", hash = "sha256:9e36eb9ba594e4b4f21432d807f8ab326de887f6586b1e6b6549558bcc65be20", size = 9107988, upload-time = "2025-11-07T19:02:08.114Z" },
+]
+
+[[package]]
 name = "pytaiko"
 version = "0.9.0"
 source = { virtual = "." }
@@ -354,6 +370,7 @@ dependencies = [
 dev = [
     { name = "nuitka" },
     { name = "pyinstrument" },
+    { name = "pyrefly" },
     { name = "ruff" },
     { name = "vulture" },
 ]
@@ -369,6 +386,7 @@ requires-dist = [
 dev = [
     { name = "nuitka", specifier = ">=2.8.4" },
     { name = "pyinstrument", specifier = ">=5.1.1" },
+    { name = "pyrefly", specifier = ">=0.40.1" },
     { name = "ruff", specifier = ">=0.14.2" },
     { name = "vulture", specifier = ">=2.14" },
 ]
@@ -406,6 +424,8 @@ wheels = [
     { url = "https://files.pythonhosted.org/packages/1f/84/61bb530fbb6a467551e147dfefd6ea11fa25dbd35fea65fa7854bc29fe92/raylib_sdl-5.5.0.3-cp313-cp313-manylinux2014_x86_64.manylinux_2_17_x86_64.whl", hash = "sha256:245d6c32a8ad1833d4d37933d4d6067f7d919ebb3554609e6779154309c67c38", size = 2856661, upload-time = "2025-09-03T16:04:01.287Z" },
     { url = "https://files.pythonhosted.org/packages/13/09/a67ec3441260a529f60b4738686575fa5ad5a3aa3f9f4bb45136b9abd737/raylib_sdl-5.5.0.3-cp313-cp313-win_amd64.whl", hash = "sha256:292962fd41759a9a149e4389588e7a38c3a6ec69eb50a88a3ea4ace76c9a1eed", size = 1630831, upload-time = "2025-09-03T16:04:03.369Z" },
     { url = "https://files.pythonhosted.org/packages/72/74/6e567a13c02741c2604a7ca75bebf07403dae3323c8402e3064f28acd1cf/raylib_sdl-5.5.0.3-cp314-cp314-macosx_10_15_x86_64.whl", hash = "sha256:99a38716b6f60f96bd27cb2f8726161eb3295d305ae4634dfb9046ab758b9e30", size = 2197098, upload-time = "2025-09-03T16:04:05.667Z" },
+    { url = "https://files.pythonhosted.org/packages/b2/38/6460ced11ba4bbf26588178dc366e414f2e3cf2c0eb17506095f4503a405/raylib_sdl-5.5.0.3-cp314-cp314-macosx_11_0_arm64.whl", hash = "sha256:7a0563e45b9f2767a7a648c6dcf255ef67bf770f3c1634885605fa480b0c7b43", size = 2195980, upload-time = "2025-10-29T14:11:21.906Z" },
+    { url = "https://files.pythonhosted.org/packages/79/4b/bdd7ddf420db78f2b741582881f4c7a6ec2c4dc2c5406ed7cddb88c03fc3/raylib_sdl-5.5.0.3-cp314-cp314-manylinux2014_aarch64.whl", hash = "sha256:ae85790f1da9472a02a9235239bd0da2763d4a06a171e03495630bfdd1615744", size = 2816550, upload-time = "2025-10-29T14:03:48.263Z" },
     { url = "https://files.pythonhosted.org/packages/21/62/c842f623d9197488e16b1d72a2ba492ab9eed57a446eb93458c497313383/raylib_sdl-5.5.0.3-cp314-cp314-manylinux2014_x86_64.manylinux_2_17_x86_64.whl", hash = "sha256:fdd57c75ca760ceceea12f25ae6e22df1b3f11b322257a9272bbf25dea0bac93", size = 2852329, upload-time = "2025-10-27T19:09:07.765Z" },
     { url = "https://files.pythonhosted.org/packages/ea/a1/23464c0fbf8d3c75225023021ea10477e24dddc4bd0432bec0fb2f786f03/raylib_sdl-5.5.0.3-cp314-cp314-win_amd64.whl", hash = "sha256:f3333e14389e0ac653cb47ddb7405f07eb096749acd19c7a59a47cdac716b2b8", size = 1683742, upload-time = "2025-09-03T16:04:07.657Z" },
     { url = "https://files.pythonhosted.org/packages/51/5f/83eba7bf283f13f3dd8b89bb170f8d7853064c7584c762aafbc500e57e98/raylib_sdl-5.5.0.3-pp311-pypy311_pp73-macosx_10_15_x86_64.whl", hash = "sha256:3c0c0c6f2a94c1f84c1c7f716721f99e735a6f2de40be9be06a605fe4f4970eb", size = 1809538, upload-time = "2025-09-03T16:04:16.4Z" },

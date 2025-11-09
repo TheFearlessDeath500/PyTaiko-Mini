@@ -31,8 +31,14 @@ rainbow = false
 tja_path = ['Songs']
 video_path = ['Videos']
 
-[keys_1p]
+[keys]
 exit_key = 'Q'
+borderless_key = 'F10'
+fullscreen_key = 'F11'
+back_key = 'ESCAPE'
+restart_key = 'F1'
+
+[keys_1p]
 left_kat = ['D']
 left_don = ['F']
 right_don = ['J']

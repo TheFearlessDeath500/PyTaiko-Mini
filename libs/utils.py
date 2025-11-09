@@ -84,7 +84,7 @@ def get_config() -> Config:
 
     return json.loads(json.dumps(config_file))
 
-def save_config(config: dict[str, Any]) -> None:
+def save_config(config: Config) -> None:
     """Save the configuration to the TOML file"""
     if Path('dev-config.toml').exists():
         with open(Path('dev-config.toml'), "w", encoding="utf-8") as f:
@@ -92,6 +92,15 @@ def save_config(config: dict[str, Any]) -> None:
             return
     with open(Path('config.toml'), "w", encoding="utf-8") as f:
         tomlkit.dump(config, f)
+
+def get_key_code(key: str) -> int:
+    if len(key) == 1 and key.isalnum():
+        return ord(key.upper())
+    else:
+        key_code = getattr(ray, f"KEY_{key.upper()}", None)
+        if key_code is None:
+            raise ValueError(f"Invalid key: {key}")
+        return key_code
 
 def is_l_don_pressed(player_num: str = '0') -> bool:
     """Check if the left don button is pressed"""
@@ -106,12 +115,7 @@ def is_l_don_pressed(player_num: str = '0') -> bool:
     else:
         return False
     for key in keys:
-        if len(key) == 1 and key.isalnum():
-            key_code = ord(key.upper())
-        else:
-            key_code = getattr(ray, f"KEY_{key.upper()}", None)
-            if key_code is None:
-                continue
+        key_code = get_key_code(key)
 
         if ray.is_key_pressed(key_code):
             return True
@@ -147,12 +151,7 @@ def is_r_don_pressed(player_num: str = '0') -> bool:
     else:
         return False
     for key in keys:
-        if len(key) == 1 and key.isalnum():
-            key_code = ord(key.upper())
-        else:
-            key_code = getattr(ray, f"KEY_{key.upper()}", None)
-            if key_code is None:
-                continue
+        key_code = get_key_code(key)
 
         if ray.is_key_pressed(key_code):
             return True
@@ -188,12 +187,7 @@ def is_l_kat_pressed(player_num: str = '0') -> bool:
     else:
         return False
     for key in keys:
-        if len(key) == 1 and key.isalnum():
-            key_code = ord(key.upper())
-        else:
-            key_code = getattr(ray, f"KEY_{key.upper()}", None)
-            if key_code is None:
-                continue
+        key_code = get_key_code(key)
 
         if ray.is_key_pressed(key_code):
             return True
@@ -229,12 +223,7 @@ def is_r_kat_pressed(player_num: str = '0') -> bool:
     else:
         return False
     for key in keys:
-        if len(key) == 1 and key.isalnum():
-            key_code = ord(key.upper())
-        else:
-            key_code = getattr(ray, f"KEY_{key.upper()}", None)
-            if key_code is None:
-                continue
+        key_code = get_key_code(key)
 
         if ray.is_key_pressed(key_code):
             return True

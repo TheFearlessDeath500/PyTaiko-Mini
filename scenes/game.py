@@ -29,6 +29,7 @@ from libs.transition import Transition
 from libs.utils import (
     OutlinedText,
     get_current_ms,
+    get_key_code,
     global_data,
     global_tex,
     is_l_don_pressed,
@@ -199,14 +200,14 @@ class GameScreen(Screen):
             self.song_started = True
 
     def global_keys(self):
-        if ray.is_key_pressed(ray.KeyboardKey.KEY_F1):
+        if ray.is_key_pressed(get_key_code(global_data.config["keys"]["restart_key"])):
             if self.song_music is not None:
                 audio.stop_music_stream(self.song_music)
             self.init_tja(global_data.session_data[global_data.player_num-1].selected_song)
             audio.play_sound('restart', 'sound')
             self.song_started = False
 
-        if ray.is_key_pressed(ray.KeyboardKey.KEY_ESCAPE):
+        if ray.is_key_pressed(get_key_code(global_data.config["keys"]["back_key"])):
             if self.song_music is not None:
                 audio.stop_music_stream(self.song_music)
             return self.on_screen_end('SONG_SELECT')

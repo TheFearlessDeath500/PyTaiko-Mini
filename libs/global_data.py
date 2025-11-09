@@ -27,8 +27,14 @@ class PathsConfig(TypedDict):
     tja_path: list[str]
     video_path: list[str]
 
-class Keys1PConfig(TypedDict):
+class KeysConfig(TypedDict):
     exit_key: str
+    fullscreen_key: str
+    borderless_key: str
+    back_key: str
+    restart_key: str
+
+class Keys1PConfig(TypedDict):
     left_kat: list[str]
     left_don: list[str]
     right_don: list[str]
@@ -72,6 +78,7 @@ class Config(TypedDict):
     nameplate_1p: NameplateConfig
     nameplate_2p: NameplateConfig
     paths: PathsConfig
+    keys: KeysConfig
     keys_1p: Keys1PConfig
     keys_2p: Keys2PConfig
     gamepad: GamepadConfig

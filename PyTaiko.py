@@ -16,6 +16,7 @@ from libs.screen import Screen
 from libs.utils import (
     force_dedicated_gpu,
     get_config,
+    get_key_code,
     global_data,
     global_tex
 )
@@ -187,16 +188,16 @@ def main():
     ray.gen_texture_mipmaps(target.texture)
     ray.set_texture_filter(target.texture, ray.TextureFilter.TEXTURE_FILTER_TRILINEAR)
     ray.rl_set_blend_factors_separate(RL_SRC_ALPHA, RL_ONE_MINUS_SRC_ALPHA, RL_ONE, RL_ONE_MINUS_SRC_ALPHA, RL_FUNC_ADD, RL_FUNC_ADD)
-    ray.set_exit_key(ord(global_data.config["keys_1p"]["exit_key"]))
+    ray.set_exit_key(get_key_code(global_data.config["keys"]["exit_key"]))
 
     ray.hide_cursor()
     logger.info("Cursor hidden")
 
     while not ray.window_should_close():
-        if ray.is_key_pressed(ray.KeyboardKey.KEY_F11):
+        if ray.is_key_pressed(get_key_code(global_data.config["keys"]["fullscreen_key"])):
             ray.toggle_fullscreen()
             logger.info("Toggled fullscreen")
-        elif ray.is_key_pressed(ray.KeyboardKey.KEY_F10):
+        elif ray.is_key_pressed(get_key_code(global_data.config["keys"]["borderless_key"])):
             ray.toggle_borderless_windowed()
             logger.info("Toggled borderless windowed mode")
 

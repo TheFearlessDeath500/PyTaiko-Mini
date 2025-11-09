@@ -17,6 +17,7 @@ from libs.transition import Transition
 from libs.utils import (
     OutlinedText,
     get_current_ms,
+    get_key_code,
     global_data,
     is_l_don_pressed,
     is_l_kat_pressed,
@@ -305,8 +306,8 @@ class SongSelectScreen(Screen):
                 if not current_box.is_back and get_current_ms() >= song.box.wait + (83.33*3):
                     self.texture_index = current_box.texture_index
 
-        if ray.is_key_pressed(ray.KeyboardKey.KEY_ESCAPE):
-            logger.info("Escape key pressed, returning to ENTRY screen")
+        if ray.is_key_pressed(get_key_code(global_data.config["keys"]["back_key"])):
+            logger.info("Back key pressed, returning to ENTRY screen")
             return self.on_screen_end('ENTRY')
 
     def draw_background_diffs(self):
