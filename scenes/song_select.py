@@ -1017,8 +1017,11 @@ class NeiroSelector:
         self.load_sound()
         self.move_sideways.start()
         self.fade_sideways.start()
-        self.text_2.unload()
+
+        self.text.unload()
+        self.text = self.text_2
         self.text_2 = OutlinedText(self.sounds[self.selected_sound], 50, ray.WHITE)
+
         self.direction = -1
         if self.selected_sound == len(self.sounds):
             return
@@ -1032,8 +1035,11 @@ class NeiroSelector:
         self.load_sound()
         self.move_sideways.start()
         self.fade_sideways.start()
-        self.text_2.unload()
+
+        self.text.unload()
+        self.text = self.text_2
         self.text_2 = OutlinedText(self.sounds[self.selected_sound], 50, ray.WHITE)
+
         self.direction = 1
         if self.selected_sound == len(self.sounds):
             return
@@ -1055,9 +1061,6 @@ class NeiroSelector:
         self.blue_arrow_move.update(current_ms)
         self.move_sideways.update(current_ms)
         self.fade_sideways.update(current_ms)
-        if self.move_sideways.is_finished:
-            self.text.unload()
-            self.text = OutlinedText(self.sounds[self.selected_sound], 50, ray.WHITE)
         self.is_finished = self.move.is_finished and self.is_confirmed
 
     def draw(self):
@@ -1141,13 +1144,7 @@ class ModifierSelector:
         self.blue_arrow_move.update(current_ms)
         self.move_sideways.update(current_ms)
         self.fade_sideways.update(current_ms)
-        if self.move_sideways.is_finished and not self.is_confirmed:
-            current_mod = self.mods[self.current_mod_index]
-            current_value = getattr(global_data.modifiers[int(self.player_num)-1], current_mod.name)
-
-            if current_mod.name == 'speed':
-                self.text_speed.unload()
-                self.text_speed = OutlinedText(str(current_value), 30, ray.WHITE, outline_thickness=3.5)
+        # Removed conditional update - now handled immediately in left/right methods
 
     def confirm(self):
         if self.is_confirmed:
@@ -1157,18 +1154,39 @@ class ModifierSelector:
             self.is_confirmed = True
             self.move.restart()
 
-    def _start_text_animation(self, direction):
+    def _start_text_animation(self, direction, old_value):
         self.move_sideways.start()
         self.fade_sideways.start()
         self.direction = direction
 
-        # Update secondary text objects for the new values
+        # Update primary text objects immediately
         current_mod = self.mods[self.current_mod_index]
         current_value = getattr(global_data.modifiers[int(self.player_num)-1], current_mod.name)
 
         if current_mod.name == 'speed':
+            # text_speed_2 becomes the old value (fades out)
+            # text_speed becomes the new value (fades in)
             self.text_speed_2.unload()
-            self.text_speed_2 = OutlinedText(str(current_value), 30, ray.WHITE, outline_thickness=3.5)
+            self.text_speed_2 = self.text_speed
+            self.text_speed = OutlinedText(str(current_value), 30, ray.WHITE, outline_thickness=3.5)
+        elif current_mod.type is bool:
+            if current_value:
+                self.text_true.unload()
+                self.text_true = self.text_true_2
+                self.text_true_2 = OutlinedText('する', 30, ray.WHITE, outline_thickness=3.5)
+            else:
+                self.text_false.unload()
+                self.text_false = self.text_false_2
+                self.text_false_2 = OutlinedText('しない', 30, ray.WHITE, outline_thickness=3.5)
+        elif current_mod.name == 'random':
+            if current_value == 1:
+                self.text_kimagure.unload()
+                self.text_kimagure = self.text_kimagure_2
+                self.text_kimagure_2 = OutlinedText('きまぐれ', 30, ray.WHITE, outline_thickness=3.5)
+            elif current_value == 2:
+                self.text_detarame.unload()
+                self.text_detarame = self.text_detarame_2
+                self.text_detarame_2 = OutlinedText('でたらめ', 30, ray.WHITE, outline_thickness=3.5)
 
     def left(self):
         if self.is_confirmed:
@@ -1177,13 +1195,15 @@ class ModifierSelector:
         current_value = getattr(global_data.modifiers[int(self.player_num)-1], current_mod.name)
         if current_mod.type is bool:
             setattr(global_data.modifiers[int(self.player_num)-1], current_mod.name, not current_value)
-            self._start_text_animation(-1)
+            self._start_text_animation(-1, current_value)
         elif current_mod.name == 'speed':
-            setattr(global_data.modifiers[int(self.player_num)-1], current_mod.name, max(0.1, (current_value*10 - 1))/10)
-            self._start_text_animation(-1)
+            new_value = max(0.1, (current_value*10 - 1))/10
+            setattr(global_data.modifiers[int(self.player_num)-1], current_mod.name, new_value)
+            self._start_text_animation(-1, current_value)
         elif current_mod.name == 'random':
-            setattr(global_data.modifiers[int(self.player_num)-1], current_mod.name, max(0, current_value-1))
-            self._start_text_animation(-1)
+            new_value = max(0, current_value-1)
+            setattr(global_data.modifiers[int(self.player_num)-1], current_mod.name, new_value)
+            self._start_text_animation(-1, current_value)
 
     def right(self):
         if self.is_confirmed:
@@ -1192,13 +1212,15 @@ class ModifierSelector:
         current_value = getattr(global_data.modifiers[int(self.player_num)-1], current_mod.name)
         if current_mod.type is bool:
             setattr(global_data.modifiers[int(self.player_num)-1], current_mod.name, not current_value)
-            self._start_text_animation(1)
+            self._start_text_animation(1, current_value)
         elif current_mod.name == 'speed':
-            setattr(global_data.modifiers[int(self.player_num)-1], current_mod.name, (current_value*10 + 1)/10)
-            self._start_text_animation(1)
+            new_value = (current_value*10 + 1)/10
+            setattr(global_data.modifiers[int(self.player_num)-1], current_mod.name, new_value)
+            self._start_text_animation(1, current_value)
         elif current_mod.name == 'random':
-            setattr(global_data.modifiers[int(self.player_num)-1], current_mod.name, (current_value+1) % 3)
-            self._start_text_animation(1)
+            new_value = (current_value+1) % 3
+            setattr(global_data.modifiers[int(self.player_num)-1], current_mod.name, new_value)
+            self._start_text_animation(1, current_value)
 
     def _draw_animated_text(self, text_primary: OutlinedText, text_secondary: OutlinedText, x: float, y: float, should_animate: bool):
         if should_animate and not self.move_sideways.is_finished:
