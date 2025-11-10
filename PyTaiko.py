@@ -24,6 +24,8 @@ from scenes.devtest import DevScreen
 from scenes.entry import EntryScreen
 from scenes.game import GameScreen
 from scenes.dan.game_dan import DanGameScreen
+from scenes.practice.game import PracticeGameScreen
+from scenes.practice.song_select import PracticeSongSelectScreen
 from scenes.two_player.game import TwoPlayerGameScreen
 from scenes.two_player.result import TwoPlayerResultScreen
 from scenes.loading import LoadScreen
@@ -50,6 +52,8 @@ class Screens:
     DAN_SELECT = "DAN_SELECT"
     GAME_DAN = "GAME_DAN"
     DAN_RESULT = "DAN_RESULT"
+    PRACTICE_SELECT = "PRACTICE_SELECT"
+    GAME_PRACTICE = "GAME_PRACTICE"
     SETTINGS = "SETTINGS"
     DEV_MENU = "DEV_MENU"
     LOADING = "LOADING"
@@ -160,6 +164,8 @@ def main():
     load_screen = LoadScreen('loading')
     game_screen = GameScreen('game')
     game_screen_2p = TwoPlayerGameScreen('game')
+    game_screen_practice = PracticeGameScreen('game')
+    practice_select_screen = PracticeSongSelectScreen('song_select')
     result_screen = ResultScreen('result')
     result_screen_2p = TwoPlayerResultScreen('result')
     settings_screen = SettingsScreen('settings')
@@ -173,8 +179,10 @@ def main():
         Screens.TITLE: title_screen,
         Screens.SONG_SELECT: song_select_screen,
         Screens.SONG_SELECT_2P: song_select_screen_2p,
+        Screens.PRACTICE_SELECT: practice_select_screen,
         Screens.GAME: game_screen,
         Screens.GAME_2P: game_screen_2p,
+        Screens.GAME_PRACTICE: game_screen_practice,
         Screens.RESULT: result_screen,
         Screens.RESULT_2P: result_screen_2p,
         Screens.SETTINGS: settings_screen,

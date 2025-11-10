@@ -25,7 +25,8 @@ class Background:
         "IMAS_CG": (libs.bg_collabs.imas.Background, 'background/collab/imas_cg', 3),
         "IMAS_ML": (libs.bg_collabs.imas.Background, 'background/collab/imas_ml', 3),
         "IMAS_SIDEM": (libs.bg_collabs.imas_sidem.Background, 'background/collab/imas_sidem', 3),
-        "DAN": (libs.bg_collabs.dan.Background, 'background/collab/dan', 1)
+        "DAN": (libs.bg_collabs.dan.Background, 'background/collab/dan', 1),
+        "PRACTICE": (libs.bg_collabs.practice.Background, 'background/collab/practice', 1)
     }
 
     def __init__(self, player_num: int, bpm: float, scene_preset: str = ''):
