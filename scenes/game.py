@@ -53,6 +53,9 @@ class GameScreen(Screen):
         self.end_ms = 0
         self.start_delay = 1000
         self.song_started = False
+        self.paused = False
+        self.pause_time = 0
+        self.audio_time = 0
         self.movie = None
         self.song_music = None
         if global_data.config["general"]["nijiiro_notes"]:
@@ -212,6 +215,19 @@ class GameScreen(Screen):
                 audio.stop_music_stream(self.song_music)
             return self.on_screen_end('SONG_SELECT')
 
+        if ray.is_key_pressed(ray.KeyboardKey.KEY_SPACE):
+            self.paused = not self.paused
+            if self.paused:
+                if self.song_music is not None:
+                    self.audio_time = audio.get_music_time_played(self.song_music)
+                    audio.stop_music_stream(self.song_music)
+                self.pause_time = get_current_ms() - self.start_ms
+            else:
+                if self.song_music is not None:
+                    audio.play_music_stream(self.song_music, 'music')
+                    audio.seek_music_stream(self.song_music, self.audio_time)
+                self.start_ms = get_current_ms() - self.pause_time
+
     def spawn_ending_anims(self):
         if global_data.session_data[global_data.player_num-1].result_data.bad == 0:
             self.player_1.ending_anim = FCAnimation(self.player_1.is_2p)
@@ -233,7 +249,8 @@ class GameScreen(Screen):
         super().update()
         current_time = get_current_ms()
         self.transition.update(current_time)
-        self.current_ms = current_time - self.start_ms
+        if not self.paused:
+            self.current_ms = current_time - self.start_ms
         self.start_song(current_time)
         self.update_background(current_time)
 

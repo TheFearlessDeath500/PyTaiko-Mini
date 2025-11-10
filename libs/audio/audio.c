@@ -1095,7 +1095,7 @@ void set_music_pan(music music, float pan) {
 float get_music_time_length(music music) {
     float total_seconds = 0.0f;
 
-    total_seconds = (float)music.frameCount/music.stream.sampleRate;
+    total_seconds = (float)music.frameCount/AUDIO.System.sampleRate;
 
     return total_seconds;
 }
@@ -1104,7 +1104,7 @@ float get_music_time_played(music music) {
     float seconds_played = 0.0f;
     if (music.stream.buffer != NULL) {
         pthread_mutex_lock(&AUDIO.System.lock);
-        seconds_played = (float)music.stream.buffer->framesProcessed / music.stream.sampleRate;
+        seconds_played = (float)music.stream.buffer->framesProcessed / AUDIO.System.sampleRate;
         pthread_mutex_unlock(&AUDIO.System.lock);
     }
     return seconds_played;
