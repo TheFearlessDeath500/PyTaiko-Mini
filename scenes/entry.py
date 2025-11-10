@@ -438,8 +438,9 @@ class BoxManager:
     def __init__(self):
         self.box_titles: list[OutlinedText] = [
         OutlinedText('演奏ゲーム', 50, ray.WHITE, outline_thickness=5, vertical=True),
+        OutlinedText('特訓モード', 50, ray.WHITE, outline_thickness=5, vertical=True),
         OutlinedText('ゲーム設定', 50, ray.WHITE, outline_thickness=5, vertical=True)]
-        self.box_locations = ["SONG_SELECT", "SETTINGS"]
+        self.box_locations = ["SONG_SELECT", "PRACTICE_SELECT", "SETTINGS"]
         self.num_boxes = len(self.box_titles)
         self.boxes = [Box(self.box_titles[i], self.box_locations[i]) for i in range(len(self.box_titles))]
         self.selected_box_index = 0

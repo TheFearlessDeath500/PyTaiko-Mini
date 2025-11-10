@@ -25,7 +25,8 @@ class Background:
         "IMAS_CG": (libs.bg_collabs.imas.Background, 'background/collab/imas_cg', 3),
         "IMAS_ML": (libs.bg_collabs.imas.Background, 'background/collab/imas_ml', 3),
         "IMAS_SIDEM": (libs.bg_collabs.imas_sidem.Background, 'background/collab/imas_sidem', 3),
-        "DAN": (libs.bg_collabs.dan.Background, 'background/collab/dan', 1)
+        "DAN": (libs.bg_collabs.dan.Background, 'background/collab/dan', 1),
+        "PRACTICE": (libs.bg_collabs.practice.Background, 'background/collab/practice', 1)
     }
 
     def __init__(self, player_num: int, bpm: float, scene_preset: str = ''):
@@ -112,16 +113,17 @@ class Background:
         if self.renda is not None:
             self.renda.add_renda()
 
-    def update(self, current_time_ms: float, bpm: float, gauge_1p, gauge_2p = None):
+    def update(self, current_time_ms: float, bpm: float, gauge_1p = None, gauge_2p = None):
         """
         Update the background.
 
         Args:
             current_time_ms (float): The current time in milliseconds.
             bpm (float): The beats per minute.
-            gauge (Gauge): The gauge object.
+            gauge_1p (Gauge): The gauge object for player 1.
+            gauge_2p (Gauge): The gauge object for player 2.
         """
-        if self.dancer is not None:
+        if self.dancer is not None and gauge_1p is not None:
             clear_threshold = gauge_1p.clear_start[min(gauge_1p.difficulty, 3)]
             if gauge_1p.gauge_length < clear_threshold:
                 current_milestone = min(self.max_dancers - 1, int(gauge_1p.gauge_length / (clear_threshold / self.max_dancers)))
@@ -131,15 +133,16 @@ class Background:
                 self.dancer.add_dancer()
                 self.last_milestone = current_milestone
                 logger.info(f"Dancer milestone reached: {current_milestone}/{self.max_dancers}")
-        if self.bg_fever is not None:
+        if self.bg_fever is not None and gauge_1p is not None:
             if not self.is_clear and gauge_1p.is_clear:
                 self.bg_fever.start()
                 logger.info("Fever started")
             if not self.is_rainbow and gauge_1p.is_rainbow and self.fever is not None:
                 self.fever.start()
                 logger.info("Rainbow fever started")
-        self.is_clear = gauge_1p.is_clear
-        self.is_rainbow = gauge_1p.is_rainbow
+        if gauge_1p is not None:
+            self.is_clear = gauge_1p.is_clear
+            self.is_rainbow = gauge_1p.is_rainbow
         self.don_bg.update(current_time_ms, self.is_clear)
         if self.don_bg_2 is not None and gauge_2p is not None:
             self.don_bg_2.update(current_time_ms, gauge_2p.is_clear)

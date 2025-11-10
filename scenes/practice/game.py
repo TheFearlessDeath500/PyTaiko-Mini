@@ -1,0 +1,264 @@
+from collections import deque
+import logging
+from pathlib import Path
+
+import pyray as ray
+import copy
+
+from libs.animation import Animation
+from libs.audio import audio
+from libs.background import Background
+from libs.global_data import Modifiers, global_data
+from libs.tja import Balloon, Drumroll, TJAParser, apply_modifiers
+from libs.utils import get_current_ms, get_key_code
+from libs.texture import tex
+from scenes.game import GameScreen, JudgeCounter, Player, SCREEN_WIDTH
+
+logger = logging.getLogger(__name__)
+
+class PracticeGameScreen(GameScreen):
+    def on_screen_start(self):
+        super().on_screen_start()
+        self.background = Background(1, self.bpm, scene_preset='PRACTICE')
+
+    def init_tja(self, song: Path):
+        """Initialize the TJA file"""
+        self.tja = TJAParser(song, start_delay=self.start_delay, distance=SCREEN_WIDTH - GameScreen.JUDGE_X)
+        self.scrobbling_tja = TJAParser(song, start_delay=self.start_delay, distance=SCREEN_WIDTH - GameScreen.JUDGE_X)
+        global_data.session_data[0].song_title = self.tja.metadata.title.get(global_data.config['general']['language'].lower(), self.tja.metadata.title['en'])
+        if self.tja.metadata.wave.exists() and self.tja.metadata.wave.is_file() and self.song_music is None:
+            self.song_music = audio.load_music_stream(self.tja.metadata.wave, 'song')
+        self.player_1 = PracticePlayer(self.tja, global_data.player_num, global_data.session_data[global_data.player_num-1].selected_difficulty, False, global_data.modifiers[0])
+        notes, branch_m, branch_e, branch_n = self.tja.notes_to_position(self.player_1.difficulty)
+        _, self.scrobble_note_list, self.bars = apply_modifiers(notes, self.player_1.modifiers)
+        self.start_ms = (get_current_ms() - self.tja.metadata.offset*1000)
+        self.scrobble_index = 0
+        self.scrobble_time = self.bars[self.scrobble_index].hit_ms
+        self.scrobble_move = Animation.create_move(200, total_distance=0)
+
+    def pause_song(self):
+        self.paused = not self.paused
+        self.player_1.paused = self.paused
+        if self.paused:
+            if self.song_music is not None:
+                audio.stop_music_stream(self.song_music)
+            self.pause_time = get_current_ms() - self.start_ms
+            first_bar_time = self.bars[0].hit_ms
+            nearest_bar_index = 0
+            min_distance = float('inf')
+            for i, bar in enumerate(self.bars):
+                bar_relative_time = bar.hit_ms - first_bar_time
+                distance = abs(bar_relative_time - self.current_ms)
+                if distance < min_distance:
+                    min_distance = distance
+                    nearest_bar_index = i
+            self.scrobble_index = nearest_bar_index - 1
+            self.scrobble_time = self.bars[self.scrobble_index].hit_ms
+        else:
+            resume_bar_index = max(0, self.scrobble_index)
+            previous_bar_index = max(0, self.scrobble_index - 1)
+
+            first_bar_time = self.bars[0].hit_ms
+            resume_time = self.bars[resume_bar_index].hit_ms - first_bar_time + self.start_delay
+            start_time = self.bars[previous_bar_index].hit_ms - first_bar_time
+
+            tja_copy = copy.deepcopy(self.scrobbling_tja)
+            self.player_1.tja = tja_copy
+            self.player_1.reset_chart()
+
+            self.player_1.don_notes = deque([note for note in self.player_1.don_notes if note.hit_ms > resume_time])
+            self.player_1.kat_notes = deque([note for note in self.player_1.kat_notes if note.hit_ms > resume_time])
+            self.player_1.other_notes = deque([note for note in self.player_1.other_notes if note.hit_ms > resume_time])
+            self.player_1.draw_note_list = deque([note for note in self.player_1.draw_note_list if note.hit_ms > resume_time])
+            self.player_1.draw_bar_list = deque([note for note in self.player_1.draw_bar_list if note.hit_ms > resume_time])
+            self.player_1.total_notes = len([note for note in self.player_1.play_notes if 0 < note.type < 5])
+
+            self.pause_time = start_time
+            if self.song_music is not None:
+                audio.play_music_stream(self.song_music, 'music')
+                audio.seek_music_stream(self.song_music, (self.pause_time - self.start_delay)/1000 - self.tja.metadata.offset)
+            self.start_ms = get_current_ms() - self.pause_time
+
+    def global_keys(self):
+        if ray.is_key_pressed(get_key_code(global_data.config["keys"]["restart_key"])):
+            if self.song_music is not None:
+                audio.stop_music_stream(self.song_music)
+            self.init_tja(global_data.session_data[global_data.player_num-1].selected_song)
+            audio.play_sound('restart', 'sound')
+            self.song_started = False
+
+        if ray.is_key_pressed(get_key_code(global_data.config["keys"]["back_key"])):
+            if self.song_music is not None:
+                audio.stop_music_stream(self.song_music)
+            return self.on_screen_end('PRACTICE_SELECT')
+
+        if ray.is_key_pressed(ray.KeyboardKey.KEY_SPACE):
+            self.pause_song()
+
+        if ray.is_key_pressed(ray.KeyboardKey.KEY_LEFT) or ray.is_key_pressed(ray.KeyboardKey.KEY_RIGHT):
+            audio.play_sound('kat', 'sound')
+
+            if not self.scrobble_move.is_finished:
+                self.scrobble_time = self.bars[self.scrobble_index].hit_ms
+
+            old_index = self.scrobble_index
+            if ray.is_key_pressed(ray.KeyboardKey.KEY_LEFT):
+                self.scrobble_index = (self.scrobble_index - 1) if self.scrobble_index > 0 else len(self.bars) - 1
+            elif ray.is_key_pressed(ray.KeyboardKey.KEY_RIGHT):
+                self.scrobble_index = (self.scrobble_index + 1) % len(self.bars)
+
+            time_difference = self.bars[self.scrobble_index].load_ms - self.bars[old_index].load_ms
+
+            self.scrobble_move = Animation.create_move(400, total_distance=time_difference, ease_out='quadratic')
+            self.scrobble_move.start()
+
+    def update(self):
+        super(GameScreen, self).update()
+        current_time = get_current_ms()
+        self.transition.update(current_time)
+        if not self.paused:
+            self.current_ms = current_time - self.start_ms
+        self.start_song(current_time)
+        self.update_background(current_time)
+
+        if self.song_music is not None:
+            audio.update_music_stream(self.song_music)
+        self.scrobble_move.update(current_time)
+        if self.scrobble_move.is_finished:
+            self.scrobble_time = self.bars[self.scrobble_index].hit_ms
+            self.scrobble_move.reset()
+
+        self.player_1.update(self.current_ms, current_time, self.background)
+        self.song_info.update(current_time)
+
+        return self.global_keys()
+
+    def get_position_x(self, width: int, current_ms: float, load_ms: float, pixels_per_frame: float) -> int:
+        """Calculates the x-coordinate of a note based on its load time and current time"""
+        if self.paused:
+            time_diff = load_ms - self.scrobble_time - self.scrobble_move.attribute
+        else:
+            time_diff = load_ms - current_ms
+        return int(width + pixels_per_frame * 0.06 * time_diff - 64)
+
+    def get_position_y(self, current_ms: float, load_ms: float, pixels_per_frame: float, pixels_per_frame_x) -> int:
+        """Calculates the y-coordinate of a note based on its load time and current time"""
+        time_diff = load_ms - current_ms
+        return int((pixels_per_frame * 0.06 * time_diff) + ((866 * pixels_per_frame) / pixels_per_frame_x))
+
+    def draw_drumroll(self, current_ms: float, head: Drumroll, current_eighth: int, index: int):
+        """Draws a drumroll in the player's lane"""
+        start_position = self.get_position_x(SCREEN_WIDTH, current_ms, head.load_ms, head.pixels_per_frame_x)
+        tail = next((note for note in self.scrobble_note_list if note.index == index+1), self.scrobble_note_list[index+1])
+        is_big = int(head.type == 6)
+        end_position = self.get_position_x(SCREEN_WIDTH, current_ms, tail.load_ms, tail.pixels_per_frame_x)
+        length = end_position - start_position
+        color = ray.Color(255, head.color, head.color, 255)
+        if head.display:
+            if length > 0:
+                tex.draw_texture('notes', "8", frame=is_big, x=start_position+64, y=192, x2=length-47, color=color)
+                if is_big:
+                    tex.draw_texture('notes', "drumroll_big_tail", x=end_position+64, y=192, color=color)
+                else:
+                    tex.draw_texture('notes', "drumroll_tail", x=end_position+64, y=192, color=color)
+            tex.draw_texture('notes', str(head.type), frame=current_eighth % 2, x=start_position, y=192, color=color)
+
+        tex.draw_texture('notes', 'moji_drumroll_mid', x=start_position + 60, y=323, x2=length)
+        tex.draw_texture('notes', 'moji', frame=head.moji, x=(start_position - (168//2)) + 64, y=323)
+        tex.draw_texture('notes', 'moji', frame=tail.moji, x=(end_position - (168//2)) + 32, y=323)
+
+    def draw_balloon(self, current_ms: float, head: Balloon, current_eighth: int, index: int):
+        """Draws a balloon in the player's lane"""
+        offset = 12
+        start_position = self.get_position_x(SCREEN_WIDTH, current_ms, head.load_ms, head.pixels_per_frame_x)
+        tail = next((note for note in self.scrobble_note_list if note.index == index+1), self.scrobble_note_list[index+1])
+        end_position = self.get_position_x(SCREEN_WIDTH, current_ms, tail.load_ms, tail.pixels_per_frame_x)
+        pause_position = 349
+        if current_ms >= tail.hit_ms:
+            position = end_position
+        elif current_ms >= head.hit_ms:
+            position = pause_position
+        else:
+            position = start_position
+        if head.display:
+            tex.draw_texture('notes', str(head.type), frame=current_eighth % 2, x=position-offset, y=192)
+        tex.draw_texture('notes', '10', frame=current_eighth % 2, x=position-offset+128, y=192)
+
+    def draw_scrobble_list(self):
+        bar_draws = []
+        for bar in reversed(self.bars):
+            if not bar.display:
+                continue
+            x_position = self.get_position_x(SCREEN_WIDTH, self.current_ms, bar.load_ms, bar.pixels_per_frame_x)
+            y_position = self.get_position_y(self.current_ms, bar.load_ms, bar.pixels_per_frame_y, bar.pixels_per_frame_x)
+            if x_position < 236 or x_position > SCREEN_WIDTH:
+                continue
+            if hasattr(bar, 'is_branch_start'):
+                frame = 1
+            else:
+                frame = 0
+            bar_draws.append((str(bar.type), frame, x_position+60, y_position+190))
+
+        for bar_type, frame, x, y in bar_draws:
+            tex.draw_texture('notes', bar_type, frame=frame, x=x, y=y)
+
+        for note in reversed(self.scrobble_note_list):
+            if note.type == 8:
+                continue
+
+            if isinstance(note, Drumroll):
+                self.draw_drumroll(self.current_ms, note, 0, note.index)
+            elif isinstance(note, Balloon) and not note.is_kusudama:
+                x_position = self.get_position_x(SCREEN_WIDTH, self.current_ms, note.load_ms, note.pixels_per_frame_x)
+                y_position = self.get_position_y(self.current_ms, note.load_ms, note.pixels_per_frame_y, note.pixels_per_frame_x)
+                if x_position < 236 or x_position > SCREEN_WIDTH:
+                    continue
+                self.draw_balloon(self.current_ms, note, 0, note.index)
+                tex.draw_texture('notes', 'moji', frame=note.moji, x=x_position - (168//2) + 64, y=323 + y_position)
+            else:
+                x_position = self.get_position_x(SCREEN_WIDTH, self.current_ms, note.load_ms, note.pixels_per_frame_x)
+                y_position = self.get_position_y(self.current_ms, note.load_ms, note.pixels_per_frame_y, note.pixels_per_frame_x)
+                if x_position < 236 or x_position > SCREEN_WIDTH:
+                    continue
+
+                if note.display:
+                    tex.draw_texture('notes', str(note.type), x=x_position, y=y_position+192, center=True)
+                tex.draw_texture('notes', 'moji', frame=note.moji, x=x_position - (168//2) + 64, y=323 + y_position)
+
+    def draw(self):
+        self.background.draw()
+        self.player_1.draw(self.current_ms, self.start_ms, self.mask_shader)
+        if self.paused:
+            self.draw_scrobble_list()
+        self.player_1.draw_overlays(self.mask_shader)
+        self.draw_overlay()
+
+
+class PracticePlayer(Player):
+    def __init__(self, tja: TJAParser, player_number: int, difficulty: int, is_2p: bool, modifiers: Modifiers):
+        super().__init__(tja, player_number, difficulty, is_2p, modifiers)
+        self.judge_counter = JudgeCounter()
+        self.gauge = None
+        self.paused = False
+
+    def draw(self, ms_from_start: float, start_ms: float, mask_shader: ray.Shader, dan_transition = None):
+        # Group 1: Background and lane elements
+        tex.draw_texture('lane', 'lane_background', index=self.is_2p)
+        if self.branch_indicator is not None:
+            self.branch_indicator.draw()
+        if self.gauge is not None:
+            self.gauge.draw()
+        if self.lane_hit_effect is not None:
+            self.lane_hit_effect.draw()
+        tex.draw_texture('lane', 'lane_hit_circle', index=self.is_2p)
+
+        # Group 2: Judgement and hit effects
+        if self.gogo_time is not None:
+            self.gogo_time.draw()
+        for anim in self.draw_judge_list:
+            anim.draw()
+
+        # Group 3: Notes and bars (game content)
+        if not self.paused:
+            self.draw_bars(ms_from_start)
+            self.draw_notes(ms_from_start, start_ms)

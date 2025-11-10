@@ -5,3 +5,4 @@ from . import oshiri
 from . import imas
 from . import dan
 from . import imas_sidem
+from . import practice
