@@ -202,6 +202,19 @@ class GameScreen(Screen):
                 self.movie.start(current_time)
             self.song_started = True
 
+    def pause_song(self):
+        self.paused = not self.paused
+        if self.paused:
+            if self.song_music is not None:
+                self.audio_time = audio.get_music_time_played(self.song_music)
+                audio.stop_music_stream(self.song_music)
+            self.pause_time = get_current_ms() - self.start_ms
+        else:
+            if self.song_music is not None:
+                audio.play_music_stream(self.song_music, 'music')
+                audio.seek_music_stream(self.song_music, self.audio_time)
+            self.start_ms = get_current_ms() - self.pause_time
+
     def global_keys(self):
         if ray.is_key_pressed(get_key_code(global_data.config["keys"]["restart_key"])):
             if self.song_music is not None:
@@ -216,17 +229,7 @@ class GameScreen(Screen):
             return self.on_screen_end('SONG_SELECT')
 
         if ray.is_key_pressed(ray.KeyboardKey.KEY_SPACE):
-            self.paused = not self.paused
-            if self.paused:
-                if self.song_music is not None:
-                    self.audio_time = audio.get_music_time_played(self.song_music)
-                    audio.stop_music_stream(self.song_music)
-                self.pause_time = get_current_ms() - self.start_ms
-            else:
-                if self.song_music is not None:
-                    audio.play_music_stream(self.song_music, 'music')
-                    audio.seek_music_stream(self.song_music, self.audio_time)
-                self.start_ms = get_current_ms() - self.pause_time
+            self.pause_song()
 
     def spawn_ending_anims(self):
         if global_data.session_data[global_data.player_num-1].result_data.bad == 0:
@@ -266,7 +269,8 @@ class GameScreen(Screen):
         elif self.current_ms >= self.player_1.end_time:
             session_data = global_data.session_data[global_data.player_num-1]
             session_data.result_data.score, session_data.result_data.good, session_data.result_data.ok, session_data.result_data.bad, session_data.result_data.max_combo, session_data.result_data.total_drumroll = self.player_1.get_result_score()
-            session_data.result_data.gauge_length = self.player_1.gauge.gauge_length
+            if self.player_1.gauge is not None:
+                session_data.result_data.gauge_length = self.player_1.gauge.gauge_length
             if self.end_ms != 0:
                 if current_time >= self.end_ms + 1000:
                     if self.player_1.ending_anim is None:
@@ -524,7 +528,8 @@ class Player:
                 else:
                     background.add_chibi(True, 1)
             self.bad_count += 1
-            self.gauge.add_bad()
+            if self.gauge is not None:
+                self.gauge.add_bad()
             self.don_notes.popleft()
             if self.is_branch and self.branch_condition == 'p':
                 self.branch_condition_count -= 1
@@ -537,7 +542,8 @@ class Player:
                 else:
                     background.add_chibi(True, 1)
             self.bad_count += 1
-            self.gauge.add_bad()
+            if self.gauge is not None:
+                self.gauge.add_bad()
             self.kat_notes.popleft()
             if self.is_branch and self.branch_condition == 'p':
                 self.branch_condition_count -= 1
@@ -718,7 +724,8 @@ class Player:
                 self.score += self.base_score
                 self.base_score_list.append(ScoreCounterAnimation(self.player_number, self.base_score, self.is_2p))
                 self.note_correct(curr_note, current_time)
-                self.gauge.add_good()
+                if self.gauge is not None:
+                    self.gauge.add_good()
                 if self.is_branch and self.branch_condition == 'p':
                     self.branch_condition_count += 1
                 if background is not None:
@@ -733,7 +740,8 @@ class Player:
                 self.score += 10 * math.floor(self.base_score / 2 / 10)
                 self.base_score_list.append(ScoreCounterAnimation(self.player_number, 10 * math.floor(self.base_score / 2 / 10), self.is_2p))
                 self.note_correct(curr_note, current_time)
-                self.gauge.add_ok()
+                if self.gauge is not None:
+                    self.gauge.add_ok()
                 if self.is_branch and self.branch_condition == 'p':
                     self.branch_condition_count += 0.5
                 if background is not None:
@@ -751,7 +759,8 @@ class Player:
                     self.don_notes.popleft()
                 else:
                     self.kat_notes.popleft()
-                self.gauge.add_bad()
+                if self.gauge is not None:
+                    self.gauge.add_bad()
                 if background is not None:
                     if self.is_2p:
                         background.add_chibi(True, 2)
@@ -905,7 +914,8 @@ class Player:
         self.autoplay_manager(ms_from_start, current_time, background)
         self.handle_input(ms_from_start, current_time, background)
         self.nameplate.update(current_time)
-        self.gauge.update(current_time)
+        if self.gauge is not None:
+            self.gauge.update(current_time)
         if self.judge_counter is not None:
             self.judge_counter.update(self.good_count, self.ok_count, self.bad_count, self.total_drumroll)
         if self.branch_indicator is not None:
@@ -939,7 +949,10 @@ class Player:
                 self.is_gogo_time = False
                 self.gogo_time = None
                 self.chara.set_animation('gogo_stop')
-        self.chara.update(current_time, self.bpm, self.gauge.is_clear, self.gauge.is_rainbow)
+        if self.gauge is None:
+            self.chara.update(current_time, self.bpm, False, False)
+        else:
+            self.chara.update(current_time, self.bpm, self.gauge.is_clear, self.gauge.is_rainbow)
 
     def draw_drumroll(self, current_ms: float, head: Drumroll, current_eighth: int):
         """Draws a drumroll in the player's lane"""
@@ -1058,12 +1071,17 @@ class Player:
         for modifier in modifiers_to_draw:
             tex.draw_texture('lane', modifier, index=self.is_2p)
 
+    def draw_note_types(self, ms_from_start: float, start_ms: float):
+        self.draw_bars(ms_from_start)
+        self.draw_notes(ms_from_start, start_ms)
+
     def draw(self, ms_from_start: float, start_ms: float, mask_shader: ray.Shader, dan_transition = None):
         # Group 1: Background and lane elements
         tex.draw_texture('lane', 'lane_background', index=self.is_2p)
         if self.branch_indicator is not None:
             self.branch_indicator.draw()
-        self.gauge.draw()
+        if self.gauge is not None:
+            self.gauge.draw()
         if self.lane_hit_effect is not None:
             self.lane_hit_effect.draw()
         tex.draw_texture('lane', 'lane_hit_circle', index=self.is_2p)
@@ -1075,8 +1093,7 @@ class Player:
             anim.draw()
 
         # Group 3: Notes and bars (game content)
-        self.draw_bars(ms_from_start)
-        self.draw_notes(ms_from_start, start_ms)
+        self.draw_note_types(ms_from_start, start_ms)
         if dan_transition is not None:
             dan_transition.draw()
 
