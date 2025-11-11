@@ -9,7 +9,7 @@ from libs.animation import Animation
 from libs.audio import audio
 from libs.background import Background
 from libs.global_data import Modifiers, global_data
-from libs.tja import Balloon, Drumroll, TJAParser, apply_modifiers
+from libs.tja import Balloon, Drumroll, Note, TJAParser, apply_modifiers
 from libs.utils import get_current_ms, get_key_code
 from libs.texture import tex
 from scenes.game import GameScreen, JudgeCounter, Player, SCREEN_WIDTH
@@ -35,6 +35,18 @@ class PracticeGameScreen(GameScreen):
         self.scrobble_index = 0
         self.scrobble_time = self.bars[self.scrobble_index].hit_ms
         self.scrobble_move = Animation.create_move(200, total_distance=0)
+
+        self.markers = self.get_gogotime_markers(self.scrobble_note_list)
+
+    def get_gogotime_markers(self, note_list: deque[Note | Drumroll | Balloon]):
+        marker_list = []
+        for i, note in enumerate(note_list):
+            if i == 0 and note.gogo_time:
+                marker_list.append(note.hit_ms)
+            elif i > 0 and note.gogo_time:
+                if not note_list[i-1].gogo_time:
+                    marker_list.append(note.hit_ms)
+        return marker_list
 
     def pause_song(self):
         self.paused = not self.paused
@@ -231,6 +243,14 @@ class PracticeGameScreen(GameScreen):
         if self.paused:
             self.draw_scrobble_list()
         self.player_1.draw_overlays(self.mask_shader)
+        tex.draw_texture('practice', 'progress_bar_bg')
+        if self.paused:
+            progress = (self.scrobble_time + self.scrobble_move.attribute - self.bars[0].hit_ms) / self.player_1.end_time
+        else:
+            progress = self.current_ms / self.player_1.end_time
+        tex.draw_texture('practice', 'progress_bar', x2=progress * 890)
+        for marker in self.markers:
+            tex.draw_texture('practice', 'gogo_marker', x=((marker - self.bars[0].hit_ms) / self.player_1.end_time) * 890)
         self.draw_overlay()
 
 

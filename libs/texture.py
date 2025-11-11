@@ -199,7 +199,7 @@ class TextureWrapper:
     def draw_texture(self, subset: str, texture: str, color: ray.Color=ray.WHITE, frame: int = 0, scale: float = 1.0, center: bool = False,
                             mirror: str = '', x: float = 0, y: float = 0, x2: float = 0, y2: float = 0,
                             origin: ray.Vector2 = ray.Vector2(0,0), rotation: float = 0, fade: float = 1.1,
-                            index: int = 0, src: Optional[ray.Rectangle] = None) -> None:
+                            index: int = 0, src: Optional[ray.Rectangle] = None, controllable: bool = False) -> None:
         """
         Wrapper function for raylib's draw_texture_pro().
         Parameters:
@@ -219,6 +219,7 @@ class TextureWrapper:
             fade (float): The fade factor to apply to the texture.
             index (int): The index of the position data for the texture. Only used if the texture has multiple positions.
             src (Optional[ray.Rectangle]): The source rectangle of the texture.
+            controllable (bool): Whether the texture is controllable.
         """
         mirror_x = -1 if mirror == 'horizontal' else 1
         mirror_y = -1 if mirror == 'vertical' else 1
@@ -246,7 +247,7 @@ class TextureWrapper:
             if isinstance(tex_object.texture, list):
                 raise Exception("Texture is multiframe but was called as 1 texture")
             ray.draw_texture_pro(tex_object.texture, source_rect, dest_rect, origin, rotation, final_color)
-        if tex_object.controllable[index]:
+        if tex_object.controllable[index] or controllable:
             self.control(tex_object)
 
 tex = TextureWrapper()
