@@ -355,7 +355,7 @@ class Player:
         else:
             self.judge_counter = None
 
-        self.input_log: dict[float, tuple] = dict()
+        self.input_log: dict[float, str] = dict()
         stars = tja.metadata.course_data[self.difficulty].level
         self.gauge = Gauge(self.player_number, self.difficulty, stars, self.total_notes, self.is_2p)
         self.gauge_hit_effect: list[GaugeHitEffect] = []
@@ -528,6 +528,7 @@ class Player:
                 else:
                     background.add_chibi(True, 1)
             self.bad_count += 1
+            self.input_log[self.don_notes[0].index] = 'BAD'
             if self.gauge is not None:
                 self.gauge.add_bad()
             self.don_notes.popleft()
@@ -542,6 +543,7 @@ class Player:
                 else:
                     background.add_chibi(True, 1)
             self.bad_count += 1
+            self.input_log[self.kat_notes[0].index] = 'BAD'
             if self.gauge is not None:
                 self.gauge.add_bad()
             self.kat_notes.popleft()
@@ -723,6 +725,7 @@ class Player:
                 self.good_count += 1
                 self.score += self.base_score
                 self.base_score_list.append(ScoreCounterAnimation(self.player_number, self.base_score, self.is_2p))
+                self.input_log[curr_note.index] = 'GOOD'
                 self.note_correct(curr_note, current_time)
                 if self.gauge is not None:
                     self.gauge.add_good()
@@ -739,6 +742,7 @@ class Player:
                 self.ok_count += 1
                 self.score += 10 * math.floor(self.base_score / 2 / 10)
                 self.base_score_list.append(ScoreCounterAnimation(self.player_number, 10 * math.floor(self.base_score / 2 / 10), self.is_2p))
+                self.input_log[curr_note.index] = 'OK'
                 self.note_correct(curr_note, current_time)
                 if self.gauge is not None:
                     self.gauge.add_ok()
@@ -751,6 +755,7 @@ class Player:
                         background.add_chibi(False, 1)
 
             elif (curr_note.hit_ms - bad_window_ms) <= ms_from_start <= (curr_note.hit_ms + bad_window_ms):
+                self.input_log[curr_note.index] = 'BAD'
                 self.draw_judge_list.append(Judgement('BAD', big, self.is_2p))
                 self.bad_count += 1
                 self.combo = 0
@@ -808,7 +813,6 @@ class Player:
 
                 drum_value = 1 if note_type == 'DON' else 2
                 self.check_note(ms_from_start, drum_value, current_time, background)
-                self.input_log[ms_from_start] = (note_type, side)
 
     def autoplay_manager(self, ms_from_start: float, current_time: float, background: Optional[Background]):
         """Manages autoplay behavior"""

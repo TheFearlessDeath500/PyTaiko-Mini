@@ -67,6 +67,7 @@ class PracticeGameScreen(GameScreen):
             self.scrobble_index = nearest_bar_index - 1
             self.scrobble_time = self.bars[self.scrobble_index].hit_ms
         else:
+            self.player_1.input_log.clear()
             resume_bar_index = max(0, self.scrobble_index)
             previous_bar_index = max(0, self.scrobble_index - 1)
 
@@ -235,7 +236,13 @@ class PracticeGameScreen(GameScreen):
 
                 if note.display:
                     tex.draw_texture('notes', str(note.type), x=x_position, y=y_position+192, center=True)
-                tex.draw_texture('notes', 'moji', frame=note.moji, x=x_position - (168//2) + 64, y=323 + y_position)
+                color = ray.WHITE
+                if note.index in self.player_1.input_log:
+                    if self.player_1.input_log[note.index] == 'GOOD':
+                        color = ray.Color(255, 233, 0, 255)
+                    elif self.player_1.input_log[note.index] == 'BAD':
+                        color = ray.Color(34, 189, 243, 255)
+                tex.draw_texture('notes', 'moji', frame=note.moji, x=x_position - (168//2) + 64, y=323 + y_position, color=color)
 
     def draw(self):
         self.background.draw()
@@ -245,9 +252,9 @@ class PracticeGameScreen(GameScreen):
         self.player_1.draw_overlays(self.mask_shader)
         tex.draw_texture('practice', 'progress_bar_bg')
         if self.paused:
-            progress = (self.scrobble_time + self.scrobble_move.attribute - self.bars[0].hit_ms) / self.player_1.end_time
+            progress = min((self.scrobble_time + self.scrobble_move.attribute - self.bars[0].hit_ms) / self.player_1.end_time, 1)
         else:
-            progress = self.current_ms / self.player_1.end_time
+            progress = min(self.current_ms / self.player_1.end_time, 1)
         tex.draw_texture('practice', 'progress_bar', x2=progress * 890)
         for marker in self.markers:
             tex.draw_texture('practice', 'gogo_marker', x=((marker - self.bars[0].hit_ms) / self.player_1.end_time) * 890)
