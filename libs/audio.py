@@ -153,9 +153,9 @@ class AudioEngine:
         else:
             id = api_id
         result = lib.get_host_api_name(id) # type: ignore
-        result = ffi.string(result)
         if result == ffi.NULL:
             return ""
+        result = ffi.string(result)
         if isinstance(result, bytes):
             result = result.decode('utf-8')
         return result
