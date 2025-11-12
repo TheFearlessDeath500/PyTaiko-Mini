@@ -121,11 +121,6 @@ except OSError as e:
 class AudioEngine:
     """Initialize an audio engine for playing sounds and music."""
     def __init__(self, device_type: int, sample_rate: float, buffer_size: int, volume_presets: VolumeConfig):
-        if device_type == -1:
-            if sys.platform == "win32":
-                device_type = next((i for i in range(5) if "WDM" in self.get_host_api_name(i)), 0)
-            else:
-                device_type = 0
         self.device_type = device_type
         if sample_rate < 0:
             self.target_sample_rate = 44100
@@ -149,10 +144,13 @@ class AudioEngine:
     def get_host_api_name(self, api_id: int) -> str:
         """Returns the name of the host API with the given ID"""
         if api_id == -1:
-            id = self.device_type
-        else:
-            id = api_id
-        result = lib.get_host_api_name(id) # type: ignore
+            if sys.platform == "win32":
+                return "Windows WDM-KS"
+            elif sys.platform == "darwin":
+                return "Core Audio"
+            else:
+                return "ALSA"
+        result = lib.get_host_api_name(api_id) # type: ignore
         if result == ffi.NULL:
             return ""
         result = ffi.string(result)
@@ -163,7 +161,16 @@ class AudioEngine:
     def init_audio_device(self) -> bool:
         """Initialize the audio device"""
         try:
-            lib.init_audio_device(self.device_type, self.target_sample_rate, self.buffer_size) # type: ignore
+            if self.device_type == -1:
+                lib.init_audio_device(0, self.target_sample_rate, self.buffer_size) # type: ignore
+                if sys.platform == "win32":
+                    device_type = next((i for i in range(5) if "WDM" in self.get_host_api_name(i)), 0)
+                else:
+                    device_type = 0
+                lib.close_audio_device() # type: ignore
+            else:
+                device_type = self.device_type
+            lib.init_audio_device(device_type, self.target_sample_rate, self.buffer_size) # type: ignore
             self.audio_device_ready = lib.is_audio_device_ready() # type: ignore
             file_path_str = str(self.sounds_path / 'don.wav').encode('utf-8')
             self.don = lib.load_sound(file_path_str) # type: ignore
