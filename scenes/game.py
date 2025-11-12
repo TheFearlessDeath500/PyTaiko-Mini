@@ -36,6 +36,7 @@ from libs.utils import (
     is_l_kat_pressed,
     is_r_don_pressed,
     is_r_kat_pressed,
+    rounded,
 )
 from libs.video import VideoPlayer
 
@@ -797,6 +798,10 @@ class Player:
             if self.kusudama_anim.is_finished:
                 self.kusudama_anim = None
 
+    def spawn_hit_effects(self, note_type: str, side: str):
+        self.lane_hit_effect = LaneHitEffect(note_type, self.is_2p)
+        self.draw_drum_hit_list.append(DrumHitEffect(note_type, side, self.is_2p))
+
     def handle_input(self, ms_from_start: float, current_time: float, background: Optional[Background]):
         input_checks = [
             (is_l_don_pressed, 'DON', 'L', f'hitsound_don_{self.player_number}p'),
@@ -806,9 +811,7 @@ class Player:
         ]
         for check_func, note_type, side, sound in input_checks:
             if check_func(self.player_number):
-                self.lane_hit_effect = LaneHitEffect(note_type, self.is_2p)
-                self.draw_drum_hit_list.append(DrumHitEffect(note_type, side, self.is_2p))
-
+                self.spawn_hit_effects(note_type, side)
                 audio.play_sound(sound, 'hitsound')
 
                 drum_value = 1 if note_type == 'DON' else 2
@@ -832,9 +835,8 @@ class Player:
             if subdivision_in_ms > self.last_subdivision:
                 self.last_subdivision = subdivision_in_ms
                 hit_type = 'DON'
-                self.lane_hit_effect = LaneHitEffect(hit_type, self.is_2p)
                 self.autoplay_hit_side = 'R' if self.autoplay_hit_side == 'L' else 'L'
-                self.draw_drum_hit_list.append(DrumHitEffect(hit_type, self.autoplay_hit_side, self.is_2p))
+                self.spawn_hit_effects(hit_type, self.autoplay_hit_side)
                 audio.play_sound(f'hitsound_don_{self.player_number}p', 'hitsound')
                 note_type = 3 if note.type == 6 else 1
                 self.check_note(ms_from_start, note_type, current_time, background)
@@ -843,9 +845,8 @@ class Player:
             while self.don_notes and ms_from_start >= self.don_notes[0].hit_ms:
                 note = self.don_notes[0]
                 hit_type = 'DON'
-                self.lane_hit_effect = LaneHitEffect(hit_type, self.is_2p)
                 self.autoplay_hit_side = 'R' if self.autoplay_hit_side == 'L' else 'L'
-                self.draw_drum_hit_list.append(DrumHitEffect(hit_type, self.autoplay_hit_side, self.is_2p))
+                self.spawn_hit_effects(hit_type, self.autoplay_hit_side)
                 audio.play_sound(f'hitsound_don_{self.player_number}p', 'hitsound')
                 self.check_note(ms_from_start, 1, current_time, background)
 
@@ -853,9 +854,8 @@ class Player:
             while self.kat_notes and ms_from_start >= self.kat_notes[0].hit_ms:
                 note = self.kat_notes[0]
                 hit_type = 'KAT'
-                self.lane_hit_effect = LaneHitEffect(hit_type, self.is_2p)
                 self.autoplay_hit_side = 'R' if self.autoplay_hit_side == 'L' else 'L'
-                self.draw_drum_hit_list.append(DrumHitEffect(hit_type, self.autoplay_hit_side, self.is_2p))
+                self.spawn_hit_effects(hit_type, self.autoplay_hit_side)
                 audio.play_sound(f'hitsound_kat_{self.player_number}p', 'hitsound')
                 self.check_note(ms_from_start, 2, current_time, background)
 
@@ -2148,7 +2148,7 @@ class JudgeCounter:
         self.bad = bad
         self.drumrolls = drumrolls
     def draw_counter(self, counter: float, x: int, y: int, margin: int, color: ray.Color):
-        counter_str = str(int(counter))
+        counter_str = str(rounded(counter))
         counter_len = len(counter_str)
         for i, digit in enumerate(counter_str):
             tex.draw_texture('judge_counter', 'counter', frame=int(digit), x=x - (counter_len - i) * margin, y=y, color=color)

@@ -14,6 +14,7 @@ class VideoPlayer:
         """Initialize a video player instance"""
         self.is_finished_list = [False, False]
         self.video = VideoFileClip(path)
+        self.audio = None
         if self.video.audio is not None:
             self.video.audio.write_audiofile("cache/temp_audio.wav", logger=None)
             self.audio = audio.load_music_stream(Path("cache/temp_audio.wav"), 'video')
@@ -80,7 +81,8 @@ class VideoPlayer:
 
     def set_volume(self, volume: float) -> None:
         """Set video volume, takes float value from 0.0 to 1.0"""
-        audio.set_music_volume(self.audio, volume)
+        if self.audio is not None:
+            audio.set_music_volume(self.audio, volume)
 
     def update(self):
         """Updates video playback, advancing frames and audio"""

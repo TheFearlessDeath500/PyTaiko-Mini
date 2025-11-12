@@ -145,7 +145,7 @@ def main():
     current_screen = Screens.LOADING
     logger.info(f"Initial screen: {current_screen}")
 
-    audio.set_log_level(1)
+    audio.set_log_level((log_level-1)//10)
     old_stderr = os.dup(2)
     devnull = os.open(os.devnull, os.O_WRONLY)
     os.dup2(devnull, 2)

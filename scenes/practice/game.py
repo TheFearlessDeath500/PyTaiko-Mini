@@ -12,7 +12,7 @@ from libs.global_data import Modifiers, global_data
 from libs.tja import Balloon, Drumroll, Note, TJAParser, apply_modifiers
 from libs.utils import get_current_ms, get_key_code
 from libs.texture import tex
-from scenes.game import GameScreen, JudgeCounter, Player, SCREEN_WIDTH
+from scenes.game import DrumHitEffect, GameScreen, JudgeCounter, LaneHitEffect, Player, SCREEN_WIDTH
 
 logger = logging.getLogger(__name__)
 
@@ -249,7 +249,11 @@ class PracticeGameScreen(GameScreen):
         self.player_1.draw(self.current_ms, self.start_ms, self.mask_shader)
         if self.paused:
             self.draw_scrobble_list()
+        tex.draw_texture('practice', 'large_drum', index=0)
+        tex.draw_texture('practice', 'large_drum', index=1)
         self.player_1.draw_overlays(self.mask_shader)
+        if not self.paused:
+            tex.draw_texture('practice', 'playing', index=int(self.player_1.player_number)-1, fade=0.5)
         tex.draw_texture('practice', 'progress_bar_bg')
         if self.paused:
             progress = min((self.scrobble_time + self.scrobble_move.attribute - self.bars[0].hit_ms) / self.player_1.end_time, 1)
@@ -267,6 +271,53 @@ class PracticePlayer(Player):
         self.judge_counter = JudgeCounter()
         self.gauge = None
         self.paused = False
+
+    def spawn_hit_effects(self, note_type: str, side: str):
+        self.lane_hit_effect = LaneHitEffect(note_type, self.is_2p)
+        self.draw_drum_hit_list.append(PracticeDrumHitEffect(note_type, side, self.is_2p, player_number=int(self.player_number)-1))
+
+    def draw_overlays(self, mask_shader: ray.Shader):
+        # Group 4: Lane covers and UI elements (batch similar textures)
+        tex.draw_texture('lane', f'{self.player_number}p_lane_cover', index=self.is_2p)
+        tex.draw_texture('lane', 'drum', index=self.is_2p)
+        if self.ending_anim is not None:
+            self.ending_anim.draw()
+
+        # Group 5: Hit effects and animations
+        for anim in self.draw_drum_hit_list:
+            anim.draw()
+        for anim in self.draw_arc_list:
+            anim.draw(mask_shader)
+        for anim in self.gauge_hit_effect:
+            anim.draw()
+
+        # Group 6: UI overlays
+        self.combo_display.draw()
+        self.combo_announce.draw()
+        tex.draw_texture('lane', f'{self.player_number}p_icon', index=self.is_2p)
+        tex.draw_texture('lane', 'lane_difficulty', frame=self.difficulty, index=self.is_2p)
+        if self.judge_counter is not None:
+            self.judge_counter.draw()
+
+        # Group 7: Player-specific elements
+        if not self.modifiers.auto:
+            if self.is_2p:
+                self.nameplate.draw(-62, 371)
+            else:
+                self.nameplate.draw(-62, 285)
+        else:
+            tex.draw_texture('lane', 'auto_icon', index=self.is_2p)
+        self.draw_modifiers()
+        self.chara.draw(y=(self.is_2p*536))
+
+        # Group 8: Special animations and counters
+        if self.drumroll_counter is not None:
+            self.drumroll_counter.draw()
+        if self.balloon_anim is not None:
+            self.balloon_anim.draw()
+        if self.kusudama_anim is not None:
+            self.kusudama_anim.draw()
+        #ray.draw_circle(game_screen.width//2, game_screen.height, 300, ray.ORANGE)
 
     def draw(self, ms_from_start: float, start_ms: float, mask_shader: ray.Shader, dan_transition = None):
         # Group 1: Background and lane elements
@@ -289,3 +340,23 @@ class PracticePlayer(Player):
         if not self.paused:
             self.draw_bars(ms_from_start)
             self.draw_notes(ms_from_start, start_ms)
+
+class PracticeDrumHitEffect(DrumHitEffect):
+    def __init__(self, type, side, is_2p, player_number: int = 0):
+        super().__init__(type, side, is_2p)
+        self.player_number = player_number
+
+    def draw(self):
+        if self.type == 'DON':
+            if self.side == 'L':
+                tex.draw_texture('lane', 'drum_don_l', index=self.is_2p, fade=self.fade.attribute)
+            elif self.side == 'R':
+                tex.draw_texture('lane', 'drum_don_r', index=self.is_2p, fade=self.fade.attribute)
+            tex.draw_texture('practice', 'large_drum_don', index=self.player_number, fade=self.fade.attribute)
+        elif self.type == 'KAT':
+            if self.side == 'L':
+                tex.draw_texture('lane', 'drum_kat_l', index=self.is_2p, fade=self.fade.attribute)
+                tex.draw_texture('practice', 'large_drum_kat_l', index=self.player_number, fade=self.fade.attribute)
+            elif self.side == 'R':
+                tex.draw_texture('lane', 'drum_kat_r', index=self.is_2p, fade=self.fade.attribute)
+                tex.draw_texture('practice', 'large_drum_kat_r', index=self.player_number, fade=self.fade.attribute)
