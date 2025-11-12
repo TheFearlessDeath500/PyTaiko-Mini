@@ -94,6 +94,8 @@ def get_config() -> Config:
             lib = ffi.dlopen("libaudio.dll")
             for i in range(5):
                 result = lib.get_host_api_name(i) # type: ignore
+                if result == ffi.NULL:
+                    continue
                 result = ffi.string(result)
                 if isinstance(result, bytes):
                     result = result.decode('utf-8')
