@@ -560,12 +560,21 @@ class Player:
                 self.is_drumroll = True
             elif note.type == 7 or note.type == 9:
                 self.is_balloon = True
+            elif note.type == 8:
+                self.other_notes.popleft()
+                self.is_drumroll = False
+                self.is_balloon = False
+                self.curr_balloon_count = 0
+                self.curr_drumroll_count = 0
+                return
             tail = self.other_notes[1]
             if tail.hit_ms <= current_ms:
                 self.other_notes.popleft()
                 self.other_notes.popleft()
                 self.is_drumroll = False
                 self.is_balloon = False
+                self.curr_balloon_count = 0
+                self.curr_drumroll_count = 0
 
     def draw_note_manager(self, current_ms: float):
         """Manages the draw_notes and removes if necessary"""

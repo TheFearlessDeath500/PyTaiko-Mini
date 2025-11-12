@@ -5,11 +5,10 @@ import sys
 import logging
 import time
 import json
-import cffi
 from libs.global_data import Config, global_data
 from functools import lru_cache
 from pathlib import Path
-from typing import Any, Optional
+from typing import Optional
 
 import pyray as ray
 import tomlkit
