@@ -256,6 +256,7 @@ class PracticeGameScreen(GameScreen):
             tex.draw_texture('practice', 'playing', index=int(self.player_1.player_number)-1, fade=0.5)
         tex.draw_texture('practice', 'progress_bar_bg')
         if self.paused:
+            tex.draw_texture('practice', 'paused', fade=0.5)
             progress = min((self.scrobble_time + self.scrobble_move.attribute - self.bars[0].hit_ms) / self.player_1.end_time, 1)
         else:
             progress = min(self.current_ms / self.player_1.end_time, 1)

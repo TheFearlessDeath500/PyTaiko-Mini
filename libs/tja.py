@@ -649,65 +649,41 @@ class TJAParser:
                     branch_balloon_count = count
                     branch_params = part[13:]
 
-                    if branch_params[0] == 'r':
-                        # Helper function to find and set drumroll branch params
-                        def set_drumroll_branch_params(note_list, bar_list):
-                            for i in range(len(note_list)-1, -1, -1):
-                                if 5 <= note_list[i].type <= 7 or note_list[i].type == 9:
-                                    drumroll_ms = note_list[i].hit_ms
-                                    for bar_idx in range(len(bar_list)-1, -1, -1):
-                                        if bar_list[bar_idx].hit_ms <= drumroll_ms:
-                                            bar_list[bar_idx].branch_params = branch_params
-                                            return True
-                                    break
-                            return False
+                    def set_branch_params(bar_list: list[Note], branch_params: str, section_bar: Optional[Note]):
+                        if bar_list and len(bar_list) > 1:
+                            section_index = -2
+                            if section_bar and section_bar.hit_ms < self.current_ms:
+                                if section_bar in bar_list:
+                                    section_index = bar_list.index(section_bar)
+                            bar_list[section_index].branch_params = branch_params
+                        elif bar_list:
+                            section_index = -1
+                            bar_list[section_index].branch_params = branch_params
+                        elif bar_list == []:
+                            bar_line = Note()
+                            bar_line.pixels_per_frame_x = get_pixels_per_frame(bpm * time_signature * x_scroll_modifier, time_signature*4, self.distance)
+                            bar_line.pixels_per_frame_y = get_pixels_per_frame(bpm * time_signature * y_scroll_modifier, time_signature*4, self.distance)
+                            pixels_per_ms = get_pixels_per_ms(bar_line.pixels_per_frame_x)
 
-                        # Always try to set in master notes
-                        set_drumroll_branch_params(master_notes.play_notes, master_notes.bars)
+                            bar_line.hit_ms = self.current_ms
+                            if pixels_per_ms == 0:
+                                bar_line.load_ms = bar_line.hit_ms
+                            else:
+                                bar_line.load_ms = bar_line.hit_ms - (self.distance / pixels_per_ms)
+                            bar_line.type = 0
+                            bar_line.display = False
+                            bar_line.gogo_time = gogo_time
+                            bar_line.bpm = bpm
+                            bar_line.branch_params = branch_params
+                            bar_list.append(bar_line)
 
-                        # If we have existing branches, also apply to them
-                        if branch_m and len(branch_m) > 0:
-                            set_drumroll_branch_params(branch_m[-1].play_notes, branch_m[-1].bars)
-                        if branch_e and len(branch_e) > 0:
-                            set_drumroll_branch_params(branch_e[-1].play_notes, branch_e[-1].bars)
-                        if branch_n and len(branch_n) > 0:
-                            set_drumroll_branch_params(branch_n[-1].play_notes, branch_n[-1].bars)
-                    else:
-                        def set_branch_params(bar_list: list[Note], branch_params: str, section_bar: Optional[Note]):
-                            if bar_list and len(bar_list) > 1:
-                                section_index = -2
-                                if section_bar and section_bar.hit_ms < self.current_ms:
-                                    if section_bar in bar_list:
-                                        section_index = bar_list.index(section_bar)
-                                bar_list[section_index].branch_params = branch_params
-                            elif bar_list:
-                                section_index = -1
-                                bar_list[section_index].branch_params = branch_params
-                            elif bar_list == []:
-                                bar_line = Note()
-                                bar_line.pixels_per_frame_x = get_pixels_per_frame(bpm * time_signature * x_scroll_modifier, time_signature*4, self.distance)
-                                bar_line.pixels_per_frame_y = get_pixels_per_frame(bpm * time_signature * y_scroll_modifier, time_signature*4, self.distance)
-                                pixels_per_ms = get_pixels_per_ms(bar_line.pixels_per_frame_x)
-
-                                bar_line.hit_ms = self.current_ms
-                                if pixels_per_ms == 0:
-                                    bar_line.load_ms = bar_line.hit_ms
-                                else:
-                                    bar_line.load_ms = bar_line.hit_ms - (self.distance / pixels_per_ms)
-                                bar_line.type = 0
-                                bar_line.display = False
-                                bar_line.gogo_time = gogo_time
-                                bar_line.bpm = bpm
-                                bar_line.branch_params = branch_params
-                                bar_list.append(bar_line)
-
-                        for bars in [curr_bar_list,
-                                     branch_m[-1].bars if branch_m else None,
-                                     branch_e[-1].bars if branch_e else None,
-                                     branch_n[-1].bars if branch_n else None]:
-                            set_branch_params(bars, branch_params, section_bar)
-                        if section_bar:
-                            section_bar = None
+                    for bars in [curr_bar_list,
+                                    branch_m[-1].bars if branch_m else None,
+                                    branch_e[-1].bars if branch_e else None,
+                                    branch_n[-1].bars if branch_n else None]:
+                        set_branch_params(bars, branch_params, section_bar)
+                    if section_bar:
+                        section_bar = None
                     continue
                 elif part.startswith('#BRANCHEND'):
                     curr_note_list = master_notes.play_notes

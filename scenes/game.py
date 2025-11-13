@@ -416,14 +416,13 @@ class Player:
         self.play_notes = deque(sorted(self.play_notes))
         self.draw_note_list = deque(sorted(self.draw_note_list, key=lambda x: x.load_ms))
         self.draw_bar_list = deque(sorted(self.draw_bar_list, key=lambda x: x.load_ms))
-        timing_threshold = current_ms - Player.TIMING_BAD
         total_don = [note for note in self.play_notes if note.type in {1, 3}]
         total_kat = [note for note in self.play_notes if note.type in {2, 4}]
         total_other = [note for note in self.play_notes if note.type not in {1, 2, 3, 4}]
 
-        self.don_notes = deque([note for note in total_don if note.hit_ms > timing_threshold])
-        self.kat_notes = deque([note for note in total_kat if note.hit_ms > timing_threshold])
-        self.other_notes = deque([note for note in total_other if note.hit_ms > timing_threshold])
+        self.don_notes = deque([note for note in total_don if note.hit_ms > current_ms])
+        self.kat_notes = deque([note for note in total_kat if note.hit_ms > current_ms])
+        self.other_notes = deque([note for note in total_other if note.hit_ms > current_ms])
 
     def get_result_score(self):
         """Returns the score, good count, ok count, bad count, max combo, and total drumroll"""
@@ -485,11 +484,10 @@ class Player:
                     end_roll = -1
 
                     note_lists = [
-                        self.current_notes_draw,
-                        self.branch_n[0].draw_notes if self.branch_n else [],
-                        self.branch_e[0].draw_notes if self.branch_e else [],
-                        self.branch_m[0].draw_notes if self.branch_m else [],
-                        self.draw_note_list if self.draw_note_list else []
+                        self.other_notes,
+                        self.branch_m[0].play_notes if self.branch_m else [],
+                        self.branch_e[0].play_notes if self.branch_e else [],
+                        self.branch_n[0].play_notes if self.branch_n else [],
                     ]
 
                     end_roll = -1
@@ -897,7 +895,8 @@ class Player:
                     self.branch_indicator.level_down('normal')
                 self.branch_m.pop(0)
                 self.branch_e.pop(0)
-            logger.info(f"Branch set to {self.branch_indicator.difficulty} based on conditions {self.branch_condition_count}, {e_req, m_req}")
+            if self.branch_indicator is not None:
+                logger.info(f"Branch set to {self.branch_indicator.difficulty} based on conditions {self.branch_condition_count}, {e_req, m_req}")
             self.branch_condition_count = 0
 
     def update(self, ms_from_start: float, current_time: float, background: Optional[Background]):

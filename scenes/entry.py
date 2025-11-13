@@ -499,7 +499,7 @@ class BoxManager:
     def update(self, current_time_ms: float, is_2p: bool):
         self.is_2p = is_2p
         if self.is_2p:
-            self.box_locations = ["SONG_SELECT_2P", "SETTINGS"]
+            self.box_locations = ["SONG_SELECT_2P", "PRACTICE_SELECT", "SETTINGS"]
             for i, box in enumerate(self.boxes):
                 box.location = self.box_locations[i]
         self.fade_out.update(current_time_ms)
