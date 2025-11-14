@@ -134,7 +134,7 @@ class GameScreen(Screen):
             self.song_music = audio.load_music_stream(self.tja.metadata.wave, 'song')
 
         self.player_1 = Player(self.tja, global_data.player_num, global_data.session_data[global_data.player_num].selected_difficulty, False, global_data.modifiers[global_data.player_num])
-        self.start_ms = (get_current_ms() - self.tja.metadata.offset*1000)
+        self.start_ms = get_current_ms() - self.tja.metadata.offset*1000
 
     def get_song_hash(self, song: Path):
         notes, branch_m, branch_e, branch_n = TJAParser.notes_to_position(TJAParser(song), self.player_1.difficulty)
@@ -195,13 +195,13 @@ class GameScreen(Screen):
                 cursor.execute("UPDATE Scores SET clear = ? WHERE hash = ?", (crown, hash))
                 con.commit()
 
-    def start_song(self, current_time):
-        if (self.current_ms >= self.tja.metadata.offset*1000 + self.start_delay - global_data.config["general"]["audio_offset"]) and not self.song_started:
+    def start_song(self, ms_from_start):
+        if (ms_from_start >= self.tja.metadata.offset*1000 + self.start_delay - global_data.config["general"]["audio_offset"]) and not self.song_started:
             if self.song_music is not None:
                 audio.play_music_stream(self.song_music, 'music')
-                logger.info(f"Song started at {self.current_ms}")
+                logger.info(f"Song started at {ms_from_start}")
             if self.movie is not None:
-                self.movie.start(current_time)
+                self.movie.start(get_current_ms())
             self.song_started = True
 
     def pause_song(self):
@@ -256,7 +256,10 @@ class GameScreen(Screen):
         self.transition.update(current_time)
         if not self.paused:
             self.current_ms = current_time - self.start_ms
-        self.start_song(current_time)
+        if self.transition.is_finished:
+            self.start_song(self.current_ms)
+        else:
+            self.start_ms = current_time - self.tja.metadata.offset*1000
         self.update_background(current_time)
 
         if self.song_music is not None:
