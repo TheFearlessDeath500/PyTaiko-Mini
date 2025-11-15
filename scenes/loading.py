@@ -50,7 +50,8 @@ class LoadScreen(Screen):
         logger.info("Navigator initialized")
 
     def on_screen_start(self):
-        super().on_screen_start()
+        tex.load_screen_textures(self.screen_name)
+        logger.info(f"Loaded textures for screen: {self.screen_name}")
         self.loading_thread = threading.Thread(target=self._load_song_hashes)
         self.loading_thread.daemon = True
         self.loading_thread.start()

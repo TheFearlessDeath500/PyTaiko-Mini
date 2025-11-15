@@ -881,7 +881,7 @@ class TJAParser:
                     continue
                 #Unrecognized commands will be skipped for now
                 elif len(part) > 0 and not part[0].isdigit():
-                    logger.warning(f"Unrecognized command: {part}")
+                    logger.warning(f"Unrecognized command: {part} in TJA {self.file_path}")
                     continue
 
                 ms_per_measure = get_ms_per_measure(bpm, time_signature)

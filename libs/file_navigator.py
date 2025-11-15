@@ -169,7 +169,7 @@ class SongBox:
                 self.history_wait = current_time
             if self.tja is None and self.texture_index != 17 and not audio.is_sound_playing('voice_enter'):
                 audio.play_sound(f'genre_voice_{self.texture_index}', 'voice')
-        elif not self.is_open and is_open_prev and audio.is_sound_playing(f'genre_voice_{self.texture_index}'):
+        elif not self.is_open and is_open_prev and self.texture_index != 17 and audio.is_sound_playing(f'genre_voice_{self.texture_index}'):
             audio.stop_sound(f'genre_voice_{self.texture_index}')
         if self.tja_count is not None and self.tja_count > 0 and self.tja_count_text is None:
             self.tja_count_text = OutlinedText(str(self.tja_count), 35, ray.WHITE, outline_thickness=5)#, horizontal_spacing=1.2)
