@@ -33,7 +33,7 @@ class BaseChibi:
         self.texture_change = Animation.create_texture_change(duration, textures=textures)
         self.texture_change.start()
 
-    def update(self, current_time_ms: float):
+    def update(self, current_time_ms: float, bpm: float):
         self.hori_move.update(current_time_ms)
         self.vert_move.update(current_time_ms)
         if self.vert_move.is_finished:
@@ -41,6 +41,16 @@ class BaseChibi:
         self.texture_change.update(current_time_ms)
         if self.texture_change.is_finished:
             self.texture_change.restart()
+        if bpm != self.bpm:
+            self.bpm = bpm
+            duration = (60000 / self.bpm) / 2
+            textures = [((duration / len(self.keyframes))*i, (duration / len(self.keyframes))*(i+1), index) for i, index in enumerate(self.keyframes)]
+            self.texture_change = Animation.create_texture_change(duration, textures=textures)
+            self.texture_change.start()
+            self.hori_move = Animation.create_move(60000 / self.bpm * 5, total_distance=1280)
+            self.hori_move.start()
+            self.vert_move = Animation.create_move(60000 / self.bpm / 2, total_distance=50, reverse_delay=0)
+            self.vert_move.start()
 
     def draw(self, tex: TextureWrapper):
         tex.draw_texture(self.name, str(self.index), frame=self.texture_change.attribute, x=self.hori_move.attribute, y=-self.vert_move.attribute+(self.is_2p*535))
@@ -67,8 +77,8 @@ class ChibiBad(BaseChibi):
         self.texture_change = Animation.create_texture_change(duration, textures=textures)
         self.texture_change.start()
 
-    def update(self, current_time_ms: float):
-        super().update(current_time_ms)
+    def update(self, current_time_ms: float, bpm: float):
+        super().update(current_time_ms, bpm)
         self.s_texture_change.update(current_time_ms)
         self.fade_in.update(current_time_ms)
 
@@ -88,8 +98,8 @@ class Chibi2(BaseChibi):
         self.rotate = Animation.create_move(60000 / self.bpm, total_distance=360)
         self.rotate.start()
 
-    def update(self, current_time_ms: float):
-        super().update(current_time_ms)
+    def update(self, current_time_ms: float, bpm: float):
+        super().update(current_time_ms, bpm)
         self.rotate.update(current_time_ms)
         if self.rotate.is_finished:
             self.rotate.restart()
@@ -118,8 +128,8 @@ class Chibi13(BaseChibi):
         self.scale.start()
         self.frame = 0
 
-    def update(self, current_time_ms: float):
-        super().update(current_time_ms)
+    def update(self, current_time_ms: float, bpm: float):
+        super().update(current_time_ms, bpm)
         self.scale.update(current_time_ms)
         if self.scale.is_finished:
             self.scale.restart()
@@ -153,7 +163,7 @@ class ChibiController:
         self.bpm = bpm
         for i in range(len(self.chibis)-1, -1, -1):
             chibi = self.chibis[i]
-            chibi.update(current_time_ms)
+            chibi.update(current_time_ms, bpm)
             if chibi.hori_move.is_finished:
                 self.chibis.remove(chibi)
 

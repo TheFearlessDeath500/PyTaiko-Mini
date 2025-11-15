@@ -8,7 +8,7 @@ class Background:
     def __init__(self, tex: TextureWrapper, player_num: PlayerNum, bpm: float, path: str, max_dancers: int):
         self.tex_wrapper = tex
         self.max_dancers = max_dancers
-        self.don_bg = DonBG1(self.tex_wrapper, 0, 1, path)
+        self.don_bg = DonBG1(self.tex_wrapper, 0, PlayerNum.P1, path)
         self.bg_normal = BGNormalBase(self.tex_wrapper, 0, path)
         self.bg_fever = None
         self.footer = None
