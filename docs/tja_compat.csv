@@ -23,6 +23,7 @@ TOTAL,Supported
 #N / #E / #M,Supported
 #DELAY,Supported
 #SUDDEN,Supported
+#JPOSSCROLL,Supported
 
 ARTIST,Unsupported
 MAKER,Unsupported
@@ -63,7 +64,6 @@ HIDDENBRANCH,Unsupported
 #HISPEED,Unsupported
 #DIRECTION,Unsupported
 #BARLINE,Unsupported
-#JPOSSCROLL,Unsupported
 #JUDGEDELAY,Unsupported
 #NOTESPAWN,Unsupported
 #SENOTECHANGE,Unsupported
