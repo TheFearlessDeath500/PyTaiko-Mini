@@ -131,7 +131,10 @@ class PracticeGameScreen(GameScreen):
         self.transition.update(current_time)
         if not self.paused:
             self.current_ms = current_time - self.start_ms
-        self.start_song(current_time)
+        if self.transition.is_finished:
+            self.start_song(self.current_ms)
+        else:
+            self.start_ms = current_time - self.tja.metadata.offset*1000
         self.update_background(current_time)
 
         if self.song_music is not None:

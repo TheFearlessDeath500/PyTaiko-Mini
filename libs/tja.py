@@ -70,6 +70,8 @@ class Note:
     is_branch_start: bool = field(init=False)
     branch_params: str = field(init=False)
     lyric: str = field(init=False)
+    sudden_appear_ms: float = field(init=False)
+    sudden_moving_ms: float = field(init=False)
 
     def __lt__(self, other):
         return self.hit_ms < other.hit_ms
@@ -623,6 +625,8 @@ class TJAParser:
         balloon = self.metadata.course_data[diff].balloon.copy()
         count = 0
         index = 0
+        sudden_appear = 0
+        sudden_moving = 0
         time_signature = 4/4
         bpm = self.metadata.bpm
         x_scroll_modifier = 1
@@ -788,6 +792,26 @@ class TJAParser:
                 elif '#GOGOEND' in part:
                     gogo_time = False
                     continue
+                elif part.startswith("#DELAY"):
+                    self.current_ms += float(part[6:]) * 1000
+                    continue
+                elif part.startswith("#SUDDEN"):
+                    # Parse #SUDDEN command
+                    parts = part.split()
+                    if len(parts) >= 3:
+                        appear_duration = float(parts[1])
+                        moving_duration = float(parts[2])
+
+                        # Convert to milliseconds
+                        sudden_appear = appear_duration * 1000
+                        sudden_moving = moving_duration * 1000
+
+                        # Handle special case: if value is 0, treat as infinity
+                        if sudden_appear == 0:
+                            sudden_appear = float('inf')
+                        if sudden_moving == 0:
+                            sudden_moving = float('inf')
+                    continue
                 #Unrecognized commands will be skipped for now
                 elif len(part) > 0 and not part[0].isdigit():
                     logger.warning(f"Unrecognized command: {part}")
@@ -856,6 +880,11 @@ class TJAParser:
                     note.gogo_time = gogo_time
                     note.moji = -1
                     note.lyric = lyric
+
+                    if sudden_appear > 0 or sudden_moving > 0:
+                        note.sudden_appear_ms = sudden_appear
+                        note.sudden_moving_ms = sudden_moving
+
                     if item in {'5', '6'}:
                         note = Drumroll(note)
                         note.color = 255

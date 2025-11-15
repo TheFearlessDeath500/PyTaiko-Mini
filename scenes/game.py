@@ -1015,8 +1015,6 @@ class Player:
         if not self.current_bars:
             return
 
-        # Batch bar draws by pre-calculating positions
-        bar_draws = []
         for bar in reversed(self.current_bars):
             if not bar.display:
                 continue
@@ -1026,17 +1024,17 @@ class Player:
                 frame = 1
             else:
                 frame = 0
-            bar_draws.append((str(bar.type), frame, x_position+60, y_position+190+(self.is_2p*176)))
+            if y_position != 0:
+                angle = math.degrees(math.atan2(bar.pixels_per_frame_y, bar.pixels_per_frame_x))
+            else:
+                angle = 0
+            tex.draw_texture('notes', str(bar.type), frame=frame, x=x_position+60, y=y_position+190+(self.is_2p*176), rotation=angle)
 
-        # Draw all bars in one batch
-        for bar_type, frame, x, y in bar_draws:
-            tex.draw_texture('notes', bar_type, frame=frame, x=x, y=y)
 
     def draw_notes(self, current_ms: float, start_ms: float):
         """Draw notes in the player's lane"""
         if not self.current_notes_draw:
             return
-
         eighth_in_ms = 0 if self.bpm == 0 else (60000 * 4 / self.bpm) / 8
         current_eighth = 0
         if self.combo >= 50 and eighth_in_ms != 0:
@@ -1048,19 +1046,34 @@ class Player:
             if note.type == NoteType.TAIL:
                 continue
 
-            if isinstance(note, Drumroll):
-                self.draw_drumroll(current_ms, note, current_eighth)
-            elif isinstance(note, Balloon) and not note.is_kusudama:
-                x_position = self.get_position_x(SCREEN_WIDTH, current_ms, note.load_ms, note.pixels_per_frame_x)
-                y_position = self.get_position_y(current_ms, note.load_ms, note.pixels_per_frame_y, note.pixels_per_frame_x)
-                self.draw_balloon(current_ms, note, current_eighth)
-                tex.draw_texture('notes', 'moji', frame=note.moji, x=x_position - (168//2) + 64, y=323 + y_position+(self.is_2p*176))
+            if hasattr(note, 'sudden_appear_ms') and hasattr(note, 'sudden_moving_ms'):
+                appear_ms = note.hit_ms - note.sudden_appear_ms
+                moving_start_ms = note.hit_ms - note.sudden_moving_ms
+
+                if current_ms < appear_ms:
+                    continue
+
+                if current_ms < moving_start_ms:
+                    effective_ms = moving_start_ms
+                else:
+                    effective_ms = current_ms
+
+                x_position = self.get_position_x(SCREEN_WIDTH, effective_ms, note.load_ms, note.pixels_per_frame_x)
+                y_position = self.get_position_y(effective_ms, note.load_ms, note.pixels_per_frame_y, note.pixels_per_frame_x)
             else:
                 x_position = self.get_position_x(SCREEN_WIDTH, current_ms, note.load_ms, note.pixels_per_frame_x)
                 y_position = self.get_position_y(current_ms, note.load_ms, note.pixels_per_frame_y, note.pixels_per_frame_x)
+
+            if isinstance(note, Drumroll):
+                self.draw_drumroll(current_ms, note, current_eighth)
+            elif isinstance(note, Balloon) and not note.is_kusudama:
+                self.draw_balloon(current_ms, note, current_eighth)
+                tex.draw_texture('notes', 'moji', frame=note.moji, x=x_position - (168//2) + 64, y=323 + y_position+(self.is_2p*176))
+            else:
                 if note.display:
                     tex.draw_texture('notes', str(note.type), frame=current_eighth % 2, x=x_position, y=y_position+192+(self.is_2p*176), center=True)
                 tex.draw_texture('notes', 'moji', frame=note.moji, x=x_position - (168//2) + 64, y=323 + y_position+(self.is_2p*176))
+
         ray.draw_text(self.current_notes_draw[0].lyric, SCREEN_WIDTH//2 - (ray.measure_text(self.current_notes_draw[0].lyric, 40)//2), SCREEN_HEIGHT - 50, 40, ray.BLUE)
 
 

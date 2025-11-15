@@ -1,0 +1,83 @@
+TITLE,Supported
+SUBTITLE,Supported
+WAVE,Supported
+DEMOSTART,Supported
+OFFSET,Supported
+BPM,Supported
+SCENEPRESET,Supported
+BGMOVIE,Supported
+COURSE,Supported
+LEVEL,Supported
+BALLOON,Supported
+TOTAL,Supported
+
+#START / #END,Supported
+#BPMCHANGE,Supported
+#MEASURE,Supported
+#GOGOSTART / #GOGOEND,Supported
+#SCROLL,Supported
+#BARLINEOFF / #BARLINEON,Supported
+#LYRIC,Supported
+#SECTION,Supported
+#BRANCHSTART / #BRANCHEND,Supported
+#N / #E / #M,Supported
+#DELAY,Supported
+#SUDDEN,Supported
+
+ARTIST,Unsupported
+MAKER,Unsupported
+NOTESDESIGNER,Unsupported
+AUTHOR,Unsupported
+GENRE,Unsupported
+SIDE,Unsupported
+SIDEREV,Unsupported
+SONGVOL,Unsupported
+SEVOL,Unsupported
+HEADSCROLL,Unsupported
+PREIMAGE,Unsupported
+TAIKOWEBSKIN,Unsupported
+TOWERTYPE,Unsupported
+DANTICK,Unsupported
+DANTICKCOLOR,Unsupported
+SELECTBG,Unsupported
+BGIMAGE,Unsupported
+BGOFFSET,Unsupported
+MOVIEOFFSET,Unsupported
+BGA Headers,Unsupported
+LYRICS: / LYRICFILE,Unsupported
+EXPLICIT,Unsupported
+GAME,Unsupported
+STYLE,Unsupported
+LIFE,Unsupported
+GAUGEINCR,Unsupported
+EXAM,Unsupported
+SCOREMODE,Unsupported
+SCOREINIT,Unsupported
+SCOREDIFF,Unsupported
+HIDDENBRANCH,Unsupported
+
+#BMSCROLL / #HBSCROLL / #NMSCROLL,Unsupported
+#PAPAMAMA,Unsupported
+#DUMMYSTART / #DUMMYEND,Unsupported
+#BARLINESCROLL,Unsupported
+#HISPEED,Unsupported
+#DIRECTION,Unsupported
+#BARLINE,Unsupported
+#JPOSSCROLL,Unsupported
+#JUDGEDELAY,Unsupported
+#NOTESPAWN,Unsupported
+#SENOTECHANGE,Unsupported
+#NOTESCHANGE,Unsupported
+#LEVELHOLD,Unsupported
+#NEXTSONG,Unsupported
+#GAMETYPE,Unsupported
+#HIDDEN,Unsupported
+#NOTE / #BARLINE,Unsupported
+#GRADATION,Unsupported
+#INCLUDE,Unsupported
+#SPLITLANE / #MERGELANE,Unsupported
+#OBJ / #CAM,Unsupported
+#BORDERCOLOR,Unsupported
+#CHANGETEXTURE / #RESETTEXTURE,Unsupported
+#SETCONFIG,Unsupported
+#BGAON / #BGAOFF,Unsupported
