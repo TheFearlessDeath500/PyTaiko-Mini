@@ -150,8 +150,6 @@ def main():
     if len(sys.argv) > 1 and Path(sys.argv[1]).exists():
         current_screen = Screens.GAME
         path = Path(os.path.abspath(sys.argv[1]))
-        script_dir = os.path.dirname(os.path.abspath(__file__))
-        os.chdir(script_dir)
         tja = TJAParser(path)
         max_difficulty = max(tja.metadata.course_data.keys())
         global_data.session_data[PlayerNum.P1].selected_song = path
