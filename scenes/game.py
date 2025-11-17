@@ -229,14 +229,14 @@ class GameScreen(Screen):
             self.start_ms = get_current_ms() - self.pause_time
 
     def global_keys(self):
-        if ray.is_key_pressed(get_key_code(global_data.config["keys"]["restart_key"])):
+        if ray.is_key_pressed(global_data.config["keys"]["restart_key"]):
             if self.song_music is not None:
                 audio.stop_music_stream(self.song_music)
             self.init_tja(global_data.session_data[global_data.player_num].selected_song)
             audio.play_sound('restart', 'sound')
             self.song_started = False
 
-        if ray.is_key_pressed(get_key_code(global_data.config["keys"]["back_key"])):
+        if ray.is_key_pressed(global_data.config["keys"]["back_key"]):
             if self.song_music is not None:
                 audio.stop_music_stream(self.song_music)
             return self.on_screen_end('SONG_SELECT')
@@ -626,7 +626,7 @@ class Player:
             return
 
         if isinstance(self.current_notes_draw[0], Drumroll):
-            self.current_notes_draw[0].color = max(255, self.current_notes_draw[0].color + 1)
+            self.current_notes_draw[0].color = min(255, self.current_notes_draw[0].color + 1)
 
         note = self.current_notes_draw[0]
         if note.type in {NoteType.ROLL_HEAD, NoteType.ROLL_HEAD_L, NoteType.BALLOON_HEAD, NoteType.KUSUDAMA} and len(self.current_notes_draw) > 1:

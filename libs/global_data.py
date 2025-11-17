@@ -52,23 +52,23 @@ class PathsConfig(TypedDict):
     video_path: list[Path]
 
 class KeysConfig(TypedDict):
-    exit_key: str
-    fullscreen_key: str
-    borderless_key: str
-    back_key: str
-    restart_key: str
+    exit_key: int
+    fullscreen_key: int
+    borderless_key: int
+    back_key: int
+    restart_key: int
 
 class Keys1PConfig(TypedDict):
-    left_kat: list[str]
-    left_don: list[str]
-    right_don: list[str]
-    right_kat: list[str]
+    left_kat: list[int]
+    left_don: list[int]
+    right_don: list[int]
+    right_kat: list[int]
 
 class Keys2PConfig(TypedDict):
-    left_kat: list[str]
-    left_don: list[str]
-    right_don: list[str]
-    right_kat: list[str]
+    left_kat: list[int]
+    left_don: list[int]
+    right_don: list[int]
+    right_kat: list[int]
 
 class GamepadConfig(TypedDict):
     left_kat: list[int]

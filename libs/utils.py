@@ -82,6 +82,16 @@ def get_config() -> Config:
         config_file = tomlkit.load(f)
 
     config: Config = json.loads(json.dumps(config_file))
+    for key in config['keys']:
+        config[key] = get_key_code(config['keys'][key])
+    for key in config['keys_1p']:
+        bindings = config['keys_1p'][key]
+        for i, bind in enumerate(bindings):
+            config['keys_1p'][key][i] = get_key_code(bind)
+    for key in config['keys_2p']:
+        bindings = config['keys_2p'][key]
+        for i, bind in enumerate(bindings):
+            config['keys_2p'][key][i] = get_key_code(bind)
     return config
 
 def save_config(config: Config) -> None:
@@ -102,13 +112,11 @@ def get_key_code(key: str) -> int:
             raise ValueError(f"Invalid key: {key}")
         return key_code
 
-def is_input_key_pressed(keys: list[str], gamepad_buttons: list[int]):
+def is_input_key_pressed(keys: list[int], gamepad_buttons: list[int]):
     if global_data.input_locked:
         return False
     for key in keys:
-        key_code = get_key_code(key)
-
-        if ray.is_key_pressed(key_code):
+        if ray.is_key_pressed(key):
             return True
 
     if ray.is_gamepad_available(0):
