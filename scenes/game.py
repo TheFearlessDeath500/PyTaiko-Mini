@@ -1,4 +1,5 @@
 import bisect
+from enum import IntEnum
 import math
 import logging
 import sqlite3
@@ -42,6 +43,19 @@ from libs.utils import (
 from libs.video import VideoPlayer
 
 logger = logging.getLogger(__name__)
+
+class DrumType(IntEnum):
+    DON = 1
+    KAT = 2
+
+class Side(IntEnum):
+    LEFT = 1
+    RIGHT = 2
+
+class Judgments(IntEnum):
+    GOOD = 0
+    OK = 1
+    BAD = 2
 
 class GameScreen(Screen):
     JUDGE_X = 414
@@ -336,7 +350,7 @@ class Player:
         self.judge_x = 0
         self.judge_y = 0
 
-        self.draw_judge_list: list[Judgement] = []
+        self.draw_judge_list: list[Judgment] = []
         self.lane_hit_effect: Optional[LaneHitEffect] = None
         self.draw_arc_list: list[NoteArc] = []
         self.draw_drum_hit_list: list[DrumHitEffect] = []
@@ -364,7 +378,7 @@ class Player:
         self.gauge = Gauge(self.player_num, self.difficulty, stars, self.total_notes, self.is_2p)
         self.gauge_hit_effect: list[GaugeHitEffect] = []
 
-        self.autoplay_hit_side = 'L'
+        self.autoplay_hit_side = Side.LEFT
         self.last_subdivision = -1
 
     def reset_chart(self):
@@ -611,8 +625,8 @@ class Player:
         if not self.current_notes_draw:
             return
 
-        if isinstance(self.current_notes_draw[0], Drumroll) and 255 > self.current_notes_draw[0].color > 0:
-            self.current_notes_draw[0].color += 1
+        if isinstance(self.current_notes_draw[0], Drumroll):
+            self.current_notes_draw[0].color = max(255, self.current_notes_draw[0].color + 1)
 
         note = self.current_notes_draw[0]
         if note.type in {NoteType.ROLL_HEAD, NoteType.ROLL_HEAD_L, NoteType.BALLOON_HEAD, NoteType.KUSUDAMA} and len(self.current_notes_draw) > 1:
@@ -658,7 +672,7 @@ class Player:
             index = self.current_notes_draw.index(note)
             self.current_notes_draw.pop(index)
 
-    def check_drumroll(self, drum_type: int, background: Optional[Background], current_time: float):
+    def check_drumroll(self, drum_type: DrumType, background: Optional[Background], current_time: float):
         """Checks if a note has been hit during a drumroll"""
         self.draw_arc_list.append(NoteArc(drum_type, current_time, PlayerNum(self.is_2p + 1), drum_type == 3 or drum_type == 4, False))
         self.curr_drumroll_count += 1
@@ -673,9 +687,9 @@ class Player:
             return
         self.current_notes_draw[0].color = max(0, 255 - (self.curr_drumroll_count * 10))
 
-    def check_balloon(self, drum_type: int, note: Balloon, current_time: float):
+    def check_balloon(self, drum_type: DrumType, note: Balloon, current_time: float):
         """Checks if the player has popped a balloon"""
-        if drum_type != 1:
+        if drum_type != DrumType.DON:
             return
         if note.is_kusudama:
             self.check_kusudama(note)
@@ -708,7 +722,7 @@ class Player:
             note.popped = True
             self.curr_balloon_count = 0
 
-    def check_note(self, ms_from_start: float, drum_type: int, current_time: float, background: Optional[Background]):
+    def check_note(self, ms_from_start: float, drum_type: DrumType, current_time: float, background: Optional[Background]):
         """Checks if the player has hit a note"""
         if len(self.don_notes) == 0 and len(self.kat_notes) == 0 and len(self.other_notes) == 0:
             return
@@ -732,16 +746,14 @@ class Player:
         else:
             self.curr_drumroll_count = 0
 
-            if drum_type == 1:
+            if drum_type == DrumType.DON:
                 if not self.don_notes:
                     return
                 curr_note = self.don_notes[0]
-            elif drum_type == 2:
+            else:
                 if not self.kat_notes:
                     return
                 curr_note = self.kat_notes[0]
-            else:
-                return
 
             #If the note is too far away, stop checking
             if ms_from_start > (curr_note.hit_ms + bad_window_ms):
@@ -749,8 +761,8 @@ class Player:
 
             big = curr_note.type == NoteType.DON_L or curr_note.type == NoteType.KAT_L
             if (curr_note.hit_ms - good_window_ms) <= ms_from_start <= (curr_note.hit_ms + good_window_ms):
-                self.draw_judge_list.append(Judgement('GOOD', big, self.is_2p))
-                self.lane_hit_effect = LaneHitEffect('GOOD', self.is_2p)
+                self.draw_judge_list.append(Judgment(Judgments.GOOD, big, self.is_2p))
+                self.lane_hit_effect = LaneHitEffect(Judgments.GOOD, self.is_2p)
                 self.good_count += 1
                 self.score += self.base_score
                 self.base_score_list.append(ScoreCounterAnimation(self.player_num, self.base_score, self.is_2p))
@@ -767,7 +779,7 @@ class Player:
                         background.add_chibi(False, 1)
 
             elif (curr_note.hit_ms - ok_window_ms) <= ms_from_start <= (curr_note.hit_ms + ok_window_ms):
-                self.draw_judge_list.append(Judgement('OK', big, self.is_2p))
+                self.draw_judge_list.append(Judgment(Judgments.OK, big, self.is_2p))
                 self.ok_count += 1
                 self.score += 10 * math.floor(self.base_score / 2 / 10)
                 self.base_score_list.append(ScoreCounterAnimation(self.player_num, 10 * math.floor(self.base_score / 2 / 10), self.is_2p))
@@ -785,14 +797,15 @@ class Player:
 
             elif (curr_note.hit_ms - bad_window_ms) <= ms_from_start <= (curr_note.hit_ms + bad_window_ms):
                 self.input_log[curr_note.index] = 'BAD'
-                self.draw_judge_list.append(Judgement('BAD', big, self.is_2p))
+                self.draw_judge_list.append(Judgment(Judgments.BAD, big, self.is_2p))
                 self.bad_count += 1
                 self.combo = 0
-                # Remove from both the specific note list and the main play_notes list
-                if drum_type == 1:
-                    self.don_notes.popleft()
+                if drum_type == DrumType.DON:
+                    note = self.don_notes.popleft()
                 else:
-                    self.kat_notes.popleft()
+                    note = self.kat_notes.popleft()
+                if note in self.current_notes_draw:
+                    self.current_notes_draw.remove(note)
                 if self.gauge is not None:
                     self.gauge.add_bad()
                 if background is not None:
@@ -826,24 +839,22 @@ class Player:
             if self.kusudama_anim.is_finished:
                 self.kusudama_anim = None
 
-    def spawn_hit_effects(self, note_type: str, side: str):
-        self.lane_hit_effect = LaneHitEffect(note_type, self.is_2p)
-        self.draw_drum_hit_list.append(DrumHitEffect(note_type, side, self.is_2p))
+    def spawn_hit_effects(self, drum_type: DrumType, side: Side):
+        self.lane_hit_effect = LaneHitEffect(drum_type, self.is_2p)
+        self.draw_drum_hit_list.append(DrumHitEffect(drum_type, side, self.is_2p))
 
     def handle_input(self, ms_from_start: float, current_time: float, background: Optional[Background]):
         input_checks = [
-            (is_l_don_pressed, 'DON', 'L', f'hitsound_don_{self.player_num}p'),
-            (is_r_don_pressed, 'DON', 'R', f'hitsound_don_{self.player_num}p'),
-            (is_l_kat_pressed, 'KAT', 'L', f'hitsound_kat_{self.player_num}p'),
-            (is_r_kat_pressed, 'KAT', 'R', f'hitsound_kat_{self.player_num}p')
+            (is_l_don_pressed, DrumType.DON, Side.LEFT, f'hitsound_don_{self.player_num}p'),
+            (is_r_don_pressed, DrumType.DON, Side.RIGHT, f'hitsound_don_{self.player_num}p'),
+            (is_l_kat_pressed, DrumType.KAT, Side.LEFT, f'hitsound_kat_{self.player_num}p'),
+            (is_r_kat_pressed, DrumType.KAT, Side.RIGHT, f'hitsound_kat_{self.player_num}p')
         ]
-        for check_func, note_type, side, sound in input_checks:
+        for check_func, drum_type, side, sound in input_checks:
             if check_func(self.player_num):
-                self.spawn_hit_effects(note_type, side)
+                self.spawn_hit_effects(drum_type, side)
                 audio.play_sound(sound, 'hitsound')
-
-                drum_value = 1 if note_type == 'DON' else 2
-                self.check_note(ms_from_start, drum_value, current_time, background)
+                self.check_note(ms_from_start, drum_type, current_time, background)
 
     def autoplay_manager(self, ms_from_start: float, current_time: float, background: Optional[Background]):
         """Manages autoplay behavior"""
@@ -862,30 +873,29 @@ class Player:
                 subdivision_in_ms = ms_from_start // ((60000 * 4 / bpm) / 24)
             if subdivision_in_ms > self.last_subdivision:
                 self.last_subdivision = subdivision_in_ms
-                hit_type = 'DON'
-                self.autoplay_hit_side = 'R' if self.autoplay_hit_side == 'L' else 'L'
+                hit_type = DrumType.DON
+                self.autoplay_hit_side = Side.RIGHT if self.autoplay_hit_side == Side.LEFT else Side.LEFT
                 self.spawn_hit_effects(hit_type, self.autoplay_hit_side)
                 audio.play_sound(f'hitsound_don_{self.player_num}p', 'hitsound')
-                note_type = NoteType.DON_L if note.type == NoteType.ROLL_HEAD_L else NoteType.DON
-                self.check_note(ms_from_start, note_type, current_time, background)
+                self.check_note(ms_from_start, hit_type, current_time, background)
         else:
             # Handle DON notes
             while self.don_notes and ms_from_start >= self.don_notes[0].hit_ms:
                 note = self.don_notes[0]
-                hit_type = 'DON'
-                self.autoplay_hit_side = 'R' if self.autoplay_hit_side == 'L' else 'L'
+                hit_type = DrumType.DON
+                self.autoplay_hit_side = Side.RIGHT if self.autoplay_hit_side == Side.LEFT else Side.LEFT
                 self.spawn_hit_effects(hit_type, self.autoplay_hit_side)
                 audio.play_sound(f'hitsound_don_{self.player_num}p', 'hitsound')
-                self.check_note(ms_from_start, 1, current_time, background)
+                self.check_note(ms_from_start, hit_type, current_time, background)
 
             # Handle KAT notes
             while self.kat_notes and ms_from_start >= self.kat_notes[0].hit_ms:
                 note = self.kat_notes[0]
-                hit_type = 'KAT'
-                self.autoplay_hit_side = 'R' if self.autoplay_hit_side == 'L' else 'L'
+                hit_type = DrumType.KAT
+                self.autoplay_hit_side = Side.RIGHT if self.autoplay_hit_side == Side.LEFT else Side.LEFT
                 self.spawn_hit_effects(hit_type, self.autoplay_hit_side)
                 audio.play_sound(f'hitsound_kat_{self.player_num}p', 'hitsound')
-                self.check_note(ms_from_start, 2, current_time, background)
+                self.check_note(ms_from_start, hit_type, current_time, background)
 
     def evaluate_branch(self, current_ms):
         """Evaluates the branch condition and updates the branch status"""
@@ -1180,7 +1190,6 @@ class Player:
         self.score_counter.draw()
         for anim in self.base_score_list:
             anim.draw()
-        #ray.draw_circle(game_screen.width//2, game_screen.height, 300, ray.ORANGE)
 
     def draw(self, ms_from_start: float, start_ms: float, mask_shader: ray.Shader, dan_transition = None):
         # Group 1: Background and lane elements
@@ -1193,7 +1202,7 @@ class Player:
             self.lane_hit_effect.draw()
         tex.draw_texture('lane', 'lane_hit_circle', x=self.judge_x, y=self.judge_y, index=self.is_2p)
 
-        # Group 2: Judgement and hit effects
+        # Group 2: judgment and hit effects
         if self.gogo_time is not None:
             self.gogo_time.draw(self.judge_x, self.judge_y)
         for anim in self.draw_judge_list:
@@ -1207,9 +1216,9 @@ class Player:
 
         self.draw_overlays(mask_shader)
 
-class Judgement:
-    """Shows the judgement of the player's hit"""
-    def __init__(self, type: str, big: bool, is_2p: bool):
+class Judgment:
+    """Shows the judgment of the player's hit"""
+    def __init__(self, type: Judgments, big: bool, is_2p: bool):
         self.is_2p = is_2p
         self.type = type
         self.big = big
@@ -1237,7 +1246,7 @@ class Judgement:
         index = self.texture_animation.attribute
         hit_fade = self.fade_animation_1.attribute
         fade = self.fade_animation_2.attribute
-        if self.type == 'GOOD':
+        if self.type == Judgments.GOOD:
             if self.big:
                 tex.draw_texture('hit_effect', 'hit_effect_good_big', x=judge_x, y=judge_y, fade=fade, index=self.is_2p)
                 tex.draw_texture('hit_effect', 'outer_good_big', x=judge_x, y=judge_y, frame=index, fade=hit_fade, index=self.is_2p)
@@ -1245,7 +1254,7 @@ class Judgement:
                 tex.draw_texture('hit_effect', 'hit_effect_good', x=judge_x, y=judge_y, fade=fade, index=self.is_2p)
                 tex.draw_texture('hit_effect', 'outer_good', x=judge_x, y=judge_y, frame=index, fade=hit_fade, index=self.is_2p)
             tex.draw_texture('hit_effect', 'judge_good', y=y+judge_y, x=judge_x, fade=fade, index=self.is_2p)
-        elif self.type == 'OK':
+        elif self.type == Judgments.OK:
             if self.big:
                 tex.draw_texture('hit_effect', 'hit_effect_ok_big', x=judge_x, y=judge_y, fade=fade, index=self.is_2p)
                 tex.draw_texture('hit_effect', 'outer_ok_big', x=judge_x, y=judge_y, frame=index, fade=hit_fade, index=self.is_2p)
@@ -1253,12 +1262,12 @@ class Judgement:
                 tex.draw_texture('hit_effect', 'hit_effect_ok', x=judge_x, y=judge_y, fade=fade, index=self.is_2p)
                 tex.draw_texture('hit_effect', 'outer_ok', x=judge_x, y=judge_y, frame=index, fade=hit_fade, index=self.is_2p)
             tex.draw_texture('hit_effect', 'judge_ok', x=judge_x, y=y+judge_y, fade=fade, index=self.is_2p)
-        elif self.type == 'BAD':
+        elif self.type == Judgments.BAD:
             tex.draw_texture('hit_effect', 'judge_bad', x=judge_x, y=y+judge_y, fade=fade, index=self.is_2p)
 
 class LaneHitEffect:
     """Display a gradient overlay when the player hits the drum"""
-    def __init__(self, type: str, is_2p: bool):
+    def __init__(self, type: Judgments | DrumType, is_2p: bool):
         self.is_2p = is_2p
         self.type = type
         self.fade = tex.get_animation(0, is_copy=True)
@@ -1271,16 +1280,16 @@ class LaneHitEffect:
             self.is_finished = True
 
     def draw(self):
-        if self.type == 'GOOD':
+        if self.type == Judgments.GOOD:
             tex.draw_texture('lane', 'lane_hit_effect', frame=2, index=self.is_2p, fade=self.fade.attribute)
-        elif self.type == 'DON':
+        elif self.type == DrumType.DON:
             tex.draw_texture('lane', 'lane_hit_effect', frame=0, index=self.is_2p, fade=self.fade.attribute)
-        elif self.type == 'KAT':
+        elif self.type == DrumType.KAT:
             tex.draw_texture('lane', 'lane_hit_effect', frame=1, index=self.is_2p, fade=self.fade.attribute)
 
 class DrumHitEffect:
     """Display the side of the drum hit"""
-    def __init__(self, type: str, side: str, is_2p: bool):
+    def __init__(self, type: DrumType, side: Side, is_2p: bool):
         self.is_2p = is_2p
         self.type = type
         self.side = side
@@ -1294,15 +1303,15 @@ class DrumHitEffect:
             self.is_finished = True
 
     def draw(self):
-        if self.type == 'DON':
-            if self.side == 'L':
+        if self.type == DrumType.DON:
+            if self.side == Side.LEFT:
                 tex.draw_texture('lane', 'drum_don_l', index=self.is_2p, fade=self.fade.attribute)
-            elif self.side == 'R':
+            elif self.side == Side.RIGHT:
                 tex.draw_texture('lane', 'drum_don_r', index=self.is_2p, fade=self.fade.attribute)
-        elif self.type == 'KAT':
-            if self.side == 'L':
+        elif self.type == DrumType.KAT:
+            if self.side == Side.LEFT:
                 tex.draw_texture('lane', 'drum_kat_l', index=self.is_2p, fade=self.fade.attribute)
-            elif self.side == 'R':
+            elif self.side == Side.RIGHT:
                 tex.draw_texture('lane', 'drum_kat_r', index=self.is_2p, fade=self.fade.attribute)
 
 class GaugeHitEffect:
