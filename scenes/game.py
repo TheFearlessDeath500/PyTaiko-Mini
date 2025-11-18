@@ -240,7 +240,7 @@ class GameScreen(Screen):
                 audio.stop_music_stream(self.song_music)
             return self.on_screen_end('SONG_SELECT')
 
-        if ray.is_key_pressed(ray.KeyboardKey.KEY_SPACE):
+        if ray.is_key_pressed(global_data.config["keys"]["pause_key"]):
             self.pause_song()
 
     def spawn_ending_anims(self):

@@ -35,6 +35,7 @@ video_path = ['Videos']
 exit_key = 'Q'
 borderless_key = 'F10'
 fullscreen_key = 'F11'
+pause_key = "SPACE"
 back_key = 'ESCAPE'
 restart_key = 'F1'
 
