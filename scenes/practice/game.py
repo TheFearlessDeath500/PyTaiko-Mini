@@ -10,9 +10,9 @@ from libs.audio import audio
 from libs.background import Background
 from libs.global_data import Modifiers, PlayerNum, global_data
 from libs.tja import Balloon, Drumroll, Note, NoteType, TJAParser, apply_modifiers
-from libs.utils import get_current_ms, get_key_code
+from libs.utils import get_current_ms
 from libs.texture import tex
-from scenes.game import DrumHitEffect, GameScreen, JudgeCounter, LaneHitEffect, Player, SCREEN_WIDTH
+from scenes.game import DrumHitEffect, DrumType, GameScreen, JudgeCounter, LaneHitEffect, Player, SCREEN_WIDTH, Side
 
 logger = logging.getLogger(__name__)
 
@@ -93,14 +93,14 @@ class PracticeGameScreen(GameScreen):
             self.start_ms = get_current_ms() - self.pause_time
 
     def global_keys(self):
-        if ray.is_key_pressed(get_key_code(global_data.config["keys"]["restart_key"])):
+        if ray.is_key_pressed(global_data.config["keys"]["restart_key"]):
             if self.song_music is not None:
                 audio.stop_music_stream(self.song_music)
             self.init_tja(global_data.session_data[global_data.player_num].selected_song)
             audio.play_sound('restart', 'sound')
             self.song_started = False
 
-        if ray.is_key_pressed(get_key_code(global_data.config["keys"]["back_key"])):
+        if ray.is_key_pressed(global_data.config["keys"]["back_key"]):
             if self.song_music is not None:
                 audio.stop_music_stream(self.song_music)
             return self.on_screen_end('PRACTICE_SELECT')
@@ -276,7 +276,7 @@ class PracticePlayer(Player):
         self.gauge = None
         self.paused = False
 
-    def spawn_hit_effects(self, note_type: str, side: str):
+    def spawn_hit_effects(self, note_type: DrumType, side: Side):
         self.lane_hit_effect = LaneHitEffect(note_type, self.is_2p)
         self.draw_drum_hit_list.append(PracticeDrumHitEffect(note_type, side, self.is_2p, player_num=self.player_num))
 

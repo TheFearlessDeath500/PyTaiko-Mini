@@ -1,7 +1,7 @@
 from pathlib import Path
 import logging
 
-import pyray as ray
+import raylib as ray
 from moviepy import VideoFileClip
 
 from libs.audio import audio
@@ -52,13 +52,24 @@ class VideoPlayer:
             frame_data = self.video.get_frame(time_sec)
 
             if self.texture is None:
-                image = ray.Image(frame_data, self.video.w, self.video.h, 1, ray.PixelFormat.PIXELFORMAT_UNCOMPRESSED_R8G8B8)
-                self.texture = ray.load_texture_from_image(image)
+                if frame_data is None:
+                    return False
+                frame_bytes = frame_data.tobytes()
+                pixels_ptr = ray.ffi.cast('void *', ray.ffi.from_buffer('unsigned char[]', frame_bytes))
+
+                image = ray.ffi.new('Image *', {
+                    'data': pixels_ptr,
+                    'width': self.video.w,
+                    'height': self.video.h,
+                    'mipmaps': 1,
+                    'format': ray.PIXELFORMAT_UNCOMPRESSED_R8G8B8
+                })
+                self.texture = ray.LoadTextureFromImage(image[0])
             else:
                 if frame_data is not None:
                     frame_bytes = frame_data.tobytes()
                     pixels_ptr = ray.ffi.cast('void *', ray.ffi.from_buffer('unsigned char[]', frame_bytes))
-                    ray.update_texture(self.texture, pixels_ptr)
+                    ray.UpdateTexture(self.texture, pixels_ptr)
 
             self.current_frame_data = frame_data
             return True
@@ -108,14 +119,14 @@ class VideoPlayer:
     def draw(self):
         """Draw video frames to the raylib canvas"""
         if self.texture is not None:
-            ray.draw_texture(self.texture, 0, 0, ray.WHITE)
+            ray.DrawTexture(self.texture, 0, 0, ray.WHITE)
 
     def stop(self):
         """Stops the video, audio, and clears its buffer"""
         self.video.close()
 
         if self.texture is not None:
-            ray.unload_texture(self.texture)
+            ray.UnloadTexture(self.texture)
             self.texture = None
 
         if self.audio is not None:

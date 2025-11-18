@@ -5,9 +5,10 @@ import logging
 import tempfile
 import zipfile
 from pathlib import Path
-from typing import Optional, Union
+from typing import Any, Optional
 
-import pyray as ray
+import raylib as ray
+from pyray import Vector2, Rectangle, Color
 
 from libs.animation import BaseAnimation, parse_animations
 
@@ -23,7 +24,7 @@ class Coordinates:
 
 class Texture:
     """Texture class for managing textures and animations."""
-    def __init__(self, name: str, texture: Union[ray.Texture, list[ray.Texture]], init_vals: dict[str, int]):
+    def __init__(self, name: str, texture: Any, init_vals: dict[str, int]):
         self.name = name
         self.texture = texture
         self.init_vals = init_vals
@@ -66,13 +67,13 @@ class TextureWrapper:
                             logger.warning(f"Duplicate texture ID {texture.id}: {ids[texture.id]} and {zip}/{file}[{i}]")
                         else:
                             ids[texture.id] = f"{zip}/{file}[{i}]"
-                            ray.unload_texture(texture)
+                            ray.UnloadTexture(texture)
                 else:
                     if tex_object.texture.id in ids:
                         logger.warning(f"Duplicate texture ID {tex_object.texture.id}: {ids[tex_object.texture.id]} and {zip}/{file}")
                     else:
                         ids[tex_object.texture.id] = f"{zip}/{file}"
-                        ray.unload_texture(tex_object.texture)
+                        ray.UnloadTexture(tex_object.texture)
 
         self.textures.clear()
         self.animations.clear()
@@ -147,10 +148,10 @@ class TextureWrapper:
 
                             extracted_path = Path(temp_dir) / tex_name
                             if extracted_path.is_dir():
-                                frames = [ray.load_texture(str(frame)) for frame in sorted(extracted_path.iterdir(),
+                                frames = [ray.LoadTexture(str(frame).encode('utf-8')) for frame in sorted(extracted_path.iterdir(),
                                           key=lambda x: int(x.stem)) if frame.is_file()]
                             else:
-                                frames = [ray.load_texture(str(extracted_path))]
+                                frames = [ray.LoadTexture(str(extracted_path).encode('utf-8'))]
                         self.textures[zip.stem][tex_name] = Texture(tex_name, frames, tex_mapping)
                         self._read_tex_obj_data(tex_mapping, self.textures[zip.stem][tex_name])
                     elif f"{tex_name}.png" in zip_ref.namelist():
@@ -162,7 +163,7 @@ class TextureWrapper:
                             temp_path = temp_file.name
 
                         try:
-                            tex = ray.load_texture(temp_path)
+                            tex = ray.LoadTexture(temp_path.encode('utf-8'))
                             self.textures[zip.stem][tex_name] = Texture(tex_name, tex, tex_mapping)
                             self._read_tex_obj_data(tex_mapping, self.textures[zip.stem][tex_name])
                         finally:
@@ -192,25 +193,58 @@ class TextureWrapper:
     def control(self, tex_object: Texture, index: int = 0):
         '''debug function'''
         distance = 1
-        if ray.is_key_down(ray.KeyboardKey.KEY_LEFT_SHIFT):
+        if ray.IsKeyDown(ray.KEY_LEFT_SHIFT):
             distance = 10
-        if ray.is_key_pressed(ray.KeyboardKey.KEY_LEFT):
+        if ray.IsKeyPressed(ray.KEY_LEFT):
             tex_object.x[index] -= distance
             logger.info(f"{tex_object.name}: {tex_object.x[index]}, {tex_object.y[index]}")
-        if ray.is_key_pressed(ray.KeyboardKey.KEY_RIGHT):
+        if ray.IsKeyPressed(ray.KEY_RIGHT):
             tex_object.x[index] += distance
             logger.info(f"{tex_object.name}: {tex_object.x[index]}, {tex_object.y[index]}")
-        if ray.is_key_pressed(ray.KeyboardKey.KEY_UP):
+        if ray.IsKeyPressed(ray.KEY_UP):
             tex_object.y[index] -= distance
             logger.info(f"{tex_object.name}: {tex_object.x[index]}, {tex_object.y[index]}")
-        if ray.is_key_pressed(ray.KeyboardKey.KEY_DOWN):
+        if ray.IsKeyPressed(ray.KEY_DOWN):
             tex_object.y[index] += distance
             logger.info(f"{tex_object.name}: {tex_object.x[index]}, {tex_object.y[index]}")
 
-    def draw_texture(self, subset: str, texture: str, color: ray.Color=ray.WHITE, frame: int = 0, scale: float = 1.0, center: bool = False,
+    def _draw_texture_untyped(self, subset: str, texture: str, color: tuple[int, int, int, int], frame: int, scale: float, center: bool,
+                            mirror: str, x: float, y: float, x2: float, y2: float,
+                            origin: tuple[float, float], rotation: float, fade: float,
+                            index: int, src: Optional[tuple[float, float, float, float]], controllable: bool) -> None:
+        mirror_x = -1 if mirror == 'horizontal' else 1
+        mirror_y = -1 if mirror == 'vertical' else 1
+        if fade != 1.1:
+            final_color = ray.Fade(color, fade)
+        else:
+            final_color = color
+        tex_object = self.textures[subset][texture]
+        if src is not None:
+            source_rect = src
+        else:
+            source_rect = (0, 0, tex_object.width * mirror_x, tex_object.height * mirror_y)
+        if center:
+            dest_rect = (tex_object.x[index] + (tex_object.width//2) - ((tex_object.width * scale)//2) + x, tex_object.y[index] + (tex_object.height//2) - ((tex_object.height * scale)//2) + y, tex_object.x2[index]*scale + x2, tex_object.y2[index]*scale + y2)
+        else:
+            dest_rect = (tex_object.x[index] + x, tex_object.y[index] + y, tex_object.x2[index]*scale + x2, tex_object.y2[index]*scale + y2)
+
+        if tex_object.is_frames:
+            if not isinstance(tex_object.texture, list):
+                raise Exception("Texture was marked as multiframe but is only 1 texture")
+            if frame >= len(tex_object.texture):
+                raise Exception(f"Frame {frame} not available in iterable texture {tex_object.name}")
+            ray.DrawTexturePro(tex_object.texture[frame], source_rect, dest_rect, origin, rotation, final_color)
+        else:
+            if isinstance(tex_object.texture, list):
+                raise Exception("Texture is multiframe but was called as 1 texture")
+            ray.DrawTexturePro(tex_object.texture, source_rect, dest_rect, origin, rotation, final_color)
+        if tex_object.controllable[index] or controllable:
+            self.control(tex_object)
+
+    def draw_texture(self, subset: str, texture: str, color: Color = Color(255, 255, 255, 255), frame: int = 0, scale: float = 1.0, center: bool = False,
                             mirror: str = '', x: float = 0, y: float = 0, x2: float = 0, y2: float = 0,
-                            origin: ray.Vector2 = ray.Vector2(0,0), rotation: float = 0, fade: float = 1.1,
-                            index: int = 0, src: Optional[ray.Rectangle] = None, controllable: bool = False) -> None:
+                            origin: Vector2 = Vector2(0,0), rotation: float = 0, fade: float = 1.1,
+                            index: int = 0, src: Optional[Rectangle] = None, controllable: bool = False) -> None:
         """
         Wrapper function for raylib's draw_texture_pro().
         Parameters:
@@ -232,33 +266,14 @@ class TextureWrapper:
             src (Optional[ray.Rectangle]): The source rectangle of the texture.
             controllable (bool): Whether the texture is controllable.
         """
-        mirror_x = -1 if mirror == 'horizontal' else 1
-        mirror_y = -1 if mirror == 'vertical' else 1
-        if fade != 1.1:
-            final_color = ray.fade(color, fade)
-        else:
-            final_color = color
-        tex_object = self.textures[subset][texture]
         if src is not None:
-            source_rect = src
+            src_data = (src.x, src.y, src.width, src.height)
         else:
-            source_rect = ray.Rectangle(0, 0, tex_object.width * mirror_x, tex_object.height * mirror_y)
-        if center:
-            dest_rect = ray.Rectangle(tex_object.x[index] + (tex_object.width//2) - ((tex_object.width * scale)//2) + x, tex_object.y[index] + (tex_object.height//2) - ((tex_object.height * scale)//2) + y, tex_object.x2[index]*scale + x2, tex_object.y2[index]*scale + y2)
+            src_data = None
+        if isinstance(color, tuple):
+            color_data = (color[0], color[1], color[2], color[3])
         else:
-            dest_rect = ray.Rectangle(tex_object.x[index] + x, tex_object.y[index] + y, tex_object.x2[index]*scale + x2, tex_object.y2[index]*scale + y2)
-
-        if tex_object.is_frames:
-            if not isinstance(tex_object.texture, list):
-                raise Exception("Texture was marked as multiframe but is only 1 texture")
-            if frame >= len(tex_object.texture):
-                raise Exception(f"Frame {frame} not available in iterable texture {tex_object.name}")
-            ray.draw_texture_pro(tex_object.texture[frame], source_rect, dest_rect, origin, rotation, final_color)
-        else:
-            if isinstance(tex_object.texture, list):
-                raise Exception("Texture is multiframe but was called as 1 texture")
-            ray.draw_texture_pro(tex_object.texture, source_rect, dest_rect, origin, rotation, final_color)
-        if tex_object.controllable[index] or controllable:
-            self.control(tex_object)
+            color_data = (color.r, color.g, color.b, color.a)
+        self._draw_texture_untyped(subset, texture, color_data, frame, scale, center, mirror, x, y, x2, y2, (origin.x, origin.y), rotation, fade, index, src_data, controllable)
 
 tex = TextureWrapper()

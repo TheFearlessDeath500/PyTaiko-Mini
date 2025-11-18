@@ -1346,8 +1346,7 @@ class FileNavigator:
         """Get crowns for a directory, calculating only if needed"""
         if dir_key in self.crown_cache_dirty or dir_key not in self.directory_crowns:
             # Calculate crowns on-demand
-            dir_path = Path(dir_key)
-            tja_files = self._get_tja_files_for_directory(dir_path)
+            tja_files = self.directory_contents[dir_key]
             self._calculate_directory_crowns(dir_key, tja_files)
             self.crown_cache_dirty.discard(dir_key)
 

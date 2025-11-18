@@ -10,6 +10,7 @@ from pathlib import Path
 from typing import Optional
 
 import pyray as ray
+import raylib as rl
 import tomlkit
 from raylib import (
     SHADER_UNIFORM_FLOAT,
@@ -83,7 +84,7 @@ def get_config() -> Config:
 
     config: Config = json.loads(json.dumps(config_file))
     for key in config['keys']:
-        config[key] = get_key_code(config['keys'][key])
+        config['keys'][key] = get_key_code(config['keys'][key])
     for key in config['keys_1p']:
         bindings = config['keys_1p'][key]
         for i, bind in enumerate(bindings):
@@ -116,12 +117,12 @@ def is_input_key_pressed(keys: list[int], gamepad_buttons: list[int]):
     if global_data.input_locked:
         return False
     for key in keys:
-        if ray.is_key_pressed(key):
+        if rl.IsKeyPressed(key):
             return True
 
-    if ray.is_gamepad_available(0):
+    if rl.IsGamepadAvailable(0):
         for button in gamepad_buttons:
-            if ray.is_gamepad_button_pressed(0, button):
+            if rl.IsGamepadButtonPressed(0, button):
                 return True
 
     return False

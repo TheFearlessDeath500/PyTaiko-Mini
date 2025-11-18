@@ -31,7 +31,6 @@ from libs.transition import Transition
 from libs.utils import (
     OutlinedText,
     get_current_ms,
-    get_key_code,
     global_data,
     global_tex,
     is_l_don_pressed,
@@ -1224,13 +1223,13 @@ class Judgment:
         self.big = big
         self.is_finished = False
 
-        self.fade_animation_1 = Animation.create_fade(132, initial_opacity=0.5, delay=100)
-        self.fade_animation_1.start()
-        self.fade_animation_2 = Animation.create_fade(316 - 233.3, delay=233.3)
-        self.fade_animation_2.start()
-        self.move_animation = Animation.create_move(83, total_distance=15, start_position=144)
+        self.fade_animation_1 = tex.get_animation(27, is_copy=True)
+        self.fade_animation_2 = tex.get_animation(28, is_copy=True)
+        self.move_animation = tex.get_animation(29, is_copy=True)
+        self.texture_animation = tex.get_animation(30, is_copy=True)
         self.move_animation.start()
-        self.texture_animation = Animation.create_texture_change(100, textures=[(33, 50, 0), (50, 83, 1), (83, 100, 2), (100, float('inf'), 3)])
+        self.fade_animation_2.start()
+        self.fade_animation_1.start()
         self.texture_animation.start()
 
     def update(self, current_ms):
@@ -1323,14 +1322,14 @@ class GaugeHitEffect:
         self.note_type = note_type
         self.is_big = big
         self.texture_change = tex.get_animation(2, is_copy=True)
+        self.circle_fadein = tex.get_animation(31, is_copy=True)
+        self.resize = tex.get_animation(32, is_copy=True)
+        self.fade_out = tex.get_animation(33, is_copy=True)
+        self.rotation = tex.get_animation(34, is_copy=True)
         self.texture_change.start()
-        self.circle_fadein = Animation.create_fade(133, initial_opacity=0.0, final_opacity=1.0, delay=16.67)
         self.circle_fadein.start()
-        self.resize = Animation.create_texture_resize(233, delay=self.texture_change.duration, initial_size=0.75, final_size=1.15)
         self.resize.start()
-        self.fade_out = Animation.create_fade(66, delay=233)
         self.fade_out.start()
-        self.rotation = Animation.create_fade(300, delay=116.67, initial_opacity=0.0, final_opacity=1.0)
         self.rotation.start()
         self.color = ray.fade(ray.YELLOW, self.circle_fadein.attribute)
         self.is_finished = False
@@ -1779,17 +1778,17 @@ class ScoreCounterAnimation:
         self.is_2p = is_2p
         self.counter = counter
         self.direction = -1 if self.is_2p else 1
-        self.fade_animation_1 = Animation.create_fade(50, initial_opacity=0.0, final_opacity=1.0)
+        self.fade_animation_1 = tex.get_animation(35, is_copy=True)
+        self.move_animation_1 = tex.get_animation(36, is_copy=True)
+        self.fade_animation_2 = tex.get_animation(37, is_copy=True)
+        self.move_animation_2 = tex.get_animation(38, is_copy=True)
+        self.move_animation_3 = tex.get_animation(39, is_copy=True)
+        self.move_animation_4 = tex.get_animation(40, is_copy=True)
         self.fade_animation_1.start()
-        self.move_animation_1 = Animation.create_move(80, total_distance=-20, start_position=175)
         self.move_animation_1.start()
-        self.fade_animation_2 = Animation.create_fade(80, delay=366.74)
         self.fade_animation_2.start()
-        self.move_animation_2 = Animation.create_move(66, total_distance=5, start_position=145, delay=80)
         self.move_animation_2.start()
-        self.move_animation_3 = Animation.create_move(66, delay=279.36, total_distance=-2, start_position=146)
         self.move_animation_3.start()
-        self.move_animation_4 = Animation.create_move(80, delay=366.74, total_distance=10, start_position=148)
         self.move_animation_4.start()
 
         if player_num == PlayerNum.P2:
@@ -1928,7 +1927,7 @@ class ComboAnnounce:
         self.is_2p = is_2p
         self.combo = combo
         self.wait = current_time_ms
-        self.fade = Animation.create_fade(100)
+        self.fade = tex.get_animation(65)
         self.fade.start()
         self.is_finished = False
         self.audio_played = False
@@ -1977,11 +1976,11 @@ class BranchIndicator:
         self.is_2p = is_2p
         self.difficulty = 'normal'
         self.diff_2 = self.difficulty
-        self.diff_down = Animation.create_move(100, total_distance=20, ease_out='quadratic')
-        self.diff_up = Animation.create_move(133, total_distance=70, delay=self.diff_down.duration, ease_out='quadratic')
-        self.diff_fade = Animation.create_fade(133, delay=self.diff_down.duration)
-        self.level_fade = Animation.create_fade(116, initial_opacity=0.0, final_opacity=1.0, reverse_delay=116*10)
-        self.level_scale = Animation.create_texture_resize(116, initial_size=1.0, final_size=1.2, reverse_delay=0)
+        self.diff_down = tex.get_animation(41)
+        self.diff_up = tex.get_animation(42)
+        self.diff_fade = tex.get_animation(43)
+        self.level_fade = tex.get_animation(44)
+        self.level_scale = tex.get_animation(45)
         self.direction = 1
     def update(self, current_time_ms):
         self.diff_down.update(current_time_ms)
@@ -2023,24 +2022,24 @@ class FailAnimation:
     """Animates the fail effect"""
     def __init__(self, is_2p: bool):
         self.is_2p = is_2p
-        self.bachio_fade_in = Animation.create_fade(150, initial_opacity=0.0, final_opacity=1.0)
+        self.bachio_fade_in = tex.get_animation(46)
+        self.bachio_texture_change = tex.get_animation(47)
+        self.bachio_fall = tex.get_animation(48)
+        self.bachio_move_out = tex.get_animation(49)
+        self.bachio_boom_fade_in = tex.get_animation(50)
+        self.bachio_boom_scale = tex.get_animation(51)
+        self.bachio_up = tex.get_animation(52)
+        self.bachio_down = tex.get_animation(53)
+        self.text_fade_in = tex.get_animation(54)
+        self.text_fade_in.start()
         self.bachio_fade_in.start()
-        self.bachio_texture_change = Animation.create_texture_change(266.67, textures=[(0, 150, 0), (150, 266.67, 1)], delay=self.bachio_fade_in.duration)
-        self.bachio_fall = Animation.create_texture_change(500, textures=[[0, 495, 0], [495, 500, 1]], delay=self.bachio_texture_change.duration)
         self.bachio_texture_change.start()
         self.bachio_fall.start()
-        self.bachio_move_out = Animation.create_move(116.67, total_distance=150, delay=self.bachio_fade_in.duration, ease_out='quadratic')
         self.bachio_move_out.start()
-        self.bachio_boom_fade_in = Animation.create_fade(66.67, initial_opacity=0.0, final_opacity=1.0, reverse_delay=0, delay=self.bachio_fade_in.duration + self.bachio_move_out.duration)
-        self.bachio_boom_scale = Animation.create_texture_resize(133.34, initial_size=0.5, final_size=1.0, delay=self.bachio_fade_in.duration + self.bachio_move_out.duration)
         self.bachio_boom_fade_in.start()
         self.bachio_boom_scale.start()
-        self.bachio_up = Animation.create_move(416.67, total_distance=60, delay=self.bachio_fade_in.duration + self.bachio_move_out.duration, ease_out='quadratic')
-        self.bachio_down = Animation.create_move(100, total_distance=60, delay=self.bachio_fade_in.duration + self.bachio_move_out.duration + self.bachio_up.duration, ease_out='quadratic')
         self.bachio_up.start()
         self.bachio_down.start()
-        self.text_fade_in = Animation.create_fade(283.33, initial_opacity=0.0, final_opacity=1.0, delay=self.bachio_fade_in.duration + self.bachio_move_out.duration + self.bachio_up.duration/2)
-        self.text_fade_in.start()
         self.name = 'in'
         self.frame = self.bachio_texture_change.attribute
         audio.play_sound('fail', 'sound')
@@ -2070,13 +2069,13 @@ class ClearAnimation:
     """Animates the clear effect"""
     def __init__(self, is_2p: bool):
         self.is_2p = is_2p
-        self.bachio_fade_in = Animation.create_fade(150, initial_opacity=0.0, final_opacity=1.0)
+        self.bachio_fade_in = tex.get_animation(46)
         self.bachio_fade_in.start()
-        self.bachio_texture_change = Animation.create_texture_change(266.67, textures=[(0, 150, 0), (150, 266.67, 1)], delay=self.bachio_fade_in.duration)
+        self.bachio_texture_change = tex.get_animation(47)
         self.bachio_texture_change.start()
-        self.bachio_out = Animation.create_texture_change(200, textures=[[0, 50, 0], [50, 100, 1], [100, 150, 2], [150, 200, 3]], delay=self.bachio_texture_change.duration+100)
+        self.bachio_out = tex.get_animation(55)
         self.bachio_out.start()
-        self.bachio_move_out = Animation.create_move(116.67, total_distance=200, delay=self.bachio_fade_in.duration, ease_out='quadratic')
+        self.bachio_move_out = tex.get_animation(66)
         self.bachio_move_out.start()
         self.clear_separate_fade_in = [Animation.create_fade(100, initial_opacity=0.0, final_opacity=1.0, delay=i*50) for i in range(5)]
         for fade in self.clear_separate_fade_in:
@@ -2084,7 +2083,7 @@ class ClearAnimation:
         self.clear_separate_stretch = [Animation.create_text_stretch(200, delay=i*50) for i in range(5)]
         for stretch in self.clear_separate_stretch:
             stretch.start()
-        self.clear_highlight_fade_in = Animation.create_fade(183, initial_opacity=0.0, final_opacity=1.0, reverse_delay=0, delay=450)
+        self.clear_highlight_fade_in = tex.get_animation(56)
         self.clear_highlight_fade_in.start()
         self.draw_clear_full = False
         self.name = 'in'
@@ -2122,13 +2121,13 @@ class FCAnimation:
     """Animates the full combo effect"""
     def __init__(self, is_2p: bool):
         self.is_2p = is_2p
-        self.bachio_fade_in = Animation.create_fade(150, initial_opacity=0.0, final_opacity=1.0)
+        self.bachio_fade_in = tex.get_animation(46)
         self.bachio_fade_in.start()
-        self.bachio_texture_change = Animation.create_texture_change(266.67, textures=[(0, 150, 0), (150, 266.67, 1)], delay=self.bachio_fade_in.duration)
+        self.bachio_texture_change = tex.get_animation(47)
         self.bachio_texture_change.start()
-        self.bachio_out = Animation.create_texture_change(200, textures=[[0, 50, 0], [50, 100, 1], [100, 150, 2], [150, 200, 3]], delay=self.bachio_texture_change.duration+100)
+        self.bachio_out = tex.get_animation(55)
         self.bachio_out.start()
-        self.bachio_move_out = Animation.create_move(116.67, total_distance=200, delay=self.bachio_fade_in.duration, ease_out='quadratic')
+        self.bachio_move_out = tex.get_animation(49)
         self.bachio_move_out.start()
         self.clear_separate_fade_in = [Animation.create_fade(100, initial_opacity=0.0, final_opacity=1.0, delay=i*50) for i in range(5)]
         for fade in self.clear_separate_fade_in:
@@ -2136,15 +2135,15 @@ class FCAnimation:
         self.clear_separate_stretch = [Animation.create_text_stretch(200, delay=i*50) for i in range(5)]
         for stretch in self.clear_separate_stretch:
             stretch.start()
-        self.clear_highlight_fade_in = Animation.create_fade(183, initial_opacity=0.0, final_opacity=1.0, reverse_delay=0, delay=450)
+        self.clear_highlight_fade_in = tex.get_animation(56)
         self.clear_highlight_fade_in.start()
-        self.fc_highlight_up = Animation.create_move(133, total_distance=20, reverse_delay=216.67, delay=450 + self.clear_highlight_fade_in.duration, ease_out='quadratic')
+        self.fc_highlight_up = tex.get_animation(57)
         self.fc_highlight_up.start()
-        self.fc_highlight_fade_out = Animation.create_fade(133)
-        self.bachio_move_out_2 = Animation.create_move(700, total_distance=150, ease_in='quadratic', ease_out='quadratic')
-        self.bachio_move_up = Animation.create_move(350, total_distance=150, reverse_delay=0, ease_in='quadratic')
-        self.fan_fade_in = Animation.create_fade(183, initial_opacity=0.0, final_opacity=1.0)
-        self.fan_texture_change = Animation.create_texture_change(100, textures=[[0, 16.67, 0], [16.67, 33.33, 1], [33.33, 50, 2], [50, 66.67, 3], [66.67, 83.33, 4], [83.33, 100, 5]], delay=self.fan_fade_in.duration)
+        self.fc_highlight_fade_out = tex.get_animation(58)
+        self.bachio_move_out_2 = tex.get_animation(59)
+        self.bachio_move_up = tex.get_animation(60)
+        self.fan_fade_in = tex.get_animation(61)
+        self.fan_texture_change = tex.get_animation(62)
         self.draw_clear_full = False
         self.name = 'in'
         self.frame = 0
@@ -2298,7 +2297,7 @@ class Gauge:
         ]
         self.gauge_update_anim = tex.get_animation(10)
         self.rainbow_fade_in = None
-        self.rainbow_animation = None
+        self.rainbow_animation = tex.get_animation(64)
 
     def add_good(self):
         """Adds a good note to the gauge"""
@@ -2327,7 +2326,7 @@ class Gauge:
         self.is_clear = self.gauge_length > self.clear_start[min(self.difficulty, Difficulty.HARD)]-1
         self.is_rainbow = self.gauge_length == self.gauge_max
         if self.gauge_length == self.gauge_max and self.rainbow_fade_in is None:
-            self.rainbow_fade_in = Animation.create_fade(450, initial_opacity=0.0, final_opacity=1.0)
+            self.rainbow_fade_in = tex.get_animation(63)
             self.rainbow_fade_in.start()
         self.gauge_update_anim.update(current_ms)
         self.tamashii_fire_change.update(current_ms)
@@ -2335,13 +2334,7 @@ class Gauge:
         if self.rainbow_fade_in is not None:
             self.rainbow_fade_in.update(current_ms)
 
-        if self.rainbow_animation is None:
-            self.rainbow_animation = Animation.create_texture_change((16.67*8) * 3, textures=[((16.67 * 3) * i, (16.67 * 3) * (i + 1), i) for i in range(8)])
-            self.rainbow_animation.start()
-        else:
-            self.rainbow_animation.update(current_ms)
-            if self.rainbow_animation.is_finished or self.gauge_length < 87:
-                self.rainbow_animation = None
+        self.rainbow_animation.update(current_ms)
 
     def draw(self):
         mirror = 'vertical' if self.is_2p else ''
@@ -2357,7 +2350,7 @@ class Gauge:
             tex.draw_texture('gauge', 'bar_clear_bottom', x=(clear_point) * 8, x2=(gauge_length-clear_point)*8, index=self.is_2p)
 
         # Rainbow effect for full gauge
-        if gauge_length == self.gauge_max and self.rainbow_fade_in is not None and self.rainbow_animation is not None:
+        if gauge_length == self.gauge_max and self.rainbow_fade_in is not None:
             if 0 < self.rainbow_animation.attribute < 8:
                 tex.draw_texture('gauge', 'rainbow' + self.string_diff, frame=self.rainbow_animation.attribute-1, fade=self.rainbow_fade_in.attribute, index=self.is_2p, mirror=mirror)
             tex.draw_texture('gauge', 'rainbow' + self.string_diff, frame=self.rainbow_animation.attribute, fade=self.rainbow_fade_in.attribute, index=self.is_2p, mirror=mirror)

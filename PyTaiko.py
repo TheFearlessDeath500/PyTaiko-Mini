@@ -20,7 +20,6 @@ from libs.tja import TJAParser
 from libs.utils import (
     force_dedicated_gpu,
     get_config,
-    get_key_code,
     global_data,
     global_tex
 )
@@ -208,16 +207,17 @@ def main():
     ray.gen_texture_mipmaps(target.texture)
     ray.set_texture_filter(target.texture, ray.TextureFilter.TEXTURE_FILTER_TRILINEAR)
     ray.rl_set_blend_factors_separate(RL_SRC_ALPHA, RL_ONE_MINUS_SRC_ALPHA, RL_ONE, RL_ONE_MINUS_SRC_ALPHA, RL_FUNC_ADD, RL_FUNC_ADD)
-    ray.set_exit_key(get_key_code(global_data.config["keys"]["exit_key"]))
+    ray.set_exit_key(global_data.config["keys"]["exit_key"])
 
     ray.hide_cursor()
     logger.info("Cursor hidden")
+    last_fps = 1
 
     while not ray.window_should_close():
-        if ray.is_key_pressed(get_key_code(global_data.config["keys"]["fullscreen_key"])):
+        if ray.is_key_pressed(global_data.config["keys"]["fullscreen_key"]):
             ray.toggle_fullscreen()
             logger.info("Toggled fullscreen")
-        elif ray.is_key_pressed(get_key_code(global_data.config["keys"]["borderless_key"])):
+        elif ray.is_key_pressed(global_data.config["keys"]["borderless_key"]):
             ray.toggle_borderless_windowed()
             logger.info("Toggled borderless windowed mode")
 
@@ -248,7 +248,15 @@ def main():
             global_data.input_locked = 0
 
         if global_data.config["general"]["fps_counter"]:
-            ray.draw_fps(20, 20)
+            curr_fps = ray.get_fps()
+            if curr_fps != 0 and curr_fps != last_fps:
+                last_fps = curr_fps
+            if last_fps < 30:
+                ray.draw_text(f'{last_fps} FPS', 20, 20, 20, ray.RED)
+            elif last_fps < 60:
+                ray.draw_text(f'{last_fps} FPS', 20, 20, 20, ray.YELLOW)
+            else:
+                ray.draw_text(f'{last_fps} FPS', 20, 20, 20, ray.LIME)
         ray.end_blend_mode()
         ray.end_texture_mode()
         ray.begin_drawing()
