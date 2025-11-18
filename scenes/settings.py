@@ -4,7 +4,6 @@ import pyray as ray
 from libs.audio import audio
 from libs.screen import Screen
 from libs.utils import (
-    get_key_code,
     global_data,
     is_l_don_pressed,
     is_l_kat_pressed,
@@ -121,7 +120,7 @@ class SettingsScreen(Screen):
                     self.config[current_header][setting_key] = [new_key]
                     self.editing_key = False
                     logger.info(f"Key binding updated: {current_header}.{setting_key} -> {new_key}")
-            elif key_pressed == get_key_code(global_data.config["keys"]["back_key"]):
+            elif key_pressed == global_data.config["keys"]["back_key"]:
                 self.editing_key = False
                 logger.info("Key binding edit cancelled")
 
@@ -140,7 +139,7 @@ class SettingsScreen(Screen):
                 self.config[current_header][setting_key] = [button_pressed]
                 self.editing_gamepad = False
                 logger.info(f"Gamepad binding updated: {current_header}.{setting_key} -> {button_pressed}")
-        if ray.is_key_pressed(get_key_code(global_data.config["keys"]["back_key"])):
+        if ray.is_key_pressed(global_data.config["keys"]["back_key"]):
             self.editing_gamepad = False
             logger.info("Gamepad binding edit cancelled")
 
@@ -222,7 +221,7 @@ class SettingsScreen(Screen):
                     if ('keys' not in current_header) and ('gamepad' not in current_header):
                         self.handle_string_cycle(current_header, setting_key)
 
-            elif ray.is_key_pressed(get_key_code(global_data.config["keys"]["back_key"])):
+            elif ray.is_key_pressed(global_data.config["keys"]["back_key"]):
                 self.in_setting_edit = False
                 logger.info("Exited section edit")
 
