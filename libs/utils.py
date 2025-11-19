@@ -18,7 +18,7 @@ from raylib import (
     SHADER_UNIFORM_VEC4,
 )
 
-from libs.texture import TextureWrapper
+from libs.texture import SCREEN_WIDTH, TextureWrapper
 
 logger = logging.getLogger(__name__)
 
@@ -230,7 +230,7 @@ class OutlinedText:
         """
         self.text = text
         self.hash = self._hash_text(text, font_size, color, vertical)
-        self.outline_thickness = outline_thickness
+        self.outline_thickness = outline_thickness * (SCREEN_WIDTH/1280)
         if self.hash in text_cache:
             self.texture = ray.load_texture(f'cache/image/{self.hash}.png')
         else:

@@ -104,7 +104,7 @@ class EntryScreen(Screen):
                 self.state = State.SELECT_SIDE
                 plate_info = global_data.config['nameplate_2p']
                 self.nameplate = Nameplate(plate_info['name'], plate_info['title'], PlayerNum.ALL, -1, False, False, 1)
-                self.chara = Chara2D(1, 100)
+                self.chara = Chara2D(1)
                 self.side_select_fade.restart()
                 self.side = 1
             elif self.players[0] and self.players[0].player_num == PlayerNum.P2 and is_l_don_pressed(PlayerNum.P1) or is_r_don_pressed(PlayerNum.P1):
@@ -291,19 +291,19 @@ class EntryPlayer:
         move_y = self.drum_move_1.attribute + self.drum_move_2.attribute
 
         if self.side == 0:  # Left side (1P/red)
-            offset = 0
+            offset = tex.skin_config["entry_drum_offset"].x
             tex.draw_texture('side_select', 'red_drum', x=move_x, y=move_y)
-            chara_x = move_x + offset + 170
+            chara_x = move_x + offset + tex.skin_config["entry_chara_offset_l"].x
             chara_mirror = False
         else:  # Right side (2P/blue)
             move_x *= -1
-            offset = 620
+            offset = tex.skin_config["entry_drum_offset"].y # bad practice to use y value as x value
             tex.draw_texture('side_select', 'blue_drum', x=move_x, y=move_y)
-            chara_x = move_x + offset + 130
+            chara_x = move_x + offset + tex.skin_config["entry_chara_offset_r"].x
             chara_mirror = True
 
         # Draw character
-        chara_y = 570 + move_y
+        chara_y = tex.skin_config["entry_chara_offset_r"].y + move_y
         self.chara.draw(chara_x, chara_y, mirror=chara_mirror)
 
         # Draw cloud
@@ -414,7 +414,7 @@ class Box:
         texture_left = tex.textures['mode_select']['box_highlight_left'].texture
         if isinstance(texture_left, list):
             raise Exception("highlight textures cannot be iterable")
-        tex.draw_texture('mode_select', 'box_highlight_center', x=self.left_x + texture_left.width, y=self.y, x2=self.right_x - self.left_x -15, color=color)
+        tex.draw_texture('mode_select', 'box_highlight_center', x=self.left_x + texture_left.width, y=self.y, x2=self.right_x - self.left_x + tex.skin_config["entry_box_highlight_offset"].x, color=color)
         tex.draw_texture('mode_select', 'box_highlight_left', x=self.left_x, y=self.y, color=color)
         tex.draw_texture('mode_select', 'box_highlight_right', x=self.right_x, y=self.y, color=color)
 
@@ -422,7 +422,7 @@ class Box:
         text_x = self.x + (self.texture.width//2) - (self.text.texture.width//2)
         if self.is_selected:
             text_x += self.open.attribute
-        text_y = self.y + 20
+        text_y = self.y + tex.skin_config["entry_box_text_offset"].y
         if self.is_selected:
             self.text.draw(outline_color=ray.BLACK, x=text_x, y=text_y, color=color)
         else:
@@ -430,7 +430,7 @@ class Box:
 
     def draw(self, fade: float):
         color = ray.fade(ray.WHITE, fade)
-        ray.draw_texture(self.texture, self.x, self.y, color)
+        ray.draw_texture(self.texture, int(self.x), int(self.y), color)
         if self.is_selected and self.move.is_finished:
             self._draw_highlighted(color)
         self._draw_text(color)
@@ -439,9 +439,9 @@ class BoxManager:
     """BoxManager class for the entry screen"""
     def __init__(self):
         self.box_titles: list[OutlinedText] = [
-        OutlinedText('演奏ゲーム', 50, ray.WHITE, outline_thickness=5, vertical=True),
-        OutlinedText('特訓モード', 50, ray.WHITE, outline_thickness=5, vertical=True),
-        OutlinedText('ゲーム設定', 50, ray.WHITE, outline_thickness=5, vertical=True)]
+        OutlinedText('演奏ゲーム', tex.skin_config["entry_box_text"].font_size, ray.WHITE, outline_thickness=5, vertical=True),
+        OutlinedText('特訓モード', tex.skin_config["entry_box_text"].font_size, ray.WHITE, outline_thickness=5, vertical=True),
+        OutlinedText('ゲーム設定', tex.skin_config["entry_box_text"].font_size, ray.WHITE, outline_thickness=5, vertical=True)]
         self.box_locations = ["SONG_SELECT", "PRACTICE_SELECT", "SETTINGS"]
         self.num_boxes = len(self.box_titles)
         self.boxes = [Box(self.box_titles[i], self.box_locations[i]) for i in range(len(self.box_titles))]
@@ -449,7 +449,7 @@ class BoxManager:
         self.fade_out = tex.get_animation(9)
         self.is_2p = False
 
-        spacing = 80
+        spacing = tex.skin_config["entry_box_spacing"].x
         box_width = self.boxes[0].texture.width
         total_width = self.num_boxes * box_width + (self.num_boxes - 1) * spacing
         start_x = SCREEN_WIDTH//2 - total_width//2

@@ -6,6 +6,7 @@ from moviepy import VideoFileClip
 
 from libs.audio import audio
 from libs.utils import get_current_ms
+from libs.texture import SCREEN_WIDTH, SCREEN_HEIGHT
 
 logger = logging.getLogger(__name__)
 
@@ -119,7 +120,7 @@ class VideoPlayer:
     def draw(self):
         """Draw video frames to the raylib canvas"""
         if self.texture is not None:
-            ray.DrawTexture(self.texture, 0, 0, ray.WHITE)
+            ray.DrawTexturePro(self.texture, (0, 0, self.texture.width, self.texture.height), (0, 0, SCREEN_WIDTH, SCREEN_HEIGHT), (0, 0), 0, ray.WHITE)
 
     def stop(self):
         """Stops the video, audio, and clears its buffer"""

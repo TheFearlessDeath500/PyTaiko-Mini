@@ -1,4 +1,5 @@
 from enum import Enum
+from typing import Callable
 import pyray as ray
 
 from libs.global_data import PlayerNum
@@ -20,8 +21,8 @@ class Nameplate:
             is_rainbow (bool): Whether the player's nameplate background is rainbow.
             title_bg (int): The player's non-rainbow nameplate background.
         """
-        self.name = OutlinedText(name, 22, ray.WHITE, outline_thickness=3.0)
-        self.title = OutlinedText(title, 20, ray.BLACK, outline_thickness=0)
+        self.name = OutlinedText(name, global_tex.skin_config["nameplate_text_name"].font_size, ray.WHITE, outline_thickness=3.0)
+        self.title = OutlinedText(title, global_tex.skin_config["nameplate_text_title"].font_size, ray.BLACK, outline_thickness=0)
         self.dan_index = dan
         self.player_num = player_num
         self.is_gold = is_gold
@@ -60,7 +61,7 @@ class Nameplate:
             title_offset = 0
         else:
             frame = self.title_bg
-            title_offset = 14
+            title_offset = tex.skin_config["nameplate_title_offset"].x
         if self.is_rainbow:
             if 0 < self.rainbow_animation.attribute < 6:
                 tex.draw_texture('nameplate', 'frame_top_rainbow', frame=self.rainbow_animation.attribute-1, x=x, y=y, fade=fade)
@@ -75,12 +76,12 @@ class Nameplate:
                 tex.draw_texture('nameplate', 'dan_emblem_gold', x=x, y=y, frame=self.dan_index, fade=fade)
             else:
                 tex.draw_texture('nameplate', 'dan_emblem', x=x, y=y, frame=self.dan_index, fade=fade)
-            offset = 34
+            offset = tex.skin_config["nameplate_dan_offset"].x
         if self.player_num != 0:
             tex.draw_texture('nameplate', f'{self.player_num}p', x=x, y=y, fade=fade)
 
-        self.name.draw(outline_color=ray.BLACK, x=x+136 - (min(255 - offset*4, self.name.texture.width)//2) + offset, y=y+24, x2=min(255 - offset*4, self.name.texture.width)-self.name.texture.width, color=ray.fade(ray.WHITE, fade))
-        self.title.draw(x=x+136 - (min(255 - offset*2, self.title.texture.width)//2) + title_offset, y=y-3, x2=min(255 - offset*2, self.title.texture.width)-self.title.texture.width, color=ray.fade(ray.WHITE, fade))
+        self.name.draw(outline_color=ray.BLACK, x=x+tex.skin_config["nameplate_text_name"].x - (min(tex.skin_config["nameplate_text_name"].width - offset*4, self.name.texture.width)//2) + offset, y=y+tex.skin_config["nameplate_text_name"].y, x2=min(tex.skin_config["nameplate_text_name"].width - offset*4, self.name.texture.width)-self.name.texture.width, color=ray.fade(ray.WHITE, fade))
+        self.title.draw(x=x+tex.skin_config["nameplate_text_title"].x - (min(tex.skin_config["nameplate_text_title"].width - offset*2, self.title.texture.width)//2) + title_offset, y=y+tex.skin_config["nameplate_text_title"].y, x2=min(tex.skin_config["nameplate_text_title"].width - offset*2, self.title.texture.width)-self.title.texture.width, color=ray.fade(ray.WHITE, fade))
 
 class Indicator:
     """Indicator class for displaying drum navigation."""
@@ -112,10 +113,10 @@ class Indicator:
         if self.state == Indicator.State.SELECT:
             tex.draw_texture('indicator', 'drum_kat', fade=min(fade, self.don_fade.attribute), x=x, y=y)
 
-            tex.draw_texture('indicator', 'drum_kat', fade=min(fade, self.don_fade.attribute), x=x+23, y=y, mirror='horizontal')
-            tex.draw_texture('indicator', 'drum_face', x=x+175, y=y, fade=fade)
+            tex.draw_texture('indicator', 'drum_kat', fade=min(fade, self.don_fade.attribute), x=x+tex.skin_config["indicator_kat_offset"].x, y=y, mirror='horizontal')
+            tex.draw_texture('indicator', 'drum_face', x=x+tex.skin_config["indicator_face_offset"].x, y=y, fade=fade)
 
-            tex.draw_texture('indicator', 'drum_don', fade=min(fade, self.don_fade.attribute), index=self.state.value, x=x+214, y=y)
+            tex.draw_texture('indicator', 'drum_don', fade=min(fade, self.don_fade.attribute), index=self.state.value, x=x+tex.skin_config["indicator_don_offset"].x, y=y)
             tex.draw_texture('indicator', 'blue_arrow', x=x-self.blue_arrow_move.attribute, y=y, fade=min(fade, self.blue_arrow_fade.attribute))
             tex.draw_texture('indicator', 'blue_arrow', index=1, x=x+self.blue_arrow_move.attribute, y=y, mirror='horizontal', fade=min(fade, self.blue_arrow_fade.attribute))
         else:
@@ -169,7 +170,7 @@ class EntryOverlay:
 
 class Timer:
     """Timer class for displaying countdown timers."""
-    def __init__(self, time: int, current_time_ms: float, confirm_func):
+    def __init__(self, time: int, current_time_ms: float, confirm_func: Callable):
         """
         Initialize a Timer object.
 
@@ -222,7 +223,7 @@ class Timer:
         else:
             tex.draw_texture('timer', 'bg')
             counter_name = 'counter_black'
-        margin = 40
+        margin = tex.skin_config["timer_text_margin"].x
         total_width = len(self.counter) * margin
         for i, digit in enumerate(self.counter):
             tex.draw_texture('timer', counter_name, frame=int(digit), x=-(total_width//2)+(i*margin), scale=self.num_resize.attribute, center=True)

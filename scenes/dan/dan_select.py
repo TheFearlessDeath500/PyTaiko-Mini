@@ -4,14 +4,14 @@ import pyray as ray
 
 from libs.audio import audio
 from libs.global_data import PlayerNum, global_data
-from libs.texture import tex
+from libs.texture import SCREEN_HEIGHT, SCREEN_WIDTH, tex
 from libs.chara_2d import Chara2D
 from libs.global_objects import AllNetIcon, CoinOverlay, Indicator, Nameplate, Timer
 from libs.screen import Screen
-from libs.file_navigator import DanCourse, navigator
+from libs.file_navigator import BackBox, DanCourse, navigator
 from libs.transition import Transition
 from libs.utils import get_current_ms, is_l_don_pressed, is_l_kat_pressed, is_r_don_pressed, is_r_kat_pressed
-from scenes.song_select import SongSelectScreen, State
+from scenes.song_select import State
 
 logger = logging.getLogger(__name__)
 
@@ -35,7 +35,7 @@ class DanSelectScreen(Screen):
         session_data = global_data.session_data[global_data.player_num]
         current_item = self.navigator.get_current_item()
         if isinstance(current_item, DanCourse):
-            session_data.selected_song = current_item.charts[0]
+            session_data.selected_song = current_item.charts[0][0].file_path
             session_data.selected_dan = current_item.charts
             session_data.selected_dan_exam = current_item.exams
             session_data.song_title = current_item.title
@@ -88,8 +88,9 @@ class DanSelectScreen(Screen):
         if self.transition.is_finished:
             return self.on_screen_end("GAME_DAN")
         for song in self.navigator.items:
-            song.box.update(False)
-            song.box.is_open = song.box.position == SongSelectScreen.BOX_CENTER + 150
+            if not song.box.text_loaded:
+                song.box.load_text()
+            song.box.update(current_time, False)
         self.player.update(current_time)
         res = self.handle_input(self.state, self)
         if res == 'go_back':
@@ -102,13 +103,13 @@ class DanSelectScreen(Screen):
         tex.draw_texture('global', 'footer')
         for item in self.navigator.items:
             box = item.box
-            if -156 <= box.position <= 1280 + 144:
+            if -156 <= box.position <= SCREEN_WIDTH + 144:
                 if box.position <= 500:
                     box.draw(box.position, 95, False)
                 else:
                     box.draw(box.position, 95, False)
         if self.state == State.SONG_SELECTED:
-            ray.draw_rectangle(0, 0, 1280, 720, ray.fade(ray.BLACK, min(0.5, self.player.confirmation_window.fade_in.attribute)))
+            ray.draw_rectangle(0, 0, SCREEN_WIDTH, SCREEN_HEIGHT, ray.fade(ray.BLACK, min(0.5, self.player.confirmation_window.fade_in.attribute)))
         self.player.draw()
         self.indicator.draw(410, 575)
         self.timer.draw()
@@ -169,7 +170,7 @@ class DanSelectPlayer:
 
         # Select/Enter
         if is_l_don_pressed(self.player_num) or is_r_don_pressed(self.player_num):
-            if selected_item is not None and selected_item.box.is_back:
+            if selected_item is not None and isinstance(selected_item.box, BackBox):
                 audio.play_sound('cancel', 'sound')
                 return "go_back"
             else:

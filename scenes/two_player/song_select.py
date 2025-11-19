@@ -1,5 +1,5 @@
 import logging
-from libs.file_navigator import SongFile
+from libs.file_navigator import SongBox, SongFile
 from libs.global_data import PlayerNum
 from libs.transition import Transition
 from scenes.song_select import DiffSortSelect, SongSelectPlayer, SongSelectScreen, State
@@ -14,9 +14,9 @@ class TwoPlayerSongSelectScreen(SongSelectScreen):
         self.player_1 = SongSelectPlayer(PlayerNum.P1, self.text_fade_in)
         self.player_2 = SongSelectPlayer(PlayerNum.P2, self.text_fade_in)
 
-    def finalize_song(self):
-        global_data.session_data[PlayerNum.P1].selected_song = self.navigator.get_current_item().path
-        global_data.session_data[PlayerNum.P1].genre_index = self.navigator.get_current_item().box.name_texture_index
+    def finalize_song(self, current_item):
+        global_data.session_data[PlayerNum.P1].selected_song = current_item.path
+        global_data.session_data[PlayerNum.P1].genre_index = current_item.box.name_texture_index
         logger.info(f"Finalized song selection: {global_data.session_data[PlayerNum.P1].selected_song}")
 
     def handle_input(self):
@@ -81,6 +81,8 @@ class TwoPlayerSongSelectScreen(SongSelectScreen):
         elif action == "add_favorite":
             self.navigator.add_favorite()
             current_box = self.navigator.get_current_item().box
+            if not isinstance(current_box, SongBox):
+                return
             current_box.is_favorite = not current_box.is_favorite
 
     def handle_input_selected(self):

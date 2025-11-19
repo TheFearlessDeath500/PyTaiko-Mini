@@ -213,10 +213,8 @@ static int port_audio_callback(const void *inputBuffer, void *outputBuffer,
     }
 
     struct audio_buffer *audio_buffer = AUDIO.Buffer.first;
-    int active_buffers = 0;
     while (audio_buffer != NULL) {
         if (audio_buffer->playing && !audio_buffer->paused && audio_buffer->data != NULL) {
-            active_buffers++;
             unsigned int subBufferSizeFrames = audio_buffer->sizeInFrames / 2;
             unsigned long framesToMix = framesPerBuffer;
             float *buffer_data = (float *)audio_buffer->data;

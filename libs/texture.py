@@ -14,13 +14,17 @@ from libs.animation import BaseAnimation, parse_animations
 
 SCREEN_WIDTH = 1280
 SCREEN_HEIGHT = 720
+SCREEN_SCALE = SCREEN_WIDTH / 1280
 
 logger = logging.getLogger(__name__)
 
-class Coordinates:
-    def __init__(self, x: float, y: float):
+class SkinInfo:
+    def __init__(self, x: float, y: float, font_size: int, width: float, height: float):
         self.x = x
         self.y = y
+        self.width = width
+        self.height = height
+        self.font_size = font_size
 
 class Texture:
     """Texture class for managing textures and animations."""
@@ -47,12 +51,12 @@ class TextureWrapper:
     def __init__(self):
         self.textures: dict[str, dict[str, Texture]] = dict()
         self.animations: dict[int, BaseAnimation] = dict()
-        self.skin_config: dict[str, Coordinates] = dict()
+        self.skin_config: dict[str, SkinInfo] = dict()
         self.graphics_path = Path("Graphics")
         if (self.graphics_path / "skin_config.json").exists():
             data = json.loads((self.graphics_path / "skin_config.json").read_text())
-            self.skin_config: dict[str, Coordinates] = {
-                k: Coordinates(v['x'], v['y']) for k, v in data.items()
+            self.skin_config: dict[str, SkinInfo] = {
+                k: SkinInfo(v.get('x', 0), v.get('y', 0), v.get('font_size', 0), v.get('width', 0), v.get('height', 0)) for k, v in data.items()
             }
 
     def unload_textures(self):

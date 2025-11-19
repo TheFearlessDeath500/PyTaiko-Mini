@@ -5,7 +5,7 @@ from pathlib import Path
 import pyray as ray
 import logging
 
-from libs.file_navigator import DanCourse, navigator
+from libs.file_navigator import BackBox, DanCourse, navigator
 from libs.audio import audio
 from libs.chara_2d import Chara2D
 from libs.file_navigator import Directory, SongBox, SongFile
@@ -79,21 +79,23 @@ class SongSelectScreen(Screen):
                 self.navigator.mark_crowns_dirty_for_song(selected_song)
 
         curr_item = self.navigator.get_current_item()
-        curr_item.box.get_scores()
+        if isinstance(curr_item, SongFile):
+            curr_item.box.get_scores()
         self.navigator.add_recent()
 
-    def finalize_song(self):
-        global_data.session_data[global_data.player_num].selected_song = self.navigator.get_current_item().path
+    def finalize_song(self, current_item: SongFile):
+        global_data.session_data[global_data.player_num].selected_song = current_item.path
         global_data.session_data[global_data.player_num].selected_difficulty = self.player_1.selected_difficulty
-        global_data.session_data[global_data.player_num].genre_index = self.navigator.get_current_item().box.name_texture_index
+        global_data.session_data[global_data.player_num].genre_index = current_item.box.name_texture_index
 
     def on_screen_end(self, next_screen):
         self.screen_init = False
         self.reset_demo_music()
-        self.finalize_song()
-        self.player_1.nameplate.unload()
         current_item = self.navigator.get_current_item()
-        if current_item.box.yellow_box is not None:
+        if isinstance(current_item, SongFile):
+            self.finalize_song(current_item)
+        self.player_1.nameplate.unload()
+        if isinstance(current_item.box, SongBox) and current_item.box.yellow_box is not None:
             current_item.box.yellow_box.create_anim()
         return super().on_screen_end(next_screen)
 
@@ -156,6 +158,8 @@ class SongSelectScreen(Screen):
         elif action == "add_favorite":
             self.navigator.add_favorite()
             current_box = self.navigator.get_current_item().box
+            if not isinstance(current_box, SongBox):
+                return
             current_box.is_favorite = not current_box.is_favorite
 
     def handle_input_selected(self):
@@ -281,18 +285,19 @@ class SongSelectScreen(Screen):
             audio.update_music_stream(self.demo_song)
 
         if self.navigator.genre_bg is not None:
-            self.navigator.genre_bg.update(get_current_ms())
+            self.navigator.genre_bg.update(current_time)
 
         if self.diff_sort_selector is not None:
-            self.diff_sort_selector.update(get_current_ms())
+            self.diff_sort_selector.update(current_time)
 
         self.check_for_selection()
 
         for song in self.navigator.items:
-            song.box.update(self.state == State.SONG_SELECTED)
-            song.box.is_open = song.box.position == SongSelectScreen.BOX_CENTER + 150
+            song.box.update(current_time, self.state == State.SONG_SELECTED)
+            if not song.box.text_loaded:
+                song.box.load_text()
             if not isinstance(song, Directory) and song.box.is_open:
-                if self.demo_song is None and get_current_ms() >= song.box.wait + (83.33*3):
+                if self.demo_song is None and current_time >= song.box.wait + (83.33*3):
                     song.box.get_scores()
                     if song.tja.metadata.wave.exists() and song.tja.metadata.wave.is_file():
                         self.demo_song = audio.load_music_stream(song.tja.metadata.wave, 'demo_song')
@@ -302,7 +307,7 @@ class SongSelectScreen(Screen):
                         logger.info(f"Demo song loaded and playing for {song.tja.metadata.title}")
             if song.box.is_open:
                 current_box = song.box
-                if not current_box.is_back and get_current_ms() >= song.box.wait + (83.33*3):
+                if not isinstance(current_box, BackBox) and current_time >= song.box.wait + (83.33*3):
                     self.texture_index = current_box.texture_index
 
         if ray.is_key_pressed(global_data.config["keys"]["back_key"]):
@@ -326,7 +331,7 @@ class SongSelectScreen(Screen):
         if self.navigator.genre_bg is not None and self.state == State.BROWSING:
             self.navigator.genre_bg.draw(95)
 
-        for item in self.navigator.items:
+        for i, item in enumerate(self.navigator.items):
             box = item.box
             if -156 <= box.position <= SCREEN_WIDTH + 144:
                 if box.position <= 500:
@@ -354,7 +359,9 @@ class SongSelectScreen(Screen):
         self.draw_players()
 
         if self.state == State.BROWSING and self.navigator.items != []:
-            self.navigator.get_current_item().box.draw_score_history()
+            curr_item = self.navigator.get_current_item()
+            if isinstance(curr_item, SongFile):
+                curr_item.box.draw_score_history()
 
         self.indicator.draw(410, 575)
 
@@ -461,7 +468,7 @@ class SongSelectPlayer:
 
         # Select/Enter
         if is_l_don_pressed(self.player_num) or is_r_don_pressed(self.player_num):
-            if selected_item is not None and selected_item.box.is_back:
+            if selected_item is not None and isinstance(selected_item.box, BackBox):
                 audio.play_sound('cancel', 'sound')
                 return "go_back"
             elif isinstance(selected_item, Directory) and selected_item.collection == Directory.COLLECTIONS[3]:

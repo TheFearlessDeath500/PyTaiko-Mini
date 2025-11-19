@@ -1,86 +1,86 @@
 Command/Header,Support Status,Initial Sim Release
 TITLE,Supported,TaikoJiro v0.80 (initial release)
-SUBTITLE,Supported,TaikoJiro v2.64
 WAVE,Supported,TaikoJiro v0.80 (initial release)
-DEMOSTART,Supported,TaikoJiro v2.37
 OFFSET,Supported,TaikoJiro v0.80 (initial release)
 BPM,Supported,TaikoJiro v0.80 (initial release)
-SCENEPRESET,Supported,OpenTaiko (0auBSQ) v0.6.0
-BGMOVIE,Supported,TJAPlayer2 for.PC ver.2016021300
-COURSE,Supported,TaikoJiro v1.76
 LEVEL,Supported,TaikoJiro v0.80 (initial release)
 BALLOON,Supported,TaikoJiro
+COURSE,Supported,TaikoJiro v1.76
+DEMOSTART,Supported,TaikoJiro v2.37
+SUBTITLE,Supported,TaikoJiro v2.64
+BGMOVIE,Supported,TJAPlayer2 for.PC ver.2016021300
+SCENEPRESET,Supported,OpenTaiko (0auBSQ) v0.6.0
 
 #START / #END,Supported,TaikoJiro v0.80 (initial release)
 #BPMCHANGE,Supported,TaikoJiro v0.80 (initial release)
 #MEASURE,Supported,TaikoJiro
 #GOGOSTART / #GOGOEND,Supported,TaikoJiro
 #SCROLL,Supported,TaikoJiro
-#BARLINEOFF / #BARLINEON,Supported,TaikoJiro v2.69
-#LYRIC,Supported,TJAPlayer2 for.PC
+#DELAY,Supported,TaikoJiro v1.60
 #SECTION,Supported,TaikoJiro v1.63
 #BRANCHSTART / #BRANCHEND,Supported,TaikoJiro v1.63
 #N / #E / #M,Supported,TaikoJiro v1.63
-#DELAY,Supported,TaikoJiro v1.60
+#BARLINEOFF / #BARLINEON,Supported,TaikoJiro v2.69
+#LYRIC,Supported,TJAPlayer2 for.PC
 #SUDDEN,Supported,TJAPlayer2 for.PC
 #JPOSSCROLL,Supported,TJAPlayer2 for.PC
 
-ARTIST,Unsupported,Malody
-MAKER,Unsupported,taiko-web ver.19.11.25
-NOTESDESIGNER,Unsupported,(Better)TaikoCatsCaffe
-AUTHOR,Unsupported,Malody
-GENRE,Unsupported,TJAPlayer2 for.PC
-SIDE,Unsupported,TaikoJiro v2.49
-SIDEREV,Unsupported,TaikoJiro 2 v0.70
 SONGVOL,Unsupported,TaikoJiro v1.66
 SEVOL,Unsupported,TaikoJiro v1.66
+SCOREINIT,Unsupported,TaikoJiro v1.67
+SCOREDIFF,Unsupported,TaikoJiro v1.67
+STYLE,Unsupported,TaikoJiro v1.99
+GAME,Unsupported,TaikoJiro v2.13
+LIFE,Unsupported,TaikoJiro v2.19
+SIDE,Unsupported,TaikoJiro v2.49
+SCOREMODE,Unsupported,TaikoJiro v2.85
+SIDEREV,Unsupported,TaikoJiro 2 v0.70
+TOTAL,Unsupported,TaikoJiro v2.92 & TaikoJiro 2 v0.93
+GENRE,Unsupported,TJAPlayer2 for.PC
+HIDDENBRANCH,Unsupported,TJAPlayer2 for.PC
 HEADSCROLL,Unsupported,TJAPlayer2 for.PC
-PREIMAGE,Unsupported,OpenTaiko (0auBSQ) v0.5.4
-COVER,Unsupported,Malody
+MOVIEOFFSET,Unsupported,TJAPlayer2 for.PC ver.2015081100
+BGIMAGE,Unsupported,TJAPlayer2 for.PC ver.2016021300
+EXAM,Unsupported,TJAPlayer3 v1.5.0
+GAUGEINCR,Unsupported,TJAPlayer3 v1.5.4
 TAIKOWEBSKIN,Unsupported,taiko-web ver.19.02.03
+MAKER,Unsupported,taiko-web ver.19.11.25
+LYRICS: / LYRICFILE,Unsupported,taiko-web ver.20.03.31
+NOTESDESIGNER,Unsupported,(Better)TaikoCatsCaffe
 TOWERTYPE,Unsupported,OpenTaiko (0auBSQ) v0.5.0
 DANTICK,Unsupported,OpenTaiko (0auBSQ) v0.5.1
 DANTICKCOLOR,Unsupported,OpenTaiko (0auBSQ) v0.5.1
+PREIMAGE,Unsupported,OpenTaiko (0auBSQ) v0.5.4
 SELECTBG,Unsupported,OpenTaiko (0auBSQ) v0.6.0
-BGIMAGE,Unsupported,TJAPlayer2 for.PC ver.2016021300
-BGOFFSET,Unsupported,Unknown
-MOVIEOFFSET,Unsupported,TJAPlayer2 for.PC ver.2015081100
-BGA Headers,Unsupported,C-Taiko
-LYRICS: / LYRICFILE,Unsupported,taiko-web ver.20.03.31
 EXPLICIT,Unsupported,OpenTaiko (0auBSQ) v0.6.0
-GAME,Unsupported,TaikoJiro v2.13
-STYLE,Unsupported,TaikoJiro v1.99
-LIFE,Unsupported,TaikoJiro v2.19
-TOTAL,Unsupported,TaikoJiro v2.92 & TaikoJiro 2 v0.93
-GAUGEINCR,Unsupported,TJAPlayer3 v1.5.4
-EXAM,Unsupported,TJAPlayer3 v1.5.0
-SCOREMODE,Unsupported,TaikoJiro v2.85
-SCOREINIT,Unsupported,TaikoJiro v1.67
-SCOREDIFF,Unsupported,TaikoJiro v1.67
-HIDDENBRANCH,Unsupported,TJAPlayer2 for.PC
+BGA Headers,Unsupported,C-Taiko
+ARTIST,Unsupported,Malody
+COVER,Unsupported,Malody
+AUTHOR,Unsupported,Malody
+BGOFFSET,Unsupported,Unknown
 
-#BMSCROLL / #HBSCROLL / #NMSCROLL,Unsupported,TaikoJiro v1.91
-#PAPAMAMA,Unsupported,TJAPlayer3-f v1.7.2.0
-#DUMMYSTART / #DUMMYEND,Unsupported,TaikoManyGimmicks
-#BARLINESCROLL,Unsupported,taiko-web (plugin Custom Barlines)
-#HISPEED,Unsupported,TaikoManyGimmicks v0.6.1α
-#DIRECTION,Unsupported,TJAPlayer2 for.PC
-#BARLINE,Unsupported,taiko-web (plugin Custom Barlines)
-#JUDGEDELAY,Unsupported,TaikoManyGimmicks
-#NOTESPAWN,Unsupported,TaikoManyGimmicks
-#ENABLEDORON / #DISABLEDORON,Unsupported,TJAPlayer3-Extended
-#SENOTECHANGE,Unsupported,TJAPlayer3 v1.4.0
-#NOTESCHANGE,Unsupported,C-Taiko
 #LEVELHOLD,Unsupported,TaikoJiro v1.63
-#NEXTSONG,Unsupported,TJAPlayer3 v1.5.0
-#GAMETYPE,Unsupported,OpenTaiko (0auBSQ) v0.6.0
+#BMSCROLL / #HBSCROLL / #NMSCROLL,Unsupported,TaikoJiro v1.91
+#DIRECTION,Unsupported,TJAPlayer2 for.PC
 #HIDDEN,Unsupported,TJAPlayer2 for.PC
-NOTE / BARLINE,Unsupported,TaikoManyGimmicks
-#GRADATION,Unsupported,TaikoManyGimmicks v0.6α
-#INCLUDE,Unsupported,TaikoManyGimmicks v0.6.1α
-#SPLITLANE / #MERGELANE,Unsupported,OpenTaiko (0auBSQ) v0.6.0
+#SENOTECHANGE,Unsupported,TJAPlayer3 v1.4.0
+#NEXTSONG,Unsupported,TJAPlayer3 v1.5.0
+#PAPAMAMA,Unsupported,TJAPlayer3-f v1.7.2.0
+#ENABLEDORON / #DISABLEDORON,Unsupported,TJAPlayer3-Extended
 #OBJ / #CAM,Unsupported,TJAPlayer3-Extended
 #BORDERCOLOR,Unsupported,TJAPlayer3-Extended
 #CHANGETEXTURE / #RESETTEXTURE,Unsupported,TJAPlayer3-Extended
 #SETCONFIG,Unsupported,TJAPlayer3-Extended
+#BARLINE,Unsupported,taiko-web (plugin Custom Barlines)
+#BARLINESCROLL,Unsupported,taiko-web (plugin Custom Barlines)
+#GAMETYPE,Unsupported,OpenTaiko (0auBSQ) v0.6.0
+#SPLITLANE / #MERGELANE,Unsupported,OpenTaiko (0auBSQ) v0.6.0
 #BGAON / #BGAOFF,Unsupported,OpenTaiko (0auBSQ) v0.6.0
+#JUDGEDELAY,Unsupported,TaikoManyGimmicks
+#NOTESPAWN,Unsupported,TaikoManyGimmicks
+NOTE / BARLINE,Unsupported,TaikoManyGimmicks
+#DUMMYSTART / #DUMMYEND,Unsupported,TaikoManyGimmicks
+#GRADATION,Unsupported,TaikoManyGimmicks v0.6α
+#INCLUDE,Unsupported,TaikoManyGimmicks v0.6.1α
+#HISPEED,Unsupported,TaikoManyGimmicks v0.6.1α
+#NOTESCHANGE,Unsupported,C-Taiko

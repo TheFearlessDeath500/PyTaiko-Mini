@@ -8,18 +8,17 @@ from libs.audio import audio
 from libs.animation import Animation, MoveAnimation
 from libs.global_data import Crown, Difficulty
 from libs.tja import TJAParser, test_encodings
-from libs.texture import tex
+from libs.texture import SCREEN_SCALE, SCREEN_WIDTH, tex
 from libs.utils import OutlinedText, get_current_ms, global_data
 from datetime import datetime, timedelta
 import sqlite3
 import pyray as ray
 
-BOX_CENTER = 444
+BOX_CENTER = 594 * SCREEN_SCALE
 
 logger = logging.getLogger(__name__)
 
-class SongBox:
-    """A box for the song select screen."""
+class BaseBox():
     OUTLINE_MAP = {
         1: ray.Color(0, 77, 104, 255),
         2: ray.Color(156, 64, 2, 255),
@@ -38,61 +37,118 @@ class SongBox:
     }
     BACK_INDEX = 17
     DEFAULT_INDEX = 9
-    def __init__(self, name: str, texture_index: int, is_dir: bool, tja: Optional[TJAParser] = None,
-        tja_count: Optional[int] = None, box_texture: Optional[str] = None, name_texture_index: Optional[int] = None):
+    """Base class for all box types in the song select screen."""
+    def __init__(self, name: str, texture_index: int):
         self.text_name = name
         self.texture_index = texture_index
+        self.position = float('inf')
+        self.start_position: float = -1
+        self.target_position: float = -1
+        self.open_anim = Animation.create_move(133, total_distance=150*SCREEN_SCALE, delay=83.33)
+        self.open_fade = Animation.create_fade(200, initial_opacity=0, final_opacity=1.0)
+        self.move = None
+        self.is_open = False
+        self.text_loaded = False
+        self.wait = 0
+
+    def load_text(self):
+        self.name = OutlinedText(self.text_name, 40, ray.WHITE, outline_thickness=5, vertical=True)
+
+    def move_box(self, current_time: float):
+        if self.position != self.target_position and self.move is None:
+            if self.position < self.target_position:
+                direction = 1
+            else:
+                direction = -1
+            if abs(self.target_position - self.position) > 250:
+                direction *= -1
+            self.move = Animation.create_move(83.3, total_distance=100 * direction * SCREEN_SCALE, ease_out='cubic')
+            self.move.start()
+            if self.is_open or self.target_position == BOX_CENTER:
+                self.move.total_distance = 250 * direction
+            self.start_position = self.position
+        if self.move is not None:
+            self.move.update(current_time)
+            self.position = self.start_position + int(self.move.attribute)
+            if self.move.is_finished:
+                self.position = self.target_position
+                self.move = None
+
+    def update(self, current_time: float, is_diff_select: bool):
+        self.is_diff_select = is_diff_select
+        self.open_anim.update(current_time)
+        self.open_fade.update(current_time)
+
+    def _draw_closed(self, x: float, y: float):
+        tex.draw_texture('box', 'folder_texture_left', frame=self.texture_index, x=x)
+        offset = 1 if self.texture_index == 3 or self.texture_index >= 9 and self.texture_index not in {10,11,12} else 0
+        tex.draw_texture('box', 'folder_texture', frame=self.texture_index, x=x, x2=32, y=offset)
+        tex.draw_texture('box', 'folder_texture_right', frame=self.texture_index, x=x)
+        if self.texture_index == SongBox.DEFAULT_INDEX:
+            tex.draw_texture('box', 'genre_overlay', x=x, y=y)
+        elif self.texture_index == 14:
+            tex.draw_texture('box', 'diff_overlay', x=x, y=y)
+
+    def _draw_open(self, x: float, y: float, fade_override: Optional[float], is_ura: bool):
+        pass
+
+    def draw(self, x: float, y: float, is_ura: bool, fade_override: Optional[float] = None):
+        if self.is_open and get_current_ms() >= self.wait + 83.33:
+            self._draw_open(x, y, fade_override, is_ura)
+        else:
+            self._draw_closed(x, y)
+
+class BackBox(BaseBox):
+    def __init__(self, name: str, texture_index: int):
+        super().__init__(name, texture_index)
+        self.yellow_box = None
+
+    def load_text(self):
+        super().load_text()
+        self.text_loaded = True
+
+    def update(self, current_time: float, is_diff_select: bool):
+        super().update(current_time, is_diff_select)
+        is_open_prev = self.is_open
+        self.move_box(current_time)
+        self.is_open = self.position == BOX_CENTER
+
+        if self.yellow_box is not None:
+            self.yellow_box.update(is_diff_select)
+
+        if not is_open_prev and self.is_open:
+            self.yellow_box = YellowBox(True)
+            self.yellow_box.create_anim()
+            self.wait = current_time
+
+    def _draw_closed(self, x: float, y: float):
+        super()._draw_closed(x, y)
+        tex.draw_texture('box', 'back_text', x=x, y=y)
+
+    def _draw_open(self, x: float, y: float, fade_override: Optional[float] = None, is_ura: bool = False):
+        if self.yellow_box is not None:
+            self.yellow_box.draw(self, fade_override, is_ura, self.name)
+
+class SongBox(BaseBox):
+    def __init__(self, name: str, texture_index: int, tja: TJAParser, name_texture_index: Optional[int] = None):
+        super().__init__(name, texture_index)
         if name_texture_index is None:
             self.name_texture_index = texture_index
         else:
             self.name_texture_index = name_texture_index
-        self.box_texture_path = box_texture
-        self.box_texture = None
         self.scores = dict()
-        self.crown = dict()
-        self.position = -11111
-        self.start_position = -1
-        self.target_position = -1
-        self.is_open = False
-        self.is_back = self.texture_index == SongBox.BACK_INDEX
-        if self.is_back:
-            for i in range(1, SongBox.BACK_INDEX-1):
-                if audio.is_sound_playing(f'genre_voice_{i}'):
-                    audio.stop_sound(f'genre_voice_{i}')
-        self.name = None
-        self.hori_name = None
-        self.yellow_box = None
-        self.open_anim = Animation.create_move(133, start_position=0, total_distance=150, delay=83.33)
-        self.open_fade = Animation.create_fade(200, initial_opacity=0, final_opacity=1.0)
-        self.move = None
-        self.wait = 0
-        self.is_dir = is_dir
-        self.tja_count = tja_count
-        self.tja_count_text = None
+        self.hash = dict()
         self.score_history = None
         self.history_wait = 0
         self.tja = tja
-        self.hash = dict()
         self.is_favorite = False
+        self.yellow_box = None
 
-    def reset(self):
-        if self.yellow_box is not None:
-            self.yellow_box.reset()
-            self.yellow_box.create_anim()
-        if self.name is not None:
-            self.name.unload()
-            self.name = None
-        if self.box_texture is not None:
-            ray.unload_texture(self.box_texture)
-            self.box_texture = None
-        if self.hori_name is not None:
-            self.hori_name.unload()
-            self.hori_name = None
-        self.is_open = False
+    def load_text(self):
+        super().load_text()
+        self.text_loaded = True
 
     def get_scores(self):
-        if self.tja is None:
-            return
         with sqlite3.connect('scores.db') as con:
             cursor = con.cursor()
             # Batch database query for all diffs at once
@@ -116,37 +172,12 @@ class SongBox:
                     self.scores[diff] = hash_to_score.get(diff_hash)
                 self.score_history = None
 
-    def move_box(self):
-        if self.position != self.target_position and self.move is None:
-            if self.position < self.target_position:
-                direction = 1
-            else:
-                direction = -1
-            if abs(self.target_position - self.position) > 250:
-                direction *= -1
-            self.move = Animation.create_move(83.3, start_position=0, total_distance=100 * direction, ease_out='cubic')
-            self.move.start()
-            if self.is_open or self.target_position == BOX_CENTER + 150:
-                self.move.total_distance = 250 * direction
-            self.start_position = self.position
-        if self.move is not None:
-            self.move.update(get_current_ms())
-            self.position = self.start_position + int(self.move.attribute)
-            if self.move.is_finished:
-                self.position = self.target_position
-                self.move = None
-                if not (-56 <= self.position <= 1280):
-                    self.reset()
-
-    def update(self, is_diff_select: bool):
-        current_time = get_current_ms()
-        self.is_diff_select = is_diff_select
+    def update(self, current_time: float, is_diff_select: bool):
+        super().update(current_time, is_diff_select)
         is_open_prev = self.is_open
-        self.move_box()
-        self.is_open = self.position == BOX_CENTER + 150
+        self.move_box(current_time)
+        self.is_open = self.position == BOX_CENTER
 
-        if not (-56 <= self.position <= 1280):
-            return
         if self.yellow_box is not None:
             self.yellow_box.update(is_diff_select)
 
@@ -157,54 +188,21 @@ class SongBox:
             self.score_history = ScoreHistory(self.scores, current_time)
 
         if not is_open_prev and self.is_open:
-            if self.tja is not None or self.is_back:
-                self.yellow_box = YellowBox(self.name, self.is_back, tja=self.tja)
-                self.yellow_box.create_anim()
-            else:
-                self.hori_name = OutlinedText(self.text_name, 40, ray.WHITE, outline_thickness=5)
-                self.open_anim.start()
-                self.open_fade.start()
+            self.yellow_box = YellowBox(False, tja=self.tja)
+            self.yellow_box.create_anim()
             self.wait = current_time
             if current_time >= self.history_wait + 3000:
                 self.history_wait = current_time
-            if self.tja is None and self.texture_index != 17 and not audio.is_sound_playing('voice_enter'):
-                audio.play_sound(f'genre_voice_{self.texture_index}', 'voice')
-        elif not self.is_open and is_open_prev and self.texture_index != 17 and audio.is_sound_playing(f'genre_voice_{self.texture_index}'):
-            audio.stop_sound(f'genre_voice_{self.texture_index}')
-        if self.tja_count is not None and self.tja_count > 0 and self.tja_count_text is None:
-            self.tja_count_text = OutlinedText(str(self.tja_count), 35, ray.WHITE, outline_thickness=5)#, horizontal_spacing=1.2)
-        if self.box_texture is None and self.box_texture_path is not None:
-            self.box_texture = ray.load_texture(self.box_texture_path)
-
-        self.open_anim.update(current_time)
-        self.open_fade.update(current_time)
-
-        if self.name is None:
-            self.name = OutlinedText(self.text_name, 40, ray.WHITE, outline_thickness=5, vertical=True)
 
         if self.score_history is not None:
             self.score_history.update(current_time)
 
+    def _draw_closed(self, x: float, y: float):
+        super()._draw_closed(x, y)
 
-    def _draw_closed(self, x: int, y: int):
-        tex.draw_texture('box', 'folder_texture_left', frame=self.texture_index, x=x)
-        offset = 1 if self.texture_index == 3 or self.texture_index >= 9 and self.texture_index not in {10,11,12} else 0
-        tex.draw_texture('box', 'folder_texture', frame=self.texture_index, x=x, x2=32, y=offset)
-        tex.draw_texture('box', 'folder_texture_right', frame=self.texture_index, x=x)
-        if self.texture_index == SongBox.DEFAULT_INDEX:
-            tex.draw_texture('box', 'genre_overlay', x=x, y=y)
-        elif self.texture_index == 14:
-            tex.draw_texture('box', 'diff_overlay', x=x, y=y)
-        if not self.is_back and self.is_dir:
-            tex.draw_texture('box', 'folder_clip', frame=self.texture_index, x=x - (1 - offset), y=y)
+        self.name.draw(outline_color=SongBox.OUTLINE_MAP.get(self.name_texture_index, ray.Color(101, 0, 82, 255)), x=x + 47 - int(self.name.texture.width / 2), y=y+35, y2=min(self.name.texture.height, 417)-self.name.texture.height)
 
-        if self.is_back:
-            tex.draw_texture('box', 'back_text', x=x, y=y)
-            return
-        elif self.name is not None:
-            self.name.draw(outline_color=SongBox.OUTLINE_MAP.get(self.name_texture_index, ray.Color(101, 0, 82, 255)), x=x + 47 - int(self.name.texture.width / 2), y=y+35, y2=min(self.name.texture.height, 417)-self.name.texture.height)
-
-        if self.tja is not None and self.tja.ex_data.new:
+        if self.tja.ex_data.new:
             tex.draw_texture('yellow_box', 'ex_data_new_song_balloon', x=x, y=y)
         valid_scores = {k: v for k, v in self.scores.items() if v is not None}
         if valid_scores:
@@ -216,6 +214,58 @@ class SongBox:
                 tex.draw_texture('yellow_box', 'crown_fc', x=x, y=y, frame=min(Difficulty.URA, highest_key))
             elif score and score[5] >= Crown.CLEAR:
                 tex.draw_texture('yellow_box', 'crown_clear', x=x, y=y, frame=min(Difficulty.URA, highest_key))
+
+    def _draw_open(self, x: float, y: float, fade_override=None, is_ura=False):
+        if self.yellow_box is not None:
+            self.yellow_box.draw(self, fade_override, is_ura, self.name)
+
+    def draw_score_history(self):
+        if self.is_open and get_current_ms() >= self.wait + 83.33:
+            if self.score_history is not None and get_current_ms() >= self.history_wait + 3000:
+                self.score_history.draw()
+
+class FolderBox(BaseBox):
+    def __init__(self, name: str, texture_index: int, tja_count: int = 0,
+        box_texture: Optional[str] = None):
+        super().__init__(name, texture_index)
+        self.box_texture_path = Path(box_texture) if box_texture else None
+        self.is_back = self.texture_index == SongBox.BACK_INDEX
+        if self.is_back:
+            for i in range(1, SongBox.BACK_INDEX-1):
+                if audio.is_sound_playing(f'genre_voice_{i}'):
+                    audio.stop_sound(f'genre_voice_{i}')
+        self.tja_count = tja_count
+        self.crown = dict()
+
+    def load_text(self):
+        super().load_text()
+        self.hori_name = OutlinedText(self.text_name, 40, ray.WHITE, outline_thickness=5)
+        self.box_texture = ray.load_texture(str(self.box_texture_path)) if self.box_texture_path and self.box_texture_path.exists() else None
+        self.tja_count_text = OutlinedText(str(self.tja_count), 35, ray.WHITE, outline_thickness=5)
+        self.text_loaded = True
+
+    def update(self, current_time: float, is_diff_select: bool):
+        super().update(current_time, is_diff_select)
+        is_open_prev = self.is_open
+        self.move_box(current_time)
+        self.is_open = self.position == BOX_CENTER
+
+        if not is_open_prev and self.is_open:
+            self.open_anim.start()
+            self.open_fade.start()
+            self.wait = current_time
+            if self.texture_index != SongBox.BACK_INDEX and not audio.is_sound_playing('voice_enter'):
+                audio.play_sound(f'genre_voice_{self.texture_index}', 'voice')
+        elif not self.is_open and is_open_prev and self.texture_index != 17 and audio.is_sound_playing(f'genre_voice_{self.texture_index}'):
+            audio.stop_sound(f'genre_voice_{self.texture_index}')
+
+    def _draw_closed(self, x: float, y: float):
+        super()._draw_closed(x, y)
+        offset = 1 if self.texture_index == 3 or self.texture_index >= 9 and self.texture_index not in {10,11,12} else 0
+        tex.draw_texture('box', 'folder_clip', frame=self.texture_index, x=x - (1 - offset), y=y)
+
+        self.name.draw(outline_color=SongBox.OUTLINE_MAP.get(self.texture_index, ray.Color(101, 0, 82, 255)), x=x + 47 - int(self.name.texture.width / 2), y=y+35, y2=min(self.name.texture.height, 417)-self.name.texture.height)
+
         if self.crown: #Folder lamp
             highest_crown = max(self.crown)
             if self.crown[highest_crown] == 'DFC':
@@ -225,11 +275,11 @@ class SongBox:
             else:
                 tex.draw_texture('yellow_box', 'crown_clear', x=x, y=y, frame=min(Difficulty.URA, highest_crown))
 
-    def _draw_open(self, x: int, y: int, fade_override: Optional[float]):
+    def _draw_open(self, x: float, y: float, fade_override: Optional[float], is_ura: bool):
         color = ray.WHITE
         if fade_override is not None:
             color = ray.fade(ray.WHITE, fade_override)
-        if self.hori_name is not None and self.open_anim.attribute >= 100:
+        if not self.is_back and self.open_anim.attribute >= 100:
             tex.draw_texture('box', 'folder_top_edge', x=x, y=y - self.open_anim.attribute, color=color, mirror='horizontal', frame=self.texture_index)
             tex.draw_texture('box', 'folder_top', x=x, y=y - self.open_anim.attribute, color=color, frame=self.texture_index)
             tex.draw_texture('box', 'folder_top_edge', x=x+268, y=y - self.open_anim.attribute, color=color, frame=self.texture_index)
@@ -249,45 +299,30 @@ class SongBox:
         color = ray.WHITE
         if fade_override is not None:
             color = ray.fade(ray.WHITE, fade_override)
-        if self.tja_count_text is not None and self.texture_index != 14:
+        if self.texture_index != 14:
             tex.draw_texture('yellow_box', 'song_count_back', color=color, fade=0.5)
             tex.draw_texture('yellow_box', 'song_count_num', color=color)
             tex.draw_texture('yellow_box', 'song_count_songs', color=color)
             dest_width = min(124, self.tja_count_text.texture.width)
             self.tja_count_text.draw(outline_color=ray.BLACK, x=560 - (dest_width//2), y=126, x2=dest_width-self.tja_count_text.texture.width, color=color)
-        if self.texture_index != 9:
+        if self.texture_index != SongBox.DEFAULT_INDEX:
             tex.draw_texture('box', 'folder_graphic', color=color, frame=self.texture_index)
             tex.draw_texture('box', 'folder_text', color=color, frame=self.texture_index)
         elif self.box_texture is not None:
-            ray.draw_texture(self.box_texture, (x+48) - (self.box_texture.width//2), (y+240) - (self.box_texture.height//2), color)
-
-    def draw_score_history(self):
-        if self.is_open and get_current_ms() >= self.wait + 83.33:
-            if self.score_history is not None and get_current_ms() >= self.history_wait + 3000:
-                self.score_history.draw()
-
-    def draw(self, x: int, y: int, is_ura: bool, fade_override=None):
-        if self.is_open and get_current_ms() >= self.wait + 83.33:
-            if self.yellow_box is not None:
-                self.yellow_box.draw(self, fade_override, is_ura)
-            else:
-                self._draw_open(x, y, self.open_fade.attribute)
-        else:
-            self._draw_closed(x, y)
+            ray.draw_texture(self.box_texture, int((x+48) - (self.box_texture.width//2)), int((y+240) - (self.box_texture.height//2)), color)
 
 class YellowBox:
     """A song box when it is opened."""
-    def __init__(self, name: Optional[OutlinedText], is_back: bool, tja: Optional[TJAParser] = None, is_dan: bool = False):
+    def __init__(self, is_back: bool, tja: Optional[TJAParser] = None, is_dan: bool = False):
         self.is_diff_select = False
-        self.name = name
         self.is_back = is_back
         self.tja = tja
-        self.is_dan = is_dan
-        self.subtitle = None
         if self.tja is not None:
             subtitle_text = self.tja.metadata.subtitle.get(global_data.config['general']['language'], '')
             font_size = 30 if len(subtitle_text) < 30 else 20
             self.subtitle = OutlinedText(subtitle_text, font_size, ray.WHITE, outline_thickness=5, vertical=True)
+        self.is_dan = is_dan
+        self.subtitle = None
 
         self.left_out = tex.get_animation(9)
         self.right_out = tex.get_animation(10)
@@ -317,11 +352,6 @@ class YellowBox:
         self.center_height = self.center_h_out.attribute
         self.bottom_y = tex.textures['yellow_box']['yellow_box_bottom_right'].y[0]
         self.edge_height = tex.textures['yellow_box']['yellow_box_bottom_right'].height
-
-    def reset(self):
-        if self.subtitle is not None:
-            self.subtitle.unload()
-            self.subtitle = None
 
     def create_anim(self):
         self.right_out_2.reset()
@@ -368,8 +398,8 @@ class YellowBox:
             self.center_height = self.center_h_out.attribute
         self.is_diff_select = is_diff_select
 
-    def _draw_tja_data(self, song_box, color, fade):
-        if self.tja is None:
+    def _draw_tja_data(self, song_box: SongBox, color: ray.Color, fade: float):
+        if not self.tja:
             return
         for diff in self.tja.metadata.course_data:
             if diff >= Difficulty.URA:
@@ -406,16 +436,14 @@ class YellowBox:
             if self.tja.metadata.course_data[diff].is_branching and (get_current_ms() // 1000) % 2 == 0:
                 tex.draw_texture('yellow_box', 'branch_indicator', x=(diff*60), color=color)
 
-    def _draw_tja_data_diff(self, is_ura: bool, song_box: Optional[SongBox] = None):
-        if self.tja is None:
+    def _draw_tja_data_diff(self, is_ura: bool, song_box: SongBox):
+        if not self.tja:
             return
         tex.draw_texture('diff_select', 'back', fade=self.fade_in.attribute)
         tex.draw_texture('diff_select', 'option', fade=self.fade_in.attribute)
         tex.draw_texture('diff_select', 'neiro', fade=self.fade_in.attribute)
 
         for diff in self.tja.metadata.course_data:
-            if song_box is None:
-                continue
             if diff >= Difficulty.URA:
                 continue
             elif diff in song_box.scores and song_box.scores[diff] is not None and ((song_box.scores[diff][4] is not None and song_box.scores[diff][4] == 2 and song_box.scores[diff][2] == 0) or (song_box.scores[diff][2] == 0 and song_box.scores[diff][3] == 0)):
@@ -447,7 +475,7 @@ class YellowBox:
                     name = 'branch_indicator_diff'
                 tex.draw_texture('yellow_box', name, x=min(course, Difficulty.ONI)*115, fade=self.fade_in.attribute)
 
-    def _draw_text(self, song_box):
+    def _draw_text(self, song_box, name: OutlinedText):
         if not isinstance(self.right_out, MoveAnimation):
             return
         if not isinstance(self.right_out_2, MoveAnimation):
@@ -457,9 +485,9 @@ class YellowBox:
         x = song_box.position + (self.right_out.attribute*0.85 - (self.right_out.start_position*0.85)) + self.right_out_2.attribute - self.right_out_2.start_position
         if self.is_back:
             tex.draw_texture('box', 'back_text_highlight', x=x)
-        elif self.name is not None:
-            texture = self.name.texture
-            self.name.draw(outline_color=ray.BLACK, x=x + 30, y=35 + self.top_y_out.attribute, y2=min(texture.height, 417)-texture.height, color=ray.WHITE)
+        else:
+            texture = name.texture
+            name.draw(outline_color=ray.BLACK, x=x + 30, y=35 + self.top_y_out.attribute, y2=min(texture.height, 417)-texture.height, color=ray.WHITE)
         if self.subtitle is not None:
             texture = self.subtitle.texture
             y = self.bottom_y - min(texture.height, 410) + 10 + self.top_y_out.attribute - self.top_y_out.start_position
@@ -476,36 +504,31 @@ class YellowBox:
         tex.draw_texture('yellow_box', 'yellow_box_top', x=self.left_x + self.edge_height, y=self.top_y, x2=self.center_width)
         tex.draw_texture('yellow_box', 'yellow_box_center', x=self.left_x + self.edge_height, y=self.top_y + self.edge_height, x2=self.center_width, y2=self.center_height)
 
-    def draw(self, song_box: Optional[SongBox], fade_override: Optional[float], is_ura: bool):
+    def draw(self, song_box: Optional[SongBox | BackBox], fade_override: Optional[float], is_ura: bool, name: OutlinedText):
         self._draw_yellow_box()
+        fade = self.fade.attribute
+        if fade_override is not None:
+            fade = min(self.fade.attribute, fade_override)
         if self.is_dan:
             return
-        if self.is_diff_select and self.tja is not None:
+        if self.is_back:
+            tex.draw_texture('box', 'back_graphic', fade=fade)
+            return
+        if self.is_diff_select and isinstance(song_box, SongBox):
             self._draw_tja_data_diff(is_ura, song_box)
-        else:
-            fade = self.fade.attribute
-            if fade_override is not None:
-                fade = min(self.fade.attribute, fade_override)
-            if self.is_back:
-                tex.draw_texture('box', 'back_graphic', fade=fade)
+        elif isinstance(song_box, SongBox):
             self._draw_tja_data(song_box, ray.fade(ray.WHITE, fade), fade)
 
-        self._draw_text(song_box)
+        self._draw_text(song_box, name)
 
-class DanBox:
-    def __init__(self, title: str, color: int, songs: list[tuple[TJAParser, int, int, int]], exams: list['Exam']):
-        self.position = -11111
-        self.start_position = -1
-        self.target_position = -1
-        self.move = None
-        self.is_open = False
-        self.is_back = False
-        self.title = title
-        self.color = color
+class DanBox(BaseBox):
+    def __init__(self, name, color: int, songs: list[tuple[TJAParser, int, int, int]], exams: list['Exam']):
+        super().__init__(name, color)
         self.songs = songs
         self.exams = exams
         self.song_text: list[tuple[OutlinedText, OutlinedText]] = []
         self.total_notes = 0
+        self.yellow_box = None
         for song, genre_index, difficulty, level in self.songs:
             notes, branch_m, branch_e, branch_n = song.notes_to_position(difficulty)
             self.total_notes += sum(1 for note in notes.play_notes if note.type < 5)
@@ -515,57 +538,26 @@ class DanBox:
                 self.total_notes += sum(1 for note in branch.play_notes if note.type < 5)
             for branch in branch_n:
                 self.total_notes += sum(1 for note in branch.play_notes if note.type < 5)
-        self.name = None
-        self.hori_name = None
-        self.yellow_box = None
 
-    def move_box(self):
-        if self.position != self.target_position and self.move is None:
-            if self.position < self.target_position:
-                direction = 1
-            else:
-                direction = -1
-            if abs(self.target_position - self.position) > 250:
-                direction *= -1
-            self.move = Animation.create_move(83.3*2, start_position=0, total_distance=300 * direction, ease_out='cubic')
-            self.move.start()
-            if self.is_open or self.target_position == BOX_CENTER + 150:
-                self.move.total_distance = 450 * direction * -1
-            self.start_position = self.position
-        if self.move is not None:
-            self.move.update(get_current_ms())
-            self.position = self.start_position + int(self.move.attribute)
-            if self.move.is_finished:
-                self.position = self.target_position
-                self.move = None
-                if not (-56 <= self.position <= 1280):
-                    self.reset()
+    def load_text(self):
+        super().load_text()
+        self.hori_name = OutlinedText(self.text_name, 40, ray.WHITE)
+        for song, genre, difficulty, level in self.songs:
+            title = song.metadata.title.get(global_data.config["general"]["language"], song.metadata.title["en"])
+            subtitle = song.metadata.subtitle.get(global_data.config["general"]["language"], "")
+            title_text = OutlinedText(title, 40, ray.WHITE, vertical=True)
+            font_size = 30 if len(subtitle) < 30 else 20
+            subtitle_text = OutlinedText(subtitle, font_size, ray.WHITE, vertical=True)
+            self.song_text.append((title_text, subtitle_text))
+        self.text_loaded = True
 
-    def reset(self):
-        if self.name is not None:
-            self.name.unload()
-            self.name = None
-
-    def get_text(self):
-        if self.name is None:
-            self.name = OutlinedText(self.title, 40, ray.WHITE, vertical=True)
-            self.hori_name = OutlinedText(self.title, 40, ray.WHITE)
-        if self.is_open and not self.song_text:
-            for song, genre, difficulty, level in self.songs:
-                title = song.metadata.title.get(global_data.config["general"]["language"], song.metadata.title["en"])
-                subtitle = song.metadata.subtitle.get(global_data.config["general"]["language"], "")
-                title_text = OutlinedText(title, 40, ray.WHITE, vertical=True)
-                font_size = 30 if len(subtitle) < 30 else 20
-                subtitle_text = OutlinedText(subtitle, font_size, ray.WHITE, vertical=True)
-                self.song_text.append((title_text, subtitle_text))
-
-    def update(self, is_diff_select: bool):
-        self.move_box()
-        self.get_text()
+    def update(self, current_time: float, is_diff_select: bool):
+        super().update(current_time, is_diff_select)
         is_open_prev = self.is_open
-        self.is_open = self.position == BOX_CENTER + 150
+        self.move_box(current_time)
+        self.is_open = self.position == BOX_CENTER
         if not is_open_prev and self.is_open:
-            self.yellow_box = YellowBox(self.name, self.is_back, is_dan=True)
+            self.yellow_box = YellowBox(False, is_dan=True)
             self.yellow_box.create_anim()
 
         if self.yellow_box is not None:
@@ -601,51 +593,49 @@ class DanBox:
             elif self.exams[i].range == 'less':
                 tex.draw_texture('yellow_box', 'exam_less', x=(offset*-1.7), y=(i*83))
 
-    def _draw_closed(self, x: int, y: int):
-        tex.draw_texture('box', 'folder', frame=self.color, x=x)
+    def _draw_closed(self, x: float, y: float):
+        tex.draw_texture('box', 'folder', frame=self.texture_index, x=x)
         if self.name is not None:
             self.name.draw(outline_color=ray.BLACK, x=x + 47 - int(self.name.texture.width / 2), y=y+35, y2=min(self.name.texture.height, 417)-self.name.texture.height)
 
-    def _draw_open(self, x: int, y: int, is_ura: bool):
+    def _draw_open(self, x: float, y: float, fade_override: Optional[float], is_ura: bool):
+        if fade_override is not None:
+            fade = fade_override
+        else:
+            fade = 1.0
         if self.yellow_box is not None:
-            self.yellow_box.draw(None, None, False)
+            self.yellow_box.draw(None, None, False, self.name)
             for i, song in enumerate(self.song_text):
                 title, subtitle = song
                 x = i * 140
-                tex.draw_texture('yellow_box', 'genre_banner', x=x, frame=self.songs[i][1])
-                tex.draw_texture('yellow_box', 'difficulty', x=x, frame=self.songs[i][2])
-                tex.draw_texture('yellow_box', 'difficulty_x', x=x)
-                tex.draw_texture('yellow_box', 'difficulty_star', x=x)
+                tex.draw_texture('yellow_box', 'genre_banner', x=x, frame=self.songs[i][1], fade=fade)
+                tex.draw_texture('yellow_box', 'difficulty', x=x, frame=self.songs[i][2], fade=fade)
+                tex.draw_texture('yellow_box', 'difficulty_x', x=x, fade=fade)
+                tex.draw_texture('yellow_box', 'difficulty_star', x=x, fade=fade)
                 level = self.songs[i][0].metadata.course_data[self.songs[i][2]].level
                 counter = str(level)
                 total_width = len(counter) * 10
                 for i in range(len(counter)):
-                    tex.draw_texture('yellow_box', 'difficulty_num', frame=int(counter[i]), x=x-(total_width // 2) + (i * 10))
+                    tex.draw_texture('yellow_box', 'difficulty_num', frame=int(counter[i]), x=x-(total_width // 2) + (i * 10), fade=fade)
 
-                title.draw(outline_color=ray.BLACK, x=665+x, y=127, y2=min(title.texture.height, 400)-title.texture.height)
-                subtitle.draw(outline_color=ray.BLACK, x=620+x, y=525-min(subtitle.texture.height, 400), y2=min(subtitle.texture.height, 400)-subtitle.texture.height)
+                title.draw(outline_color=ray.BLACK, x=665+x, y=127, y2=min(title.texture.height, 400)-title.texture.height, fade=fade)
+                subtitle.draw(outline_color=ray.BLACK, x=620+x, y=525-min(subtitle.texture.height, 400), y2=min(subtitle.texture.height, 400)-subtitle.texture.height, fade=fade)
 
-            tex.draw_texture('yellow_box', 'total_notes_bg')
-            tex.draw_texture('yellow_box', 'total_notes')
+            tex.draw_texture('yellow_box', 'total_notes_bg', fade=fade)
+            tex.draw_texture('yellow_box', 'total_notes', fade=fade)
             counter = str(self.total_notes)
             for i in range(len(counter)):
-                tex.draw_texture('yellow_box', 'total_notes_counter', frame=int(counter[i]), x=(i * 25))
+                tex.draw_texture('yellow_box', 'total_notes_counter', frame=int(counter[i]), x=(i * 25), fade=fade)
 
-            tex.draw_texture('yellow_box', 'frame', frame=self.color)
+            tex.draw_texture('yellow_box', 'frame', frame=self.texture_index, fade=fade)
             if self.hori_name is not None:
-                self.hori_name.draw(outline_color=ray.BLACK, x=434 - (self.hori_name.texture.width//2), y=84, x2=min(self.hori_name.texture.width, 275)-self.hori_name.texture.width)
+                self.hori_name.draw(outline_color=ray.BLACK, x=434 - (self.hori_name.texture.width//2), y=84, x2=min(self.hori_name.texture.width, 275)-self.hori_name.texture.width, fade=fade)
 
             self._draw_exam_box()
 
-    def draw(self, x: int, y: int, is_ura: bool):
-        if self.is_open:
-            self._draw_open(x, y, is_ura)
-        else:
-            self._draw_closed(x, y)
-
 class GenreBG:
     """The background for a genre box."""
-    def __init__(self, start_box: SongBox, end_box: SongBox, title: OutlinedText, diff_sort: Optional[int]):
+    def __init__(self, start_box: BaseBox, end_box: BaseBox, title: OutlinedText, diff_sort: Optional[int]):
         self.start_box = start_box
         self.end_box = end_box
         self.start_position = start_box.position
@@ -694,7 +684,7 @@ class GenreBG:
             tex.draw_texture('box', 'folder_background_folder_edge', x=((offset+dest_width)//2)+20, y=y-2, fade=self.fade_in.attribute, frame=self.end_box.texture_index)
             if self.diff_num is not None:
                 tex.draw_texture('diff_sort', 'star_num', frame=self.diff_num, x=-150 + (dest_width//2), y=-143)
-            self.title.draw(outline_color=ray.BLACK, x=(1280//2) - (dest_width//2)-(offset//2), y=y-60, x2=dest_width - self.title.texture.width, color=ray.fade(ray.WHITE, self.fade_in.attribute))
+            self.title.draw(outline_color=ray.BLACK, x=(SCREEN_WIDTH//2) - (dest_width//2)-(offset//2), y=y-60, x2=dest_width - self.title.texture.width, color=ray.fade(ray.WHITE, self.fade_in.attribute))
 
 class ScoreHistory:
     """The score information that appears while hovering over a song"""
@@ -872,7 +862,10 @@ class Directory(FileSystemItem):
         elif self.to_root or self.back:
             texture_index = SongBox.BACK_INDEX
 
-        self.box = SongBox(name, texture_index, True, tja_count=tja_count, box_texture=box_texture)
+        if self.back:
+            self.box = BackBox(name, texture_index)
+        else:
+            self.box = FolderBox(name, texture_index, tja_count=tja_count, box_texture=box_texture)
 
 class SongFile(FileSystemItem):
     """Represents a song file (TJA) in the navigation system"""
@@ -884,7 +877,7 @@ class SongFile(FileSystemItem):
             self.tja.ex_data.new = True
         title = self.tja.metadata.title.get(global_data.config['general']['language'].lower(), self.tja.metadata.title['en'])
         self.hash = global_data.song_paths[path]
-        self.box = SongBox(title, texture_index, False, tja=self.tja, name_texture_index=name_texture_index if name_texture_index is not None else texture_index)
+        self.box = SongBox(title, texture_index, self.tja, name_texture_index=name_texture_index if name_texture_index is not None else texture_index)
         self.box.hash = global_data.song_hashes[self.hash][0]["diff_hashes"]
         self.box.get_scores()
 
@@ -904,7 +897,7 @@ class DanCourse(FileSystemItem):
             data = json.load(f)
             self.title = data["title"]
             self.color = data["color"]
-            self.charts = []
+            self.charts: list[tuple[TJAParser, int, int, int]] = []
             for chart in data["charts"]:
                 hash = chart["hash"]
                 #chart_title = chart["title"]
@@ -1203,8 +1196,8 @@ class FileNavigator:
                     if self.recent_folder is None:
                         raise Exception("tried to enter recent folder without recents")
                     self._generate_objects_recursive(self.recent_folder.path)
-                    selected_item.box.tja_count_text = None
-                    selected_item.box.tja_count = self._count_tja_files(self.recent_folder.path)
+                    if not isinstance(selected_item.box, BackBox):
+                        selected_item.box.tja_count = self._count_tja_files(self.recent_folder.path)
                     content_items = self.directory_contents[dir_key]
                 elif selected_item.collection == Directory.COLLECTIONS[2]:
                     if self.favorite_folder is None:
@@ -1212,8 +1205,8 @@ class FileNavigator:
                     self._generate_objects_recursive(self.favorite_folder.path)
                     tja_files = self._get_tja_files_for_directory(self.favorite_folder.path)
                     self._calculate_directory_crowns(dir_key, tja_files)
-                    selected_item.box.tja_count_text = None
-                    selected_item.box.tja_count = self._count_tja_files(self.favorite_folder.path)
+                    if not isinstance(selected_item.box, BackBox):
+                        selected_item.box.tja_count = self._count_tja_files(self.favorite_folder.path)
                     content_items = self.directory_contents[dir_key]
                     self.in_favorites = True
                 elif selected_item.collection == Directory.COLLECTIONS[3]:
@@ -1245,7 +1238,7 @@ class FileNavigator:
                 return
             i = 1
             for item in content_items:
-                if isinstance(item, SongFile):
+                if isinstance(item, SongFile) and not has_children:
                     if i % 10 == 0 and i != 0:
                         back_dir = Directory(self.current_dir.parent, "", SongBox.BACK_INDEX, back=True)
                         self.items.insert(self.selected_index+i, back_dir)
@@ -1268,24 +1261,22 @@ class FileNavigator:
         for item in self.items:
             if isinstance(item, Directory):
                 item_key = str(item.path)
-                if item_key in self.directory_contents:  # Only for real directories
+                if isinstance(item.box, FolderBox):
                     item.box.crown = self._get_directory_crowns_cached(item_key)
-                else:
-                    # Navigation items (back/to_root)
-                    item.box.crown = dict()
 
         self.calculate_box_positions()
 
-        if (not has_children and start_box is not None
-            and end_box is not None and selected_item is not None
-            and selected_item.box.hori_name is not None):
-            hori_name = selected_item.box.hori_name
-            diff_sort = None
-            if selected_item.collection == Directory.COLLECTIONS[3]:
-                diff_sort = self.diff_sort_level
-                diffs = ['かんたん', 'ふつう', 'むずかしい', 'おに']
-                hori_name = OutlinedText(diffs[min(Difficulty.ONI, self.diff_sort_diff)], 40, ray.WHITE, outline_thickness=5)
-            self.genre_bg = GenreBG(start_box, end_box, hori_name, diff_sort)
+        if selected_item and isinstance(selected_item.box, FolderBox):
+            if (not has_children and start_box is not None
+                and end_box is not None and selected_item is not None
+                and selected_item.box.hori_name is not None):
+                hori_name = selected_item.box.hori_name
+                diff_sort = None
+                if selected_item.collection == Directory.COLLECTIONS[3]:
+                    diff_sort = self.diff_sort_level
+                    diffs = ['かんたん', 'ふつう', 'むずかしい', 'おに']
+                    hori_name = OutlinedText(diffs[min(Difficulty.ONI, self.diff_sort_diff)], 40, ray.WHITE, outline_thickness=5)
+                self.genre_bg = GenreBG(start_box, end_box, hori_name, diff_sort)
 
     def select_current_item(self):
         """Select the currently highlighted item"""
@@ -1488,15 +1479,18 @@ class FileNavigator:
                 side_offset_l = 200
                 side_offset_r = 500
 
-            position = BOX_CENTER + (base_spacing * offset)
-            if position == BOX_CENTER:
+            position = (BOX_CENTER - 150) + (base_spacing * offset)
+            if position == BOX_CENTER - 150:
+                #item.box.is_open = True
                 position += center_offset
-            elif position > BOX_CENTER:
+            elif position > BOX_CENTER - 150:
+                #item.box.is_open = False
                 position += side_offset_r
             else:
                 position -= side_offset_l
+                #item.box.is_open = False
 
-            if item.box.position == -11111:
+            if item.box.position == float('inf'):
                 item.box.position = position
                 item.box.target_position = position
             else:
@@ -1535,8 +1529,10 @@ class FileNavigator:
 
     def reset_items(self):
         """Reset the items in the song select scene"""
-        for item in self.items:
-            item.box.reset()
+        song = self.get_current_item()
+        if isinstance(song.box, SongBox):
+            if song.box.yellow_box is not None:
+                song.box.yellow_box.create_anim()
 
     def add_recent(self):
         """Add the current song to the recent list"""
