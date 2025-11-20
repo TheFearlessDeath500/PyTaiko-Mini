@@ -30,7 +30,7 @@ class BGFeverBase:
 class BGFever1(BGFeverBase):
     class Tile:
         def __init__(self, tex):
-            self.expansion = Animation.create_move(166, total_distance=tex.screen_height//2)
+            self.expansion = Animation.create_move(166 * tex.screen_scale, total_distance=tex.screen_height//2)
             self.expansion.start()
         def update(self, current_time_ms):
             self.expansion.update(current_time_ms)
@@ -60,9 +60,9 @@ class BGFever1(BGFeverBase):
         self.wave_spin = tex.get_animation(28)
         self.wave_origin = ray.Vector2(tex.textures[self.name]['wave'].width/2,tex.textures[self.name]['wave'].height/2)
         self.circle = {
-            "center_x": 100,
-            "center_y": 130,
-            "radius": 200,
+            "center_x": 100 * tex.screen_scale,
+            "center_y": 130 * tex.screen_scale,
+            "radius": 200 * tex.screen_scale,
         }
         self.lookup_table_size = 360  # One entry per degree
         self._precomputed_positions: list[tuple[float, float]] = []
@@ -112,7 +112,7 @@ class BGFever1(BGFeverBase):
 
     def draw(self, tex: TextureWrapper):
         for i, tile in enumerate(self.bg_tiles):
-            tile.draw(tex, self.name, (i*128)-self.bg_move.attribute, i % 10)
+            tile.draw(tex, self.name, (i*tex.textures[self.name]['background'].width)-self.bg_move.attribute, i % 10)
         tex.draw_texture(self.name, 'mountain', y=-self.mountain_move_up.attribute+self.mountain_move_down.attribute)
         wave_x, wave_y = self._get_wave_position()
         tex.draw_texture(self.name, 'wave', x=wave_x, y=wave_y, origin=self.wave_origin)
@@ -165,9 +165,9 @@ class BGFever3(BGFeverBase):
         self.fish_spin = tex.get_animation(28)
 
         self.circle = {
-            "center_x": 500,
-            "center_y": 300,
-            "radius": 300,
+            "center_x": 500 * tex.screen_scale,
+            "center_y": 300 * tex.screen_scale,
+            "radius": 300 * tex.screen_scale,
         }
         self.num_fish = 8
         self.fish_spacing = (2 * math.pi) / self.num_fish  # 45 degrees in radians
@@ -248,7 +248,7 @@ class BGFever3(BGFeverBase):
         footer_wave_x, footer_wave_y = self._get_small_circle_position(self.fish_spin.attribute, 3.0)
         for i in range(3):
             tex.draw_texture(self.name, 'footer_2',
-                           x=footer_wave_x + (i*600), y=footer_wave_y,
+                           x=footer_wave_x + (i*600 * tex.screen_scale), y=footer_wave_y,
                            fade=self.fadein.attribute, origin=self.wave_origin)
 
         for i in range(3):
@@ -283,8 +283,8 @@ class BGFever4(BGFeverBase):
             self.horizontal_move.update(current_time_ms)
     def draw(self, tex: TextureWrapper):
         y = self.bg_texture_move_down.attribute - self.bg_texture_move_up.attribute
-        for i in range(0, 1384, 104):
+        for i in range(0, tex.textures[self.name]['background'].width*13, tex.textures[self.name]['background'].width):
             tex.draw_texture(self.name, 'background', x=i, y=y)
         tex.draw_texture(self.name, 'overlay_1', y=-self.vertical_move.attribute - y)
         tex.draw_texture(self.name, 'overlay_2', x=-self.horizontal_move.attribute, y=y)
-        tex.draw_texture(self.name, 'overlay_2', x=1256 - self.horizontal_move.attribute, y=y)
+        tex.draw_texture(self.name, 'overlay_2', x=tex.textures[self.name]['overlay_2'].width - self.horizontal_move.attribute, y=y)

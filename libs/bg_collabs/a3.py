@@ -27,15 +27,16 @@ class Background:
 class BGFever(BGFever4):
     def __init__(self, tex: TextureWrapper, index: int, path: str):
         super().__init__(tex, index, path)
-        self.vertical_move = Animation.create_move(tex.animations[15].duration, total_distance=328)
+        self.width = tex.textures[self.name]['petals'].width
+        self.vertical_move = Animation.create_move(tex.animations[15].duration, total_distance=self.width)
         self.vertical_move.start()
         self.vertical_move.loop = True
 
     def draw(self, tex: TextureWrapper):
         tex.draw_texture(self.name, 'overlay')
-        for i in range(10):
+        for i in range(int(10 * tex.screen_scale)):
             for j in range(2):
-                tex.draw_texture(self.name, 'petals', x=(i * 328)-self.horizontal_move.attribute, y=(j * 328) + self.vertical_move.attribute)
+                tex.draw_texture(self.name, 'petals', x=(i * self.width)-self.horizontal_move.attribute, y=(j * self.width) + self.vertical_move.attribute)
 
 class DancerGroup(BaseDancerGroup):
     def __init__(self, tex: TextureWrapper, index: int, bpm: float, max_dancers: int, path: str):
@@ -73,9 +74,9 @@ class BGNormal(BGNormal2):
 class DonBG(DonBGBase):
     def __init__(self, tex: TextureWrapper, index: int, player_num: PlayerNum, path: str):
         super().__init__(tex, index, player_num, path)
-        self.move = Animation.create_move(10000, total_distance=-1280)
+        self.move = Animation.create_move(10000, total_distance=-tex.screen_width)
         self.move.start()
         self.move.loop = True
     def _draw_textures(self, tex: TextureWrapper, fade: float, y: float):
-        for i in range(2):
-            tex.draw_texture(self.name, 'background', frame=self.is_clear, fade=fade, x=(i*1280)+self.move.attribute)
+        for i in range(int(2 * tex.screen_scale)):
+            tex.draw_texture(self.name, 'background', frame=self.is_clear, fade=fade, x=(i*tex.screen_width)+self.move.attribute)

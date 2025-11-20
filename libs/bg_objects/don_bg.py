@@ -25,7 +25,7 @@ class DonBGBase:
 
     def _draw_textures(self, tex: TextureWrapper, fade: float, y: float):
         for i in range(5):
-            tex.draw_texture(self.name, 'background', frame=self.is_clear, fade=fade, x=(i*328)+self.move.attribute, y=y)
+            tex.draw_texture(self.name, 'background', frame=self.is_clear, fade=fade, x=(i*tex.textures[self.name]['background'].width)+self.move.attribute, y=y)
 
     def update(self, current_time_ms: float, is_clear: bool):
         if not self.is_clear and is_clear:
@@ -42,12 +42,12 @@ class DonBG1(DonBGBase):
         super().update(current_time_ms, is_clear)
         self.overlay_move.update(current_time_ms)
     def _draw_textures(self, tex: TextureWrapper, fade: float, y: float):
-        for i in range(5):
-            tex.draw_texture(self.name, 'background', frame=self.is_clear, fade=fade, x=(i*328)+self.move.attribute, y=y)
-        for i in range(6):
-            tex.draw_texture(self.name, 'overlay', frame=self.is_clear, fade=fade, x=(i*347)+self.move.attribute*(347/328), y=self.overlay_move.attribute+y)
-        for i in range(30):
-            tex.draw_texture(self.name, 'footer', frame=self.is_clear, fade=fade, x=(i*56)+self.move.attribute*((56/328)*3), y=self.overlay_move.attribute+y)
+        for i in range(int(5 * tex.screen_scale)):
+            tex.draw_texture(self.name, 'background', frame=self.is_clear, fade=fade, x=(i*tex.textures[self.name]['background'].width)+self.move.attribute, y=y)
+        for i in range(int(6 * tex.screen_scale)):
+            tex.draw_texture(self.name, 'overlay', frame=self.is_clear, fade=fade, x=(i*tex.textures[self.name]['overlay'].width)+self.move.attribute*(tex.textures[self.name]['overlay'].width/tex.textures[self.name]['background'].width), y=self.overlay_move.attribute+y)
+        for i in range(int(30 * tex.screen_scale)):
+            tex.draw_texture(self.name, 'footer', frame=self.is_clear, fade=fade, x=(i*tex.textures[self.name]['footer'].width)+self.move.attribute*((tex.textures[self.name]['footer'].width/tex.textures[self.name]['background'].width)*3), y=self.overlay_move.attribute+y)
 
 class DonBG2(DonBGBase):
     def __init__(self, tex: TextureWrapper, index: int, player_num: PlayerNum, path: str):
@@ -57,9 +57,9 @@ class DonBG2(DonBGBase):
         super().update(current_time_ms, is_clear)
         self.overlay_move.update(current_time_ms)
     def _draw_textures(self, tex: TextureWrapper, fade: float, y: float):
-        for i in range(5):
-            tex.draw_texture(self.name, 'background', frame=self.is_clear, fade=fade, x=(i*328)+self.move.attribute, y=y)
-            tex.draw_texture(self.name, 'overlay', frame=self.is_clear, fade=fade, x=(i*328)+self.move.attribute, y=self.overlay_move.attribute+y)
+        for i in range(int(5 * tex.screen_scale)):
+            tex.draw_texture(self.name, 'background', frame=self.is_clear, fade=fade, x=(i*tex.textures[self.name]['background'].width)+self.move.attribute, y=y)
+            tex.draw_texture(self.name, 'overlay', frame=self.is_clear, fade=fade, x=(i*tex.textures[self.name]['overlay'].width)+self.move.attribute, y=self.overlay_move.attribute+y)
 
 class DonBG3(DonBGBase):
     def __init__(self, tex: TextureWrapper, index: int, player_num: PlayerNum, path: str):
@@ -82,11 +82,11 @@ class DonBG3(DonBGBase):
         self.overlay_move_2.update(current_time_ms)
 
     def _draw_textures(self, tex: TextureWrapper, fade: float, y: float):
-        for i in range(10):
-            tex.draw_texture(self.name, 'background', frame=self.is_clear, fade=fade, x=(i*164)+self.move.attribute, y=y)
+        for i in range(int(10 * tex.screen_scale)):
+            tex.draw_texture(self.name, 'background', frame=self.is_clear, fade=fade, x=(i*tex.textures[self.name]['background'].width)+self.move.attribute, y=y)
         y_pos = self.bounce_up.attribute - self.bounce_down.attribute + self.overlay_move.attribute + self.overlay_move_2.attribute
-        for i in range(6):
-            tex.draw_texture(self.name, 'overlay', frame=self.is_clear, fade=fade, x=(i*328)+(self.move.attribute*2), y=y_pos+y)
+        for i in range(int(6 * tex.screen_scale)):
+            tex.draw_texture(self.name, 'overlay', frame=self.is_clear, fade=fade, x=(i*tex.textures[self.name]['overlay'].width)+(self.move.attribute*2), y=y_pos+y)
 
 class DonBG4(DonBGBase):
     def __init__(self, tex: TextureWrapper, index: int, player_num: PlayerNum, path: str):
@@ -97,9 +97,9 @@ class DonBG4(DonBGBase):
         self.overlay_move.update(current_time_ms)
 
     def _draw_textures(self, tex: TextureWrapper, fade: float, y: float):
-        for i in range(5):
-            tex.draw_texture(self.name, 'background', frame=self.is_clear, fade=fade, x=(i*328)+self.move.attribute, y=y)
-            tex.draw_texture(self.name, 'overlay', frame=self.is_clear, fade=fade, x=(i*328)+self.move.attribute, y=self.overlay_move.attribute+y)
+        for i in range(int(5 * tex.screen_scale)):
+            tex.draw_texture(self.name, 'background', frame=self.is_clear, fade=fade, x=(i*tex.textures[self.name]['background'].width)+self.move.attribute, y=y)
+            tex.draw_texture(self.name, 'overlay', frame=self.is_clear, fade=fade, x=(i*tex.textures[self.name]['overlay'].width)+self.move.attribute, y=self.overlay_move.attribute+y)
 
 class DonBG5(DonBGBase):
     def __init__(self, tex: TextureWrapper, index: int, player_num: PlayerNum, path: str):
@@ -120,10 +120,10 @@ class DonBG5(DonBGBase):
         self.adjust.update(current_time_ms)
 
     def _draw_textures(self, tex: TextureWrapper, fade: float, y: float):
-        for i in range(5):
-            tex.draw_texture(self.name, 'background', frame=self.is_clear, fade=fade, x=(i*328)+self.move.attribute, y=y)
-        for i in range(6):
-            tex.draw_texture(self.name, 'overlay', frame=self.is_clear, fade=fade, x=(i*368)+(self.move.attribute * ((184/328)*2)), y=self.bounce_up.attribute - self.bounce_down.attribute - self.adjust.attribute + y)
+        for i in range(int(5 * tex.screen_scale)):
+            tex.draw_texture(self.name, 'background', frame=self.is_clear, fade=fade, x=(i*tex.textures[self.name]['background'].width)+self.move.attribute, y=y)
+        for i in range(int(6 * tex.screen_scale)):
+            tex.draw_texture(self.name, 'overlay', frame=self.is_clear, fade=fade, x=(i*tex.textures[self.name]['overlay'].width)+self.move.attribute, y=self.bounce_up.attribute - self.bounce_down.attribute - self.adjust.attribute + y)
 
 class DonBG6(DonBGBase):
     def __init__(self, tex: TextureWrapper, index: int, player_num: PlayerNum, path: str):
@@ -134,9 +134,9 @@ class DonBG6(DonBGBase):
         self.overlay_move.update(current_time_ms)
 
     def _draw_textures(self, tex: TextureWrapper, fade: float, y: float):
-        for i in range(5):
-            tex.draw_texture(self.name, 'background', frame=self.is_clear, fade=fade, x=(i*328)+self.move.attribute, y=y)
-        for i in range(0, 6, 2):
-            tex.draw_texture(self.name, 'overlay_1', frame=self.is_clear, fade=fade, x=(i*264) + self.move.attribute*3, y=-self.move.attribute*0.85+y)
-        for i in range(5):
-            tex.draw_texture(self.name, 'overlay_2', frame=self.is_clear, fade=fade, x=(i*328)+self.move.attribute, y=self.overlay_move.attribute+y)
+        for i in range(int(tex.screen_scale * 5)):
+            tex.draw_texture(self.name, 'background', frame=self.is_clear, fade=fade, x=(i*tex.textures[self.name]['background'].width)+self.move.attribute, y=y)
+        for i in range(0, int(6 * tex.screen_scale), 2):
+            tex.draw_texture(self.name, 'overlay_1', frame=self.is_clear, fade=fade, x=(i*tex.textures[self.name]['overlay_1'].width) + self.move.attribute*3, y=-self.move.attribute*0.85+y)
+        for i in range(int(tex.screen_scale * 5)):
+            tex.draw_texture(self.name, 'overlay_2', frame=self.is_clear, fade=fade, x=(i*tex.textures[self.name]['overlay_2'].width)+self.move.attribute, y=self.overlay_move.attribute+y)

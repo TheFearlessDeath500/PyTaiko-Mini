@@ -40,14 +40,14 @@ class DancerGroup(BaseDancerGroup):
 class DonBG(DonBGBase):
     def __init__(self, tex: TextureWrapper, index: int, player_num: PlayerNum, path: str):
         super().__init__(tex, index, player_num, path)
-        self.move = Animation.create_move(20000, total_distance=-1344)
+        self.move = Animation.create_move(20000, total_distance=-tex.textures[self.name]['background'].width * (tex.screen_scale * 8))
         self.move.start()
         self.move.loop = True
     def _draw_textures(self, tex: TextureWrapper, fade: float, y: float):
-        for i in range(16):
-            tex.draw_texture(self.name, 'background', frame=self.is_clear, fade=fade, x=(i*168)+self.move.attribute, y=y)
+        for i in range(int(16 * tex.screen_scale)):
+            tex.draw_texture(self.name, 'background', frame=self.is_clear, fade=fade, x=(i*tex.textures[self.name]['background'].width)+self.move.attribute, y=y)
             for j in range(3):
-                tex.draw_texture(self.name, 'overlay', frame=self.is_clear, fade=fade, x=(i*168)+self.move.attribute, y=y+(j*70))
+                tex.draw_texture(self.name, 'overlay', frame=self.is_clear, fade=fade, x=(i*tex.textures[self.name]['background'].width)+self.move.attribute, y=y+(j*70 * tex.screen_scale))
 
 class BGFever(BGFeverBase):
     def __init__(self, tex: TextureWrapper, index: int, path: str):

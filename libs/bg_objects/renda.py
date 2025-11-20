@@ -15,7 +15,7 @@ class Renda:
 class BaseRenda:
     def __init__(self, tex: TextureWrapper, index: int):
         self.name = 'renda_' + str(index)
-        self.hori_move = Animation.create_move(1500, total_distance=tex.screen_width)
+        self.hori_move = Animation.create_move(1500 * tex.screen_scale, total_distance=tex.screen_width)
         self.hori_move.start()
 
     def update(self, current_time_ms: float):
@@ -24,7 +24,7 @@ class BaseRenda:
 class Renda0(BaseRenda):
     def __init__(self, tex: TextureWrapper, index: int):
         super().__init__(tex, index)
-        self.vert_move = Animation.create_move(1500, total_distance=tex.screen_height + (80 * tex.screen_scale))
+        self.vert_move = Animation.create_move(1500 * tex.screen_scale, total_distance=tex.screen_height + (80 * tex.screen_scale))
         self.vert_move.start()
         tex_list = tex.textures['renda'][self.name].texture
         num_of_rendas = len(tex_list) if isinstance(tex_list, list) else 0
@@ -44,7 +44,7 @@ class Renda1(BaseRenda):
         super().__init__(tex, index)
         self.frame = random.randint(0, 5)
         self.y = random.randint(0, int(200 * tex.screen_scale))
-        self.rotate = Animation.create_move(800, total_distance=tex.screen_height//2)
+        self.rotate = Animation.create_move(800 * tex.screen_scale, total_distance=tex.screen_height//2)
         self.rotate.start()
         self.origin = ray.Vector2(64, 64)
 

@@ -22,7 +22,7 @@ class Background:
 class DonBG(DonBG6):
     def __init__(self, tex: TextureWrapper, index: int, player_num: PlayerNum, path: str):
         super().__init__(tex, index, player_num, path)
-        self.overlay_move_2 = Animation.create_move(8000, total_distance=-760)
+        self.overlay_move_2 = Animation.create_move(8000, total_distance=-tex.textures[self.name]['bg_overlay_2'].width)
         self.overlay_move_2.loop = True
         self.overlay_move_2.start()
 
@@ -32,12 +32,12 @@ class DonBG(DonBG6):
 
     def _draw_textures(self, tex: TextureWrapper, fade: float, y: float):
         tex.draw_texture(self.name, 'background')
-        for i in range(3):
-            tex.draw_texture(self.name, 'bg_overlay', x=(i*464), y=y)
-        for i in range(3):
-            tex.draw_texture(self.name, 'bg_overlay_2', x=(i*760)+(self.overlay_move_2.attribute), y=y)
-        for i in range(0, 6, 2):
-            tex.draw_texture(self.name, 'overlay_1', x=(i*264) + self.move.attribute*3, y=-self.move.attribute*0.85+y)
+        for i in range(int(3 * tex.screen_scale)):
+            tex.draw_texture(self.name, 'bg_overlay', x=(i*tex.textures[self.name]['bg_overlay'].width), y=y)
+        for i in range(int(3 * tex.screen_scale)):
+            tex.draw_texture(self.name, 'bg_overlay_2', x=(i*tex.textures[self.name]['bg_overlay_2'].width)+(self.overlay_move_2.attribute), y=y)
+        for i in range(0, int(6 * tex.screen_scale), int(2 * tex.screen_scale)):
+            tex.draw_texture(self.name, 'overlay_1', x=(i*264 * tex.screen_scale) + self.move.attribute*3, y=-self.move.attribute*0.85+y)
         tex.draw_texture(self.name, 'bg_overlay_3')
-        for i in range(5):
-            tex.draw_texture(self.name, 'overlay_2', x=(i*328)+self.move.attribute, y=self.overlay_move.attribute+y)
+        for i in range(int(5 * tex.screen_scale)):
+            tex.draw_texture(self.name, 'overlay_2', x=(i*328 * tex.screen_scale)+self.move.attribute, y=self.overlay_move.attribute+y)

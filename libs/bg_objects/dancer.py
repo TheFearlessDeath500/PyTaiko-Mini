@@ -19,6 +19,7 @@ class BaseDancer:
         self.name = name
         self.index = index
         self.bpm = bpm
+        self.tex = tex
         tex_list = tex.textures[self.name][str(self.index) + '_loop'].texture
         keyframe_len = tex_list if isinstance(tex_list, list) else [0]
         self.keyframes = [i for i in range(len(keyframe_len))]
@@ -36,8 +37,8 @@ class BaseDancer:
         self.is_started = True
 
         duration = (60000 / self.bpm)
-        self.s_bounce_up = Animation.create_move(duration/2, start_position=-200, total_distance=350, ease_out='quadratic', delay=500)
-        self.s_bounce_down = Animation.create_move(duration/2, total_distance=140, ease_in='quadratic', delay=self.s_bounce_up.duration + 500)
+        self.s_bounce_up = Animation.create_move(duration/2, start_position=-200 * self.tex.screen_scale, total_distance=350 * self.tex.screen_scale, ease_out='quadratic', delay=500)
+        self.s_bounce_down = Animation.create_move(duration/2, total_distance=140 * self.tex.screen_scale, ease_in='quadratic', delay=self.s_bounce_up.duration + 500)
         self.start_textures = [((duration / len(self.start_keyframes))*i, (duration / len(self.start_keyframes))*(i+1), index) for i, index in enumerate(self.start_keyframes)]
         self.s_texture_change = Animation.create_texture_change(duration, textures=self.start_textures, delay=500)
         self.s_texture_change.start()
@@ -89,7 +90,7 @@ class Dancer0_4(BaseDancer):
         if not self.is_started:
             return
         if not self.s_texture_change.is_finished:
-            tex.draw_texture(self.name, '4_start', frame=7, x=x, y=-50-self.s_bounce_up.attribute + self.s_bounce_down.attribute)
+            tex.draw_texture(self.name, '4_start', frame=7, x=x, y=(-50 * self.tex.screen_scale)-self.s_bounce_up.attribute + self.s_bounce_down.attribute)
             tex.draw_texture(self.name, '4_start', frame=self.s_texture_change.attribute, x=x, y=-self.s_bounce_up.attribute + self.s_bounce_down.attribute)
         else:
             if 0 <= self.texture_change.attribute <= 3:

@@ -27,13 +27,13 @@ class Background:
 class DonBG(DonBGBase):
     def __init__(self, tex: TextureWrapper, index: int, player_num: PlayerNum, path: str):
         super().__init__(tex, index, player_num, path)
-        self.move = Animation.create_move(3000, total_distance=-304)
+        self.move = Animation.create_move(3000, total_distance=-tex.textures[self.name]['background'].width)
         self.move.loop = True
         self.move.start()
 
     def _draw_textures(self, tex: TextureWrapper, fade: float, y: float):
-        for i in range(5):
-            tex.draw_texture(self.name, 'background', frame=self.is_clear, fade=fade, x=(i*304)+self.move.attribute, y=y)
+        for i in range(int(5 * tex.screen_scale)):
+            tex.draw_texture(self.name, 'background', frame=self.is_clear, fade=fade, x=(i*tex.textures[self.name]['background'].width)+self.move.attribute, y=y)
 
 class BGNormal(BGNormalBase):
     def __init__(self, tex: TextureWrapper, index: int, path: str):

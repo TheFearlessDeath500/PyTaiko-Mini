@@ -73,7 +73,7 @@ class BGNormal4(BGNormalBase):
         def __init__(self, tex: TextureWrapper):
             self.spawn_point = self.random_excluding_range(tex.screen_width)
             duration = random.randint(1400, 2000)
-            self.move_x = Animation.create_move(duration, total_distance=random.randint(-300, 300))
+            self.move_x = Animation.create_move(duration, total_distance=random.randint(int(-300 * tex.screen_scale), int(300 * tex.screen_scale)))
             self.move_y = Animation.create_move(duration, total_distance=tex.screen_height//2)
             self.move_x.start()
             self.move_y.start()
