@@ -87,7 +87,10 @@ class Background:
         self.width = width
     def draw(self):
         x = 0
-        footer_height = tex.textures["background"][f"footer_{self.player_num}p"].height
+        if self.player_num == 3:
+            footer_height = tex.textures["background"]["footer_1p"].height
+        else:
+            footer_height = tex.textures["background"][f"footer_{self.player_num}p"].height
         if self.player_num == PlayerNum.TWO_PLAYER:
             while x < self.width:
                 tex.draw_texture('background', 'background_1p', x=x, y=-(tex.screen_height//2))
