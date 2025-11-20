@@ -17,6 +17,7 @@ A TJA player and Taiko simulator written in Python using the [raylib](https://ww
 - Controller Support
 - Low latency audio via ASIO
 - Recursive Song Select Menu
+- 1080p Support (And higher if you give me assets!)
 
 ## Modes
 
