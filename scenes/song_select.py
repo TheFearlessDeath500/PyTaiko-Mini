@@ -871,14 +871,14 @@ class DiffSortSelect:
                 counter = str(self.prev_level)
             else:
                 counter = str(self.selected_level)
-            margin = 25
+            margin = tex.skin_config["diff_sort_margin_1"].x
             total_width = len(counter) * margin
             for i, digit in enumerate(counter):
-                tex.draw_texture('diff_sort', 'stat_num_star', frame=int(digit), x=70-(len(counter) - i) * margin, y=-108)
+                tex.draw_texture('diff_sort', 'stat_num_star', frame=int(digit), x=tex.skin_config["diff_sort_stat_num_star"].y-(len(counter) - i) * margin, y=tex.skin_config["diff_sort_stat_num_star"].y)
             counter = str(self.diff_sort_statistics[self.selected_box][self.selected_level][0])
             if self.selected_box == 5:
                 counter = str(self.diff_sort_statistics[self.prev_diff][self.prev_level][0])
-            margin = 23
+            margin = tex.skin_config["diff_sort_margin_2"].x
             total_width = len(counter) * margin
             for i, digit in enumerate(counter):
                 tex.draw_texture('diff_sort', 'stat_num', frame=int(digit), x=-(total_width//2)+(i*margin))
@@ -888,7 +888,7 @@ class DiffSortSelect:
                     counter = str(self.diff_sort_statistics[self.prev_diff][self.prev_level][0])
                 else:
                     counter = str(self.diff_sort_statistics[self.selected_box][self.selected_level][0])
-                margin = 10
+                margin = tex.skin_config["diff_sort_margin_3"].x
                 total_width = len(counter) * margin
                 for i, digit in enumerate(counter):
                     tex.draw_texture('diff_sort', 'stat_num_small', index=j, frame=int(digit), x=-(total_width//2)+(i*margin))
@@ -898,27 +898,27 @@ class DiffSortSelect:
                     counter = str(self.diff_sort_statistics[self.prev_diff][self.prev_level][j+1])
                 else:
                     counter = str(self.diff_sort_statistics[self.selected_box][self.selected_level][j+1])
-                margin = 25
+                margin = tex.skin_config["diff_sort_margin_1"].x
                 total_width = len(counter) * margin
                 for i, digit in enumerate(counter):
                     tex.draw_texture('diff_sort', 'stat_num_star', index=j, frame=int(digit), x=-(len(counter) - i) * margin)
         else:
             counter = str(self.diff_sort_sum_stat[self.selected_box][0])
-            margin = 23
+            margin = tex.skin_config["diff_sort_margin_2"].x
             total_width = len(counter) * margin
             for i, digit in enumerate(counter):
                 tex.draw_texture('diff_sort', 'stat_num', frame=int(digit), x=-(total_width//2)+(i*margin))
 
             for j in range(2):
                 counter = str(self.diff_sort_sum_stat[self.selected_box][0])
-                margin = 10
+                margin = tex.skin_config["diff_sort_margin_3"].x
                 total_width = len(counter) * margin
                 for i, digit in enumerate(counter):
                     tex.draw_texture('diff_sort', 'stat_num_small', index=j, frame=int(digit), x=-(total_width//2)+(i*margin))
 
             for j in range(2):
                 counter = str(self.diff_sort_sum_stat[self.selected_box][j+1])
-                margin = 25
+                margin = tex.skin_config["diff_sort_margin_1"].x
                 total_width = len(counter) * margin
                 for i, digit in enumerate(counter):
                     tex.draw_texture('diff_sort', 'stat_num_star', index=j, frame=int(digit), x=-(len(counter) - i) * margin)
@@ -927,21 +927,22 @@ class DiffSortSelect:
         tex.draw_texture('diff_sort', 'background', scale=self.bg_resize.attribute, center=True)
 
         tex.draw_texture('diff_sort', 'back', fade=self.diff_fade_in.attribute)
+        offset = tex.skin_config["diff_sort_offset"].x
         for i in range(self.num_boxes):
             if i == self.selected_box:
-                tex.draw_texture('diff_sort', 'box_highlight', x=(100*i), fade=self.diff_fade_in.attribute)
-                tex.draw_texture('diff_sort', 'box_text_highlight', x=(100*i), frame=i, fade=self.diff_fade_in.attribute)
+                tex.draw_texture('diff_sort', 'box_highlight', x=(offset*i), fade=self.diff_fade_in.attribute)
+                tex.draw_texture('diff_sort', 'box_text_highlight', x=(offset*i), frame=i, fade=self.diff_fade_in.attribute)
             else:
-                tex.draw_texture('diff_sort', 'box', x=(100*i), fade=self.diff_fade_in.attribute)
-                tex.draw_texture('diff_sort', 'box_text', x=(100*i), frame=i, fade=self.diff_fade_in.attribute)
+                tex.draw_texture('diff_sort', 'box', x=(offset*i), fade=self.diff_fade_in.attribute)
+                tex.draw_texture('diff_sort', 'box_text', x=(offset*i), frame=i, fade=self.diff_fade_in.attribute)
         if self.selected_box == -1:
             tex.draw_texture('diff_sort', 'back_outline', fade=self.box_flicker.attribute)
         else:
-            tex.draw_texture('diff_sort', 'box_outline', x=(100*self.selected_box), fade=self.box_flicker.attribute)
+            tex.draw_texture('diff_sort', 'box_outline', x=(offset*self.selected_box), fade=self.box_flicker.attribute)
 
         for i in range(self.num_boxes):
             if i < 4:
-                tex.draw_texture('diff_sort', 'box_diff', x=(100*i), frame=i)
+                tex.draw_texture('diff_sort', 'box_diff', x=(offset*i), frame=i)
 
         if Difficulty.EASY <= self.selected_box <= Difficulty.ONI or self.selected_box == 5:
             self.draw_statistics()
@@ -957,20 +958,21 @@ class DiffSortSelect:
         tex.draw_texture('diff_sort', 'diff', frame=self.selected_box, fade=self.diff_fade_in.attribute)
         tex.draw_texture('diff_sort', 'star_num', frame=self.selected_level, fade=self.diff_fade_in.attribute)
         for i in range(self.selected_level):
-            tex.draw_texture('diff_sort', 'star', x=(i*40.5), fade=self.diff_fade_in.attribute)
+            tex.draw_texture('diff_sort', 'star', x=(i*40.5 * tex.screen_scale), fade=self.diff_fade_in.attribute)
 
         if self.confirmation:
             texture = tex.textures['diff_sort']['level_box']
-            ray.draw_rectangle(texture.x[0], texture.y[0], texture.x2[0], texture.y2[0], ray.fade(ray.BLACK, 0.5))
+            ray.draw_rectangle(int(texture.x[0]), int(texture.y[0]), int(texture.x2[0]), int(texture.y2[0]), ray.fade(ray.BLACK, 0.5))
             y = -self.bounce_up_1.attribute + self.bounce_down_1.attribute - self.bounce_up_2.attribute + self.bounce_down_2.attribute
+            offset = tex.skin_config['diff_sort_offset_2'].x
             for i in range(3):
                 if i == self.confirm_index:
-                    tex.draw_texture('diff_sort', 'small_box_highlight', x=(i*245), y=y)
-                    tex.draw_texture('diff_sort', 'small_box_text_highlight', x=(i*245), y=y, frame=i)
-                    tex.draw_texture('diff_sort', 'small_box_outline', x=(i*245), y=y, fade=self.box_flicker.attribute)
+                    tex.draw_texture('diff_sort', 'small_box_highlight', x=(i*offset), y=y)
+                    tex.draw_texture('diff_sort', 'small_box_text_highlight', x=(i*offset), y=y, frame=i)
+                    tex.draw_texture('diff_sort', 'small_box_outline', x=(i*offset), y=y, fade=self.box_flicker.attribute)
                 else:
-                    tex.draw_texture('diff_sort', 'small_box', x=(i*245), y=y)
-                    tex.draw_texture('diff_sort', 'small_box_text', x=(i*245), y=y, frame=i)
+                    tex.draw_texture('diff_sort', 'small_box', x=(i*offset), y=y)
+                    tex.draw_texture('diff_sort', 'small_box_text', x=(i*offset), y=y, frame=i)
         else:
             tex.draw_texture('diff_sort', 'pongos')
             if self.selected_level != 1:
@@ -980,7 +982,7 @@ class DiffSortSelect:
         self.draw_statistics()
 
     def draw(self):
-        ray.draw_rectangle(0, 0, 1280, 720, ray.fade(ray.BLACK, 0.6))
+        ray.draw_rectangle(0, 0, tex.screen_width, tex.screen_height, ray.fade(ray.BLACK, 0.6))
         if self.in_level_select:
             self.draw_level_select()
         else:
@@ -1002,8 +1004,8 @@ class NeiroSelector:
         self.move.start()
         self.blue_arrow_fade = tex.get_animation(29, is_copy=True)
         self.blue_arrow_move = tex.get_animation(30, is_copy=True)
-        self.text = OutlinedText(self.sounds[self.selected_sound], 50, ray.WHITE)
-        self.text_2 = OutlinedText(self.sounds[self.selected_sound], 50, ray.WHITE)
+        self.text = OutlinedText(self.sounds[self.selected_sound], tex.skin_config["neiro_text"].font_size, ray.WHITE)
+        self.text_2 = OutlinedText(self.sounds[self.selected_sound], tex.skin_config["neiro_text"].font_size, ray.WHITE)
         self.move_sideways = tex.get_animation(31, is_copy=True)
         self.fade_sideways = tex.get_animation(32, is_copy=True)
         self.direction = -1
@@ -1027,7 +1029,7 @@ class NeiroSelector:
 
         self.text.unload()
         self.text = self.text_2
-        self.text_2 = OutlinedText(self.sounds[self.selected_sound], 50, ray.WHITE)
+        self.text_2 = OutlinedText(self.sounds[self.selected_sound], tex.skin_config["neiro_text"].font_size, ray.WHITE)
 
         self.direction = -1
         if self.selected_sound == len(self.sounds):
@@ -1045,7 +1047,7 @@ class NeiroSelector:
 
         self.text.unload()
         self.text = self.text_2
-        self.text_2 = OutlinedText(self.sounds[self.selected_sound], 50, ray.WHITE)
+        self.text_2 = OutlinedText(self.sounds[self.selected_sound], tex.skin_config["neiro_text"].font_size, ray.WHITE)
 
         self.direction = 1
         if self.selected_sound == len(self.sounds):
@@ -1072,30 +1074,30 @@ class NeiroSelector:
 
     def draw(self):
         if self.is_confirmed:
-            y = -370 + self.move.attribute
+            y = tex.skin_config["song_select_offset"].x + self.move.attribute
         else:
             y = -self.move.attribute
-        x = (int(self.player_num) - 1) * 800
+        x = (int(self.player_num) - 1) * tex.skin_config["option_p2"].x
         tex.draw_texture('neiro', 'background', x=x, y=y)
         tex.draw_texture('neiro', f'{self.player_num}p', x=x, y=y)
         tex.draw_texture('neiro', 'divisor', x=x, y=y)
         tex.draw_texture('neiro', 'music_note', y=y, x=x+(self.move_sideways.attribute*self.direction), fade=self.fade_sideways.attribute)
-        tex.draw_texture('neiro', 'music_note', y=y, x=x+(self.direction*-100) + (self.move_sideways.attribute*self.direction), fade=1 - self.fade_sideways.attribute)
+        tex.draw_texture('neiro', 'music_note', y=y, x=x+(self.direction*-tex.skin_config["option_text_in"].x) + (self.move_sideways.attribute*self.direction), fade=1 - self.fade_sideways.attribute)
         tex.draw_texture('neiro', 'blue_arrow', y=y, x=x-self.blue_arrow_move.attribute, fade=self.blue_arrow_fade.attribute)
-        tex.draw_texture('neiro', 'blue_arrow', y=y, x=x+200 + self.blue_arrow_move.attribute, mirror='horizontal', fade=self.blue_arrow_fade.attribute)
+        tex.draw_texture('neiro', 'blue_arrow', y=y, x=x+(tex.skin_config["option_text_in"].x*2) + self.blue_arrow_move.attribute, mirror='horizontal', fade=self.blue_arrow_fade.attribute)
 
         counter = str(self.selected_sound+1)
-        total_width = len(counter) * 20
+        total_width = len(counter) * tex.skin_config["neiro_counter_margin"].x
         for i in range(len(counter)):
-            tex.draw_texture('neiro', 'counter', frame=int(counter[i]), x=x-(total_width // 2) + (i * 20), y=y)
+            tex.draw_texture('neiro', 'counter', frame=int(counter[i]), x=x-(total_width // 2) + (i * tex.skin_config["neiro_counter_margin"].x), y=y)
 
         counter = str(len(self.sounds))
-        total_width = len(counter) * 20
+        total_width = len(counter) * tex.skin_config["neiro_counter_margin"].x
         for i in range(len(counter)):
-            tex.draw_texture('neiro', 'counter', frame=int(counter[i]), x=x-(total_width // 2) + (i * 20) + 60, y=y)
+            tex.draw_texture('neiro', 'counter', frame=int(counter[i]), x=x-(total_width // 2) + (i * tex.skin_config["neiro_counter_margin"].x) + (60 * tex.screen_scale), y=y)
 
-        self.text.draw(outline_color=ray.BLACK, x=x+235 - (self.text.texture.width//2) + (self.move_sideways.attribute*self.direction), y=y+1000, color=ray.fade(ray.WHITE, self.fade_sideways.attribute))
-        self.text_2.draw(outline_color=ray.BLACK, x=x+(self.direction*-100) + 235 - (self.text_2.texture.width//2) + (self.move_sideways.attribute*self.direction), y=y+1000, color=ray.fade(ray.WHITE, 1 - self.fade_sideways.attribute))
+        self.text.draw(outline_color=ray.BLACK, x=x+tex.skin_config["neiro_text"].x - (self.text.texture.width//2) + (self.move_sideways.attribute*self.direction), y=y+tex.skin_config["neiro_text"].y, color=ray.fade(ray.WHITE, self.fade_sideways.attribute))
+        self.text_2.draw(outline_color=ray.BLACK, x=x+(self.direction*-tex.skin_config["option_text_in"].x) + tex.skin_config["neiro_text"].x - (self.text_2.texture.width//2) + (self.move_sideways.attribute*self.direction), y=y+tex.skin_config["neiro_text"].y, color=ray.fade(ray.WHITE, 1 - self.fade_sideways.attribute))
 
 class ModifierSelector:
     """The menu for selecting the game modifiers."""
@@ -1127,19 +1129,19 @@ class ModifierSelector:
         self.fade_sideways = tex.get_animation(32, is_copy=True)
         self.direction = -1
         audio.play_sound(f'voice_options_{self.player_num}p', 'sound')
-        self.text_name = [OutlinedText(ModifierSelector.NAME_MAP[mod.name], 30, ray.WHITE, outline_thickness=3.5) for mod in self.mods]
-        self.text_true = OutlinedText('する', 30, ray.WHITE, outline_thickness=3.5)
-        self.text_false = OutlinedText('しない', 30, ray.WHITE, outline_thickness=3.5)
-        self.text_speed = OutlinedText(str(global_data.modifiers[self.player_num].speed), 30, ray.WHITE, outline_thickness=3.5)
-        self.text_kimagure = OutlinedText('きまぐれ', 30, ray.WHITE, outline_thickness=3.5)
-        self.text_detarame = OutlinedText('でたらめ', 30, ray.WHITE, outline_thickness=3.5)
+        self.text_name = [OutlinedText(ModifierSelector.NAME_MAP[mod.name], tex.skin_config["modifier_text"].font_size, ray.WHITE, outline_thickness=3.5) for mod in self.mods]
+        self.text_true = OutlinedText('する', tex.skin_config["modifier_text"].font_size, ray.WHITE, outline_thickness=3.5)
+        self.text_false = OutlinedText('しない', tex.skin_config["modifier_text"].font_size, ray.WHITE, outline_thickness=3.5)
+        self.text_speed = OutlinedText(str(global_data.modifiers[self.player_num].speed), tex.skin_config["modifier_text"].font_size, ray.WHITE, outline_thickness=3.5)
+        self.text_kimagure = OutlinedText('きまぐれ', tex.skin_config["modifier_text"].font_size, ray.WHITE, outline_thickness=3.5)
+        self.text_detarame = OutlinedText('でたらめ', tex.skin_config["modifier_text"].font_size, ray.WHITE, outline_thickness=3.5)
 
         # Secondary text objects for animation
-        self.text_true_2 = OutlinedText('する', 30, ray.WHITE, outline_thickness=3.5)
-        self.text_false_2 = OutlinedText('しない', 30, ray.WHITE, outline_thickness=3.5)
-        self.text_speed_2 = OutlinedText(str(global_data.modifiers[self.player_num].speed), 30, ray.WHITE, outline_thickness=3.5)
-        self.text_kimagure_2 = OutlinedText('きまぐれ', 30, ray.WHITE, outline_thickness=3.5)
-        self.text_detarame_2 = OutlinedText('でたらめ', 30, ray.WHITE, outline_thickness=3.5)
+        self.text_true_2 = OutlinedText('する', tex.skin_config["modifier_text"].font_size, ray.WHITE, outline_thickness=3.5)
+        self.text_false_2 = OutlinedText('しない', tex.skin_config["modifier_text"].font_size, ray.WHITE, outline_thickness=3.5)
+        self.text_speed_2 = OutlinedText(str(global_data.modifiers[self.player_num].speed), tex.skin_config["modifier_text"].font_size, ray.WHITE, outline_thickness=3.5)
+        self.text_kimagure_2 = OutlinedText('きまぐれ', tex.skin_config["modifier_text"].font_size, ray.WHITE, outline_thickness=3.5)
+        self.text_detarame_2 = OutlinedText('でたらめ', tex.skin_config["modifier_text"].font_size, ray.WHITE, outline_thickness=3.5)
 
     def update(self, current_ms):
         self.is_finished = self.is_confirmed and self.move.is_finished
@@ -1175,25 +1177,25 @@ class ModifierSelector:
             # text_speed becomes the new value (fades in)
             self.text_speed_2.unload()
             self.text_speed_2 = self.text_speed
-            self.text_speed = OutlinedText(str(current_value), 30, ray.WHITE, outline_thickness=3.5)
+            self.text_speed = OutlinedText(str(current_value), tex.skin_config["modifier_text"].font_size, ray.WHITE, outline_thickness=3.5)
         elif current_mod.type is bool:
             if current_value:
                 self.text_true.unload()
                 self.text_true = self.text_true_2
-                self.text_true_2 = OutlinedText('する', 30, ray.WHITE, outline_thickness=3.5)
+                self.text_true_2 = OutlinedText('する', tex.skin_config["modifier_text"].font_size, ray.WHITE, outline_thickness=3.5)
             else:
                 self.text_false.unload()
                 self.text_false = self.text_false_2
-                self.text_false_2 = OutlinedText('しない', 30, ray.WHITE, outline_thickness=3.5)
+                self.text_false_2 = OutlinedText('しない', tex.skin_config["modifier_text"].font_size, ray.WHITE, outline_thickness=3.5)
         elif current_mod.name == 'random':
             if current_value == 1:
                 self.text_kimagure.unload()
                 self.text_kimagure = self.text_kimagure_2
-                self.text_kimagure_2 = OutlinedText('きまぐれ', 30, ray.WHITE, outline_thickness=3.5)
+                self.text_kimagure_2 = OutlinedText('きまぐれ', tex.skin_config["modifier_text"].font_size, ray.WHITE, outline_thickness=3.5)
             elif current_value == 2:
                 self.text_detarame.unload()
                 self.text_detarame = self.text_detarame_2
-                self.text_detarame_2 = OutlinedText('でたらめ', 30, ray.WHITE, outline_thickness=3.5)
+                self.text_detarame_2 = OutlinedText('でたらめ', tex.skin_config["modifier_text"].font_size, ray.WHITE, outline_thickness=3.5)
 
     def left(self):
         if self.is_confirmed:
@@ -1235,29 +1237,29 @@ class ModifierSelector:
             text_primary.draw(outline_color=ray.BLACK, x=x + (self.move_sideways.attribute * self.direction), y=y, color=ray.fade(ray.WHITE, self.fade_sideways.attribute))
 
             # Draw secondary text moving in
-            text_secondary.draw(outline_color=ray.BLACK, x=(self.direction * -100) + x + (self.move_sideways.attribute * self.direction), y=y, color=ray.fade(ray.WHITE, 1 - self.fade_sideways.attribute))
+            text_secondary.draw(outline_color=ray.BLACK, x=(self.direction * -tex.skin_config["option_text_in"].x) + x + (self.move_sideways.attribute * self.direction), y=y, color=ray.fade(ray.WHITE, 1 - self.fade_sideways.attribute))
         else:
             # Draw static text
             text_primary.draw(outline_color=ray.BLACK, x=x, y=y)
 
     def draw(self):
         if self.is_confirmed:
-            move = self.move.attribute - 370
+            move = self.move.attribute - tex.skin_config["song_select_offset"].x
         else:
             move = -self.move.attribute
-        x = (int(self.player_num) - 1) * 800
+        x = (int(self.player_num) - 1) * tex.skin_config["option_p2"].x
         tex.draw_texture('modifier', 'top', y=move, x=x)
         tex.draw_texture('modifier', f'{self.player_num}p', y=move, x=x)
-        tex.draw_texture('modifier', 'bottom', y=move + (len(self.mods)*50), x=x)
+        tex.draw_texture('modifier', 'bottom', y=move + (len(self.mods)*tex.skin_config["modifier_offset"].y), x=x)
 
         for i in range(len(self.mods)):
-            tex.draw_texture('modifier', 'background', y=move + (i*50), x=x)
+            tex.draw_texture('modifier', 'background', y=move + (i*tex.skin_config["modifier_offset"].y), x=x)
             if i == self.current_mod_index:
-                tex.draw_texture('modifier', 'mod_bg_highlight', y=move + (i*50), x=x)
+                tex.draw_texture('modifier', 'mod_bg_highlight', y=move + (i*tex.skin_config["modifier_offset"].y), x=x)
             else:
-                tex.draw_texture('modifier', 'mod_bg', y=move + (i*50), x=x)
-            tex.draw_texture('modifier', 'mod_box', y=move + (i*50), x=x)
-            self.text_name[i].draw(outline_color=ray.BLACK, x=92 + x, y=819 + move + (i*50))
+                tex.draw_texture('modifier', 'mod_bg', y=move + (i*tex.skin_config["modifier_offset"].y), x=x)
+            tex.draw_texture('modifier', 'mod_box', y=move + (i*tex.skin_config["modifier_offset"].y), x=x)
+            self.text_name[i].draw(outline_color=ray.BLACK, x=tex.skin_config["modifier_offset_2"].x + x, y=tex.skin_config["modifier_text"].y + move + (i*tex.skin_config["modifier_offset"].y))
 
             current_mod = self.mods[i]
             current_value = getattr(global_data.modifiers[self.player_num], current_mod.name)
@@ -1265,44 +1267,44 @@ class ModifierSelector:
 
             if current_mod.type is bool:
                 if current_value:
-                    tex.draw_texture('modifier', ModifierSelector.TEX_MAP[self.mods[i].name], y=move + (i*50), x=x)
-                    text_x = 330 - (self.text_true.texture.width//2)
-                    text_y = 819 + move + (i*50)
+                    tex.draw_texture('modifier', ModifierSelector.TEX_MAP[self.mods[i].name], y=move + (i*tex.skin_config["modifier_offset"].y), x=x)
+                    text_x = tex.skin_config["modifier_text"].x - (self.text_true.texture.width//2)
+                    text_y = tex.skin_config["modifier_text"].y + move + (i*tex.skin_config["modifier_offset"].y)
                     self._draw_animated_text(self.text_true, self.text_true_2, text_x + x, text_y, is_current_mod)
                 else:
-                    text_x = 330 - (self.text_false.texture.width//2)
-                    text_y = 819 + move + (i*50)
+                    text_x = tex.skin_config["modifier_text"].x - (self.text_false.texture.width//2)
+                    text_y = tex.skin_config["modifier_text"].y + move + (i*tex.skin_config["modifier_offset"].y)
                     self._draw_animated_text(self.text_false, self.text_false_2, text_x + x, text_y, is_current_mod)
             elif current_mod.name == 'speed':
-                text_x = 330 - (self.text_speed.texture.width//2)
-                text_y = 819 + move + (i*50)
+                text_x = tex.skin_config["modifier_text"].x - (self.text_speed.texture.width//2)
+                text_y = tex.skin_config["modifier_text"].y + move + (i*tex.skin_config["modifier_offset"].y)
                 self._draw_animated_text(self.text_speed, self.text_speed_2, text_x + x, text_y, is_current_mod)
 
                 if current_value >= 4.0:
-                    tex.draw_texture('modifier', 'mod_yonbai', x=x, y=move + (i*50))
+                    tex.draw_texture('modifier', 'mod_yonbai', x=x, y=move + (i*tex.skin_config["modifier_offset"].y))
                 elif current_value >= 3.0:
-                    tex.draw_texture('modifier', 'mod_sanbai', x=x, y=move + (i*50))
+                    tex.draw_texture('modifier', 'mod_sanbai', x=x, y=move + (i*tex.skin_config["modifier_offset"].y))
                 elif current_value > 1.0:
-                    tex.draw_texture('modifier', ModifierSelector.TEX_MAP[self.mods[i].name], x=x, y=move + (i*50))
+                    tex.draw_texture('modifier', ModifierSelector.TEX_MAP[self.mods[i].name], x=x, y=move + (i*tex.skin_config["modifier_offset"].y))
             elif current_mod.name == 'random':
                 if current_value == 1:
-                    text_x = 330 - (self.text_kimagure.texture.width//2)
-                    text_y = 819 + move + (i*50)
+                    text_x = tex.skin_config["modifier_text"].x - (self.text_kimagure.texture.width//2)
+                    text_y = tex.skin_config["modifier_text"].y + move + (i*tex.skin_config["modifier_offset"].y)
                     self._draw_animated_text(self.text_kimagure, self.text_kimagure_2, text_x + x, text_y, is_current_mod)
-                    tex.draw_texture('modifier', ModifierSelector.TEX_MAP[self.mods[i].name], x=x, y=move + (i*50))
+                    tex.draw_texture('modifier', ModifierSelector.TEX_MAP[self.mods[i].name], x=x, y=move + (i*tex.skin_config["modifier_offset"].y))
                 elif current_value == 2:
-                    text_x = 330 - (self.text_detarame.texture.width//2)
-                    text_y = 819 + move + (i*50)
+                    text_x = tex.skin_config["modifier_text"].x - (self.text_detarame.texture.width//2)
+                    text_y = tex.skin_config["modifier_text"].y + move + (i*tex.skin_config["modifier_offset"].y)
                     self._draw_animated_text(self.text_detarame, self.text_detarame_2, text_x + x, text_y, is_current_mod)
-                    tex.draw_texture('modifier', 'mod_detarame', x=x, y=move + (i*50))
+                    tex.draw_texture('modifier', 'mod_detarame', x=x, y=move + (i*tex.skin_config["modifier_offset"].y))
                 else:
-                    text_x = 330 - (self.text_false.texture.width//2)
-                    text_y = 819 + move + (i*50)
+                    text_x = tex.skin_config["modifier_text"].x - (self.text_false.texture.width//2)
+                    text_y = tex.skin_config["modifier_text"].y + move + (i*tex.skin_config["modifier_offset"].y)
                     self._draw_animated_text(self.text_false, self.text_false_2, text_x + x, text_y, is_current_mod)
 
             if i == self.current_mod_index:
-                tex.draw_texture('modifier', 'blue_arrow', y=move + (i*50), x=x-self.blue_arrow_move.attribute, fade=self.blue_arrow_fade.attribute)
-                tex.draw_texture('modifier', 'blue_arrow', y=move + (i*50), x=x+110 + self.blue_arrow_move.attribute, mirror='horizontal', fade=self.blue_arrow_fade.attribute)
+                tex.draw_texture('modifier', 'blue_arrow', y=move + (i*tex.skin_config["modifier_offset"].y), x=x-self.blue_arrow_move.attribute, fade=self.blue_arrow_fade.attribute)
+                tex.draw_texture('modifier', 'blue_arrow', y=move + (i*tex.skin_config["modifier_offset"].y), x=x+tex.skin_config["modifier_offset_2"].y + self.blue_arrow_move.attribute, mirror='horizontal', fade=self.blue_arrow_fade.attribute)
 
 class DanTransition:
     def __init__(self):

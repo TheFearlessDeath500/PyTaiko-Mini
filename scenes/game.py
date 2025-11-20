@@ -1010,19 +1010,19 @@ class Player:
         color = ray.Color(255, head.color, head.color, 255)
         y = tex.skin_config["notes"].y
         moji_y = tex.skin_config["moji"].y
-        moji_x = tex.skin_config["moji"].x
+        moji_x = -(tex.textures["notes"]["moji"].width//2) + (tex.textures["notes"]["1"].width//2)
         if head.display:
             if length > 0:
-                tex.draw_texture('notes', "8", frame=is_big, x=start_position+(tex.textures["notes"]["8"].width//2), y=y+(self.is_2p*tex.skin_config["2p_offset"].y)+self.judge_y, x2=length+tex.skin_config["drumroll_width_offset"].width, color=color)
+                tex.draw_texture('notes', "8", frame=is_big, x=start_position+(tex.textures["notes"]["5"].width//2), y=y+(self.is_2p*tex.skin_config["2p_offset"].y)+self.judge_y, x2=length+tex.skin_config["drumroll_width_offset"].width, color=color)
                 if is_big:
-                    tex.draw_texture('notes', "drumroll_big_tail", x=end_position+tex.textures["notes"]["drumroll_big_tail"].width//2, y=y+(self.is_2p*tex.skin_config["2p_offset"].y)+self.judge_y, color=color)
+                    tex.draw_texture('notes', "drumroll_big_tail", x=end_position+tex.textures["notes"]["5"].width//2, y=y+(self.is_2p*tex.skin_config["2p_offset"].y)+self.judge_y, color=color)
                 else:
-                    tex.draw_texture('notes', "drumroll_tail", x=end_position+tex.textures["notes"]["drumroll_tail"].width//2, y=y+(self.is_2p*tex.skin_config["2p_offset"].y)+self.judge_y, color=color)
+                    tex.draw_texture('notes', "drumroll_tail", x=end_position+tex.textures["notes"]["5"].width//2, y=y+(self.is_2p*tex.skin_config["2p_offset"].y)+self.judge_y, color=color)
             tex.draw_texture('notes', str(head.type), frame=current_eighth % 2, x=start_position, y=y+(self.is_2p*tex.skin_config["2p_offset"].y)+self.judge_y, color=color)
 
-        tex.draw_texture('notes', 'moji_drumroll_mid', x=start_position + tex.skin_config["moji_drumroll"].x, y=moji_y+(self.is_2p*tex.skin_config["2p_offset"].y)+self.judge_y, x2=length)
-        tex.draw_texture('notes', 'moji', frame=head.moji, x=start_position - moji_x, y=moji_y+(self.is_2p*tex.skin_config["2p_offset"].y)+self.judge_y)
-        tex.draw_texture('notes', 'moji', frame=tail.moji, x=end_position - tex.skin_config["moji_drumroll"].width, y=moji_y+(self.is_2p*tex.skin_config["2p_offset"].y)+self.judge_y)
+        tex.draw_texture('notes', 'moji_drumroll_mid', x=start_position + tex.textures["notes"]["1"].width//2, y=moji_y+(self.is_2p*tex.skin_config["2p_offset"].y)+self.judge_y, x2=length)
+        tex.draw_texture('notes', 'moji', frame=head.moji, x=start_position + moji_x, y=moji_y+(self.is_2p*tex.skin_config["2p_offset"].y)+self.judge_y)
+        tex.draw_texture('notes', 'moji', frame=tail.moji, x=end_position + moji_x, y=moji_y+(self.is_2p*tex.skin_config["2p_offset"].y)+self.judge_y)
 
     def draw_balloon(self, current_ms: float, head: Balloon, current_eighth: int):
         """Draws a balloon in the player's lane"""
