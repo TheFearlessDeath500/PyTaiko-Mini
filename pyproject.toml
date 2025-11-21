@@ -3,12 +3,15 @@ name = "pytaiko"
 version = "1.0"
 description = "Taiko no Tatsujin simulator written in python and raylib"
 readme = "README.md"
-requires-python = ">=3.11"
+requires-python = ">=3.14"
 dependencies = [
     "moviepy>=2.2.1",
     "raylib-sdl>=5.5.0.2",
     "tomlkit>=0.13.3",
 ]
+
+[tool.uv]
+no-build-package = ["numpy", "pillow"]
 
 [tool.vulture]
 exclude = ["*.git", ".github/", ".venv/", "cache/"]
