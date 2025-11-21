@@ -10,9 +10,6 @@ dependencies = [
     "tomlkit>=0.13.3",
 ]
 
-[tool.uv]
-no-build-package = ["numpy", "pillow"]
-
 [tool.vulture]
 exclude = ["*.git", ".github/", ".venv/", "cache/"]
 paths = ["."]
