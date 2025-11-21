@@ -41,7 +41,7 @@ A: Change your `device_type` in `config.toml` to `0` (you can experiment with ot
 Q: I want to add more song paths!
 A: You can either append new folders:
 `tja_path = ["/run/media/yonokid/HDD/Games/PyTaiko/Songs", "Songs", "Cool Folder"]`
- or replace the base one:
+or replace the base one:
 `tja_path = ["/run/media/yonokid/HDD/Games/PyTaiko/Songs"]`
 Just make sure to use `/` and not `\`!
 ## Installation
