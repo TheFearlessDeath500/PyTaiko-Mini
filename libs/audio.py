@@ -161,16 +161,7 @@ class AudioEngine:
     def init_audio_device(self) -> bool:
         """Initialize the audio device"""
         try:
-            if self.device_type == -1:
-                lib.init_audio_device(0, self.target_sample_rate, self.buffer_size) # type: ignore
-                if sys.platform == "win32":
-                    device_type = next((i for i in range(5) if "WDM" in self.get_host_api_name(i)), 0)
-                else:
-                    device_type = 0
-                lib.close_audio_device() # type: ignore
-            else:
-                device_type = self.device_type
-            lib.init_audio_device(device_type, self.target_sample_rate, self.buffer_size) # type: ignore
+            lib.init_audio_device(self.device_type, self.target_sample_rate, self.buffer_size) # type: ignore
             self.audio_device_ready = lib.is_audio_device_ready() # type: ignore
             file_path_str = str(self.sounds_path / 'don.wav').encode('utf-8')
             self.don = lib.load_sound(file_path_str) # type: ignore
