@@ -296,7 +296,7 @@ class SongSelectScreen(Screen):
 
         for song in self.navigator.items:
             song.box.update(current_time, self.state == State.SONG_SELECTED)
-            if not song.box.text_loaded:
+            if not song.box.text_loaded and (-156 * tex.screen_scale) <= song.box.position <= (tex.screen_width + 144) * tex.screen_scale:
                 song.box.load_text()
             if not isinstance(song, Directory) and song.box.is_open:
                 if self.demo_song is None and current_time >= song.box.wait + (83.33*3):
