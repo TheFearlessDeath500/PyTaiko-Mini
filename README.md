@@ -43,7 +43,23 @@ A: You can either append new folders:<br>
 `tja_path = ["/run/media/yonokid/HDD/Games/PyTaiko/Songs", "Songs", "Cool Folder"]`<br>
 or replace the base one:<br>
 `tja_path = ["/run/media/yonokid/HDD/Games/PyTaiko/Songs"]`<br>
-Just make sure to use `/` and not `\`!
+Just make sure to use `/` and not `\`!<br>
+Q: I'm trying to play on Mac and it can't open!<br>
+A: Delete your installation and follow these commands in the terminal:<br>
+```
+/bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
+curl -LsSf https://astral.sh/uv/install.sh | sh
+source $HOME/.local/bin/env
+git clone https://github.com/Yonokid/PyTaiko
+cd PyTaiko
+brew install libsndfile
+brew install libsamplerate
+cd libs/audio
+make
+mv libaudio.dylib ../../
+cd ../../
+uv run PyTaiko.py
+```
 ## Installation
 
 ### Pre-built Binaries
