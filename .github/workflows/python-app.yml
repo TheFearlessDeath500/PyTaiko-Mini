@@ -19,13 +19,13 @@ jobs:
       - name: Check-out repository
         uses: actions/checkout@v4
 
-      - name: Install Audio Dependencies (macOS)
+      - name: Install libaudio Dependencies (macOS)
         if: runner.os == 'macOS'
         run: |
           brew update
-          brew install portaudio libsndfile speexdsp pkg-config
+          brew install libsndfile speexdsp
 
-      - name: Set up MSYS2 (Windows)
+      - name: Install libaudio Dependencies (Windows)
         if: runner.os == 'Windows'
         uses: msys2/setup-msys2@v2
         with:
@@ -35,176 +35,23 @@ jobs:
             mingw-w64-x86_64-gcc
             mingw-w64-x86_64-libsndfile
             mingw-w64-x86_64-speexdsp
-            mingw-w64-x86_64-flac
-            mingw-w64-x86_64-libvorbis
-            mingw-w64-x86_64-libogg
-            mingw-w64-x86_64-opus
-            mingw-w64-x86_64-mpg123
-            mingw-w64-x86_64-lame
-            mingw-w64-x86_64-speex
-            mingw-w64-x86_64-cmake
-            mingw-w64-x86_64-pkg-config
-            mingw-w64-x86_64-libjpeg-turbo
-            mingw-w64-x86_64-libpng
-            mingw-w64-x86_64-libtiff
-            mingw-w64-x86_64-libwebp
-            mingw-w64-x86_64-openjpeg2
-            mingw-w64-x86_64-lcms2
-            mingw-w64-x86_64-zlib
-            mingw-w64-x86_64-freetype
 
-      - name: Verify local PortAudio library (Windows)
-        if: runner.os == 'Windows'
-        shell: msys2 {0}
-        working-directory: libs/audio
-        run: |
-          echo "=== Checking local PortAudio library ==="
-
-          # Check if the static library exists
-          if [ -f "libportaudio-win.a" ]; then
-            echo "✓ Found libportaudio.a"
-            ls -la libportaudio-win.a
-
-            # Check what symbols are in the library
-            echo "=== Library symbols (sample) ==="
-            nm libportaudio-win.a | grep -E "(Pa_|ASIO)" | head -10 || echo "No PortAudio symbols found"
-
-            # Check for ASIO support specifically
-            nm libportaudio-win.a | grep -i asio && echo "✓ ASIO symbols found!" || echo "⚠ No ASIO symbols found"
-
-          else
-            echo "✗ libportaudio.a not found!"
-            echo "Contents of libs/audio directory:"
-            ls -la
-            exit 1
-          fi
-
-          # Check if we have portaudio.h header
-          if [ -f "portaudio.h" ]; then
-            echo "✓ Found portaudio.h"
-            grep -i "version\|asio" portaudio.h | head -3
-          else
-            echo "⚠ portaudio.h not found - may need to specify include path"
-          fi
-
-      - name: Build static audio library (Windows)
-        if: runner.os == 'Windows'
-        shell: msys2 {0}
-        working-directory: libs/audio
-        run: |
-          # Clean previous builds
-          make clean 2>/dev/null || echo "No previous build to clean"
-
-          # Build with local PortAudio static library
-          echo "Building with local libportaudio.a"
-
-          # Set compiler flags
-          export CFLAGS="$CFLAGS -DPA_USE_ASIO=1"
-
-          # Build using the local static library
-          # Point to current directory for both the library and headers
-          make all \
-            PORTAUDIO_CFLAGS="-I." \
-            PORTAUDIO_LIBS="./libportaudio.a -lole32 -luuid -lwinmm -ldsound -lwsock32 -lsetupapi"
-
-          # Alternative if your Makefile expects different variable names:
-          # make all \
-          #   CFLAGS="-I. $CFLAGS" \
-          #   LDFLAGS="./libportaudio.a -lole32 -luuid -lwinmm -ldsound -lwsock32 -lsetupapi"
-
-          echo "=== Build completed ==="
-          ls -la *.dll *.a 2>/dev/null || echo "No output files found"
-
-      - name: Verify build output (Windows)
-        if: runner.os == 'Windows'
-        shell: msys2 {0}
-        working-directory: libs/audio
-        run: |
-          echo "=== Verifying build output ==="
-
-          # Check what was built
-          ls -la libaudio.dll 2>/dev/null && echo "✓ libaudio.dll created" || echo "✗ libaudio.dll not found"
-
-          # Check dependencies of the built DLL
-          if [ -f "libaudio.dll" ]; then
-            echo "=== DLL dependencies ==="
-            ldd libaudio.dll || objdump -p libaudio.dll | grep "DLL Name"
-
-            # Since we're statically linking PortAudio, it should NOT show portaudio.dll as dependency
-            if ldd libaudio.dll | grep -i portaudio; then
-              echo "⚠ WARNING: Still depends on external PortAudio DLL"
-            else
-              echo "✓ PortAudio is statically linked (no external dependency)"
-            fi
-          fi
-
-      - name: Copy static DLL (Windows)
-        if: runner.os == 'Windows'
-        run: |
-          mkdir -p build/lib
-          cp libs/audio/libaudio.dll build/lib/
-
-          echo "=== Final build output ==="
-          ls -la build/lib/
-
-          # Verify final DLL
-          echo "=== Final DLL dependencies ==="
-          ldd build/lib/libaudio.dll || echo "Could not check dependencies"
-        shell: bash
-
-      - name: Copy runtime DLLs to root (Windows)
-        if: runner.os == 'Windows'
-        run: |
-          echo "=== Copying runtime DLLs to root directory ==="
-          cp libs/audio/libgcc_s_seh-1.dll . 2>/dev/null && echo "✓ Copied libgcc_s_seh-1.dll" || echo "⚠ libgcc_s_seh-1.dll not found"
-          cp libs/audio/libstdc++-6.dll . 2>/dev/null && echo "✓ Copied libstdc++-6.dll" || echo "⚠ libstdc++-6.dll not found"
-          cp libs/audio/libwinpthread-1.dll . 2>/dev/null && echo "✓ Copied libwinpthread-1.dll" || echo "⚠ libwinpthread-1.dll not found"
-
-          echo "=== Root directory contents ==="
-          ls -la *.dll 2>/dev/null || echo "No DLLs in root directory"
-        shell: bash
-
-      # For Unix systems, also try static builds
-      - name: Install static development libraries (Ubuntu)
+      - name: Install libaudio Dependencies (Linux)
         if: runner.os == 'Linux'
         run: |
           sudo apt-get update
           sudo apt-get install -y \
               build-essential \
               pkg-config \
-              libportaudio2 \
-              portaudio19-dev \
               libsndfile1-dev \
               libspeexdsp-dev \
-              libflac-dev \
-              libvorbis-dev \
-              libogg-dev \
-              libpulse-dev \
-              ccache
 
-      - name: Build static audio library (Unix)
-        if: runner.os != 'Windows'
+      - name: Build libaudio
         run: |
           cd libs/audio
           make clean
-          make static || make all  # Fallback to regular build if static fails
+          make static
           make verify
-        shell: bash
-
-      - name: Create lib directory and install (macOS)
-        if: runner.os == 'macOS'
-        run: |
-          # Create the directory if it doesn't exist
-          sudo mkdir -p /usr/local/lib
-          cd libs/audio
-          sudo make install
-        shell: bash
-
-      - name: Install static audio library (Linux)
-        if: runner.os == 'Linux'
-        run: |
-          cd libs/audio
-          sudo make install
         shell: bash
 
       - name: Upload libaudio Artifacts
@@ -217,75 +64,3 @@ jobs:
             libs/audio/libaudio.dylib
             libs/audio/*.a
           if-no-files-found: ignore
-
-      - name: Install uv
-        uses: astral-sh/setup-uv@v4
-
-      - name: Setup Python
-        run: uv python install
-
-      - name: Install Nuitka
-        run: |
-          uv add nuitka
-
-      - name: Build Executable
-        run: |
-          uv run nuitka --lto=yes --mode=app --noinclude-setuptools-mode=nofollow --noinclude-IPython-mode=nofollow --assume-yes-for-downloads --windows-icon-from-ico=libs/icon.png --macos-app-icon=libs/icon.png --linux-icon=libs/icon.png PyTaiko.py
-
-      - name: Create Release Directory
-        run: |
-          mkdir -p release
-          cp -r Graphics Sounds Videos Songs config.toml shader model release/
-
-          # Copy the compiled audio library and dependencies to release
-          if [ "${{ runner.os }}" == "Windows" ]; then
-            # Copy all DLLs from libs/audio (includes our library and dependencies)
-            cp libs/audio/*.dll release/ 2>/dev/null || echo "No DLLs found in libs/audio/"
-            # Also try from build/lib as backup
-            cp build/lib/*.dll release/ 2>/dev/null || echo "No DLLs found in build/lib/"
-            # Copy the runtime DLLs from root directory
-            cp libgcc_s_seh-1.dll release/ 2>/dev/null || echo "libgcc_s_seh-1.dll not found in root"
-            cp libstdc++-6.dll release/ 2>/dev/null || echo "libstdc++-6.dll not found in root"
-            cp libwinpthread-1.dll release/ 2>/dev/null || echo "libwinpthread-1.dll not found in root"
-            # List what we copied
-            echo "DLLs in release directory:"
-            ls -la release/*.dll 2>/dev/null || echo "No DLLs found in release/"
-          elif [ "${{ runner.os }}" == "macOS" ]; then
-            cp libs/audio/libaudio.dylib release/ 2>/dev/null || true
-          else
-            cp libs/audio/libaudio.so release/ 2>/dev/null || true
-          fi
-
-          # Copy executable based on OS
-          if [ "${{ runner.os }}" == "Windows" ]; then
-            cp *.exe release/ 2>/dev/null || echo "No .exe files found"
-          elif [ "${{ runner.os }}" == "macOS" ]; then
-            cp -r *.app release/ 2>/dev/null || echo "No .app bundles found"
-          else
-            cp *.bin release/ 2>/dev/null || echo "No .bin files found"
-          fi
-
-          echo "Final release directory contents:"
-          ls -la release/
-        shell: bash
-
-      - name: Create Zip Archive
-        run: |
-          cd release
-          if [ "${{ runner.os }}" == "Windows" ]; then
-            7z a ../PyTaiko-${{ runner.os }}-${{ runner.arch }}.zip *
-          else
-            zip -r ../PyTaiko-${{ runner.os }}-${{ runner.arch }}.zip *
-          fi
-        shell: bash
-
-      - name: Upload Release
-        uses: softprops/action-gh-release@v2
-        if: github.ref == 'refs/heads/main' && github.event_name == 'push'
-        with:
-          files: PyTaiko-${{ runner.os }}-${{ runner.arch }}.zip
-          name: "PyTaiko [Rolling Release]"
-          tag_name: "latest"
-          make_latest: true
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
