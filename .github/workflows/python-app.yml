@@ -23,7 +23,7 @@ jobs:
         if: runner.os == 'macOS'
         run: |
           brew update
-          brew install portaudio libsndfile speexdsp
+          brew install portaudio libsndfile speexdsp ccache
 
       - name: Install libaudio Dependencies (Windows)
         if: runner.os == 'Windows'
@@ -35,6 +35,7 @@ jobs:
             mingw-w64-x86_64-gcc
             mingw-w64-x86_64-libsndfile
             mingw-w64-x86_64-speexdsp
+            mingw-w64-x86_64-ccache
 
       - name: Install libaudio Dependencies (Linux)
         if: runner.os == 'Linux'
@@ -77,3 +78,65 @@ jobs:
             libs/audio/libaudio.dylib
             libs/audio/*.a
           if-no-files-found: ignore
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v4
+
+      - name: Setup Python
+        run: uv python install
+
+      - name: Build Executable
+        run: |
+          uv run nuitka \
+          --lto=yes \
+          --mode=app \
+          --noinclude-setuptools-mode=nofollow \
+          --noinclude-IPython-mode=nofollow \
+          --assume-yes-for-downloads \
+          --windows-icon-from-ico=libs/icon.png \
+          --macos-app-icon=libs/icon.png \
+          --linux-icon=libs/icon.png \
+          PyTaiko.py
+
+      - name: Create Release Directory
+        run: |
+          mkdir -p release
+          cp -r Graphics Sounds Videos Songs config.toml shader model release/
+
+          if [ "${{ runner.os }}" == "Windows" ]; then
+            cp libs/audio/*.dll release/ 2>/dev/null || echo "libaudio not found"
+          elif [ "${{ runner.os }}" == "macOS" ]; then
+            cp libs/audio/libaudio.dylib release/ 2>/dev/null || echo "libaudio not found"
+          else
+            cp libs/audio/libaudio.so release/ 2>/dev/null || echo "libaudio not found"
+          fi
+
+          if [ "${{ runner.os }}" == "Windows" ]; then
+            cp *.exe release/ 2>/dev/null || echo "No .exe files found"
+          elif [ "${{ runner.os }}" == "macOS" ]; then
+            cp -r *.app release/ 2>/dev/null || echo "No .app bundles found"
+          else
+            cp *.bin release/ 2>/dev/null || echo "No .bin files found"
+          fi
+        shell: bash
+
+      - name: Create Zip Archive
+        run: |
+          cd release
+          if [ "${{ runner.os }}" == "Windows" ]; then
+            7z a ../PyTaiko-${{ runner.os }}-${{ runner.arch }}.zip *
+          else
+            zip -r ../PyTaiko-${{ runner.os }}-${{ runner.arch }}.zip *
+          fi
+        shell: bash
+
+      - name: Upload Release
+        uses: softprops/action-gh-release@v2
+        if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+        with:
+          files: PyTaiko-${{ runner.os }}-${{ runner.arch }}.zip
+          name: "PyTaiko [Rolling Release]"
+          tag_name: "latest"
+          make_latest: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
