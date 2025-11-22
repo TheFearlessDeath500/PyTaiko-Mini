@@ -207,7 +207,7 @@ class AudioEngine:
             sound = lib.load_sound(file_path_str) # type: ignore
 
             if not lib.is_sound_valid(sound): # type: ignore
-                file_path_str = str(file_path).encode('utf-16')
+                file_path_str = str(file_path).encode('utf-8')
                 sound = lib.load_sound(file_path_str) # type: ignore
 
             if lib.is_sound_valid(sound): # type: ignore
@@ -333,7 +333,7 @@ class AudioEngine:
         music = lib.load_music_stream(file_path_str) # type: ignore
 
         if not lib.is_music_valid(music): # type: ignore
-            file_path_str = str(file_path).encode('utf-16')
+            file_path_str = str(file_path).encode('utf-8')
             music = lib.load_music_stream(file_path_str) # type: ignore
 
         if lib.is_music_valid(music): # type: ignore
