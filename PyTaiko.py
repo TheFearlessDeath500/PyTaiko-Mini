@@ -150,7 +150,7 @@ def main():
     console_handler = logging.StreamHandler()
     console_handler.setFormatter(colored_formatter)
 
-    file_handler = logging.FileHandler("latest.log")
+    file_handler = logging.FileHandler("latest.log", encoding='utf-8')
     file_handler.setFormatter(plain_formatter)
     file_handler = DedupHandler(file_handler)
     logging.basicConfig(
