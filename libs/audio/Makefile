@@ -248,10 +248,6 @@ ifneq (,$(findstring MINGW,$(UNAME_S)))
 	@echo "=== MinGW Libraries ==="
 	@echo "Checking for Windows-specific libportaudio:"
 	@ls -la ./libportaudio-win.a 2>/dev/null && echo "✓ Found local libportaudio-win.a" || echo "✗ No local libportaudio-win.a"
-	@echo "Available system static libraries:"
-	@ls /mingw64/lib/lib{portaudio,sndfile,speexdsp,FLAC,vorbis*,ogg}.a 2>/dev/null || echo "None found"
-	@echo "Static pthread library:"
-	@ls /mingw64/lib/libwinpthread.a 2>/dev/null && echo "✓ Found libwinpthread.a" || echo "✗ Missing libwinpthread.a"
 	@echo "Libraries to link: $(LIBS)"
 else ifeq ($(UNAME_S),Linux)
 	@echo "=== Linux Package Check ==="

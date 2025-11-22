@@ -47,12 +47,12 @@ jobs:
               libspeexdsp-dev \
 
       - name: Build libaudio
+        shell: ${{ runner.os == 'Windows' && 'msys2 {0}' || 'bash' }}
         run: |
           cd libs/audio
           make clean
           make all
           make verify
-        shell: bash
 
       - name: Upload libaudio Artifacts
         uses: actions/upload-artifact@v4
