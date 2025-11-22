@@ -8,6 +8,7 @@
 #include "portaudio.h"
 #ifdef _WIN32
 #include "pa_asio.h"
+#include <windows.h>
 #endif
 #include <pthread.h>
 #include <stdbool.h>
