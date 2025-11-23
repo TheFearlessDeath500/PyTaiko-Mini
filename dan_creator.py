@@ -23,10 +23,10 @@ def create_dan(cache_path: Path):
     for i in range(3):
         chart = dict()
         chart_path = input(f"Enter chart path {i+1}: ")
-        with open(f"{cache_path}/path_to_hash.json") as f:
+        with open(f"{cache_path}/path_to_hash.json", encoding='utf-8') as f:
             hash_directory = json.load(f)
             chart["hash"] = hash_directory.get(chart_path)
-        with open(f"{cache_path}/song_hashes.json") as f:
+        with open(f"{cache_path}/song_hashes.json", encoding='utf-8') as f:
             hash_directory = json.load(f)
             chart["title"] = hash_directory[chart["hash"]][0]["title"]["en"]
             chart["subtitle"] = hash_directory[chart["hash"]][0]["subtitle"]["en"]
