@@ -2,6 +2,7 @@ import copy
 import json
 import os
 import logging
+import sys
 import tempfile
 import zipfile
 from pathlib import Path
@@ -153,6 +154,11 @@ class TextureWrapper:
                     tex_mapping_data = json.loads(json_file.read().decode('utf-8'))
                     self.textures[zip.stem] = dict()
 
+                if sys.platform == 'win32':
+                    encoding = 'utf-16'
+                else:
+                    encoding = 'utf-8'
+
                 for tex_name in tex_mapping_data:
                     if f"{tex_name}/" in zip_ref.namelist():
                         tex_mapping = tex_mapping_data[tex_name]
@@ -163,10 +169,10 @@ class TextureWrapper:
 
                             extracted_path = Path(temp_dir) / tex_name
                             if extracted_path.is_dir():
-                                frames = [ray.LoadTexture(str(frame).encode('utf-8')) for frame in sorted(extracted_path.iterdir(),
+                                frames = [ray.LoadTexture(str(frame).encode(encoding)) for frame in sorted(extracted_path.iterdir(),
                                           key=lambda x: int(x.stem)) if frame.is_file()]
                             else:
-                                frames = [ray.LoadTexture(str(extracted_path).encode('utf-8'))]
+                                frames = [ray.LoadTexture(str(extracted_path).encode(encoding))]
                         self.textures[zip.stem][tex_name] = Texture(tex_name, frames, tex_mapping)
                         self._read_tex_obj_data(tex_mapping, self.textures[zip.stem][tex_name])
                     elif f"{tex_name}.png" in zip_ref.namelist():
@@ -178,7 +184,7 @@ class TextureWrapper:
                             temp_path = temp_file.name
 
                         try:
-                            tex = ray.LoadTexture(temp_path.encode('utf-8'))
+                            tex = ray.LoadTexture(temp_path.encode(encoding))
                             self.textures[zip.stem][tex_name] = Texture(tex_name, tex, tex_mapping)
                             self._read_tex_obj_data(tex_mapping, self.textures[zip.stem][tex_name])
                         finally:
