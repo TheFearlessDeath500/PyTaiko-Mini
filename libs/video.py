@@ -2,7 +2,7 @@ from pathlib import Path
 import logging
 
 import raylib as ray
-from moviepy import VideoFileClip
+import av
 
 from libs.audio import audio
 from libs.utils import get_current_ms
@@ -14,22 +14,54 @@ class VideoPlayer:
     def __init__(self, path: Path):
         """Initialize a video player instance"""
         self.is_finished_list = [False, False]
-        self.video = VideoFileClip(path)
+        self.container = av.open(str(path))
+        self.video_stream = self.container.streams.video[0]
+
         self.audio = None
-        if self.video.audio is not None:
-            self.video.audio.write_audiofile("cache/temp_audio.wav", logger=None)
+        if self.container.streams.audio:
+            # Extract audio to temporary file
+            audio_container = av.open(str(path))
+            audio_stream = audio_container.streams.audio[0]
+
+            output = av.open("cache/temp_audio.wav", 'w')
+            output_stream = output.add_stream('pcm_s16le', rate=audio_stream.rate)
+
+            for frame in audio_container.decode(audio=0):
+                for packet in output_stream.encode(frame):
+                    output.mux(packet)
+
+            for packet in output_stream.encode():
+                output.mux(packet)
+
+            output.close()
+            audio_container.close()
+
             self.audio = audio.load_music_stream(Path("cache/temp_audio.wav"), 'video')
 
         self.texture = None
         self.current_frame_data = None
 
-        self.frame_timestamps: list[float] = [(i * 1000) / self.video.fps for i in range(int(self.video.duration * self.video.fps) + 1)]
+        # Get video properties
+        if self.video_stream.average_rate is not None:
+            self.fps = float(self.video_stream.average_rate)
+        else:
+            self.fps = 0
+        self.duration = float(self.container.duration) / av.time_base if self.container.duration else 0
+        self.width = self.video_stream.width
+        self.height = self.video_stream.height
+
+        # Calculate frame timestamps
+        frame_count = int(self.duration * self.fps) + 1
+        self.frame_timestamps: list[float] = [(i * 1000) / self.fps for i in range(frame_count)]
 
         self.start_ms = None
         self.frame_index = 0
-        self.fps = self.video.fps
         self.frame_duration = 1000 / self.fps
         self.audio_played = False
+
+        # Cache for decoded frames
+        self.frame_generator = None
+        self.current_decoded_frame = None
 
     def _audio_manager(self):
         if self.audio is None:
@@ -42,38 +74,65 @@ class VideoPlayer:
         audio.update_music_stream(self.audio)
         self.is_finished_list[1] = audio.get_music_time_length(self.audio) <= audio.get_music_time_played(self.audio)
 
+    def _init_frame_generator(self):
+        """Initialize the frame generator for sequential decoding"""
+        self.container.seek(0)
+        self.frame_generator = self.container.decode(video=0)
+
+    def _get_next_frame_bytes(self):
+        """Get the next frame as raw RGB bytes"""
+        try:
+            if self.frame_generator is None:
+                self._init_frame_generator()
+
+            if self.frame_generator is not None:
+                frame = next(self.frame_generator)
+            else:
+                raise Exception("Frame generator is not initialized")
+            # Convert frame to RGB24 format
+            frame = frame.reformat(format='rgb24')
+
+            # Get raw bytes from the frame planes
+            # For RGB24, all data is in plane 0
+            plane = frame.planes[0]
+            frame_bytes = bytes(plane)
+
+            return frame_bytes, frame.width, frame.height
+        except StopIteration:
+            return None, None, None
+        except Exception as e:
+            logger.error(f"Error getting next frame: {e}")
+            return None, None, None
+
     def _load_frame(self, index: int):
         """Load a specific frame and update the texture"""
         if index >= len(self.frame_timestamps) or index < 0:
             return False
 
         try:
-            timestamp = self.frame_timestamps[index]
-            time_sec = timestamp / 1000
-            frame_data = self.video.get_frame(time_sec)
+            # For sequential playback, just get the next frame
+            frame_bytes, width, height = self._get_next_frame_bytes()
+
+            if frame_bytes is None:
+                return False
 
             if self.texture is None:
-                if frame_data is None:
-                    return False
-                frame_bytes = frame_data.tobytes()
                 pixels_ptr = ray.ffi.cast('void *', ray.ffi.from_buffer('unsigned char[]', frame_bytes))
 
                 image = ray.ffi.new('Image *', {
                     'data': pixels_ptr,
-                    'width': self.video.w,
-                    'height': self.video.h,
+                    'width': width,
+                    'height': height,
                     'mipmaps': 1,
                     'format': ray.PIXELFORMAT_UNCOMPRESSED_R8G8B8
                 })
                 self.texture = ray.LoadTextureFromImage(image[0])
                 ray.SetTextureFilter(self.texture, ray.TEXTURE_FILTER_TRILINEAR)
             else:
-                if frame_data is not None:
-                    frame_bytes = frame_data.tobytes()
-                    pixels_ptr = ray.ffi.cast('void *', ray.ffi.from_buffer('unsigned char[]', frame_bytes))
-                    ray.UpdateTexture(self.texture, pixels_ptr)
+                pixels_ptr = ray.ffi.cast('void *', ray.ffi.from_buffer('unsigned char[]', frame_bytes))
+                ray.UpdateTexture(self.texture, pixels_ptr)
 
-            self.current_frame_data = frame_data
+            self.current_frame_data = frame_bytes
             return True
         except Exception as e:
             logger.error(f"Error loading frame at index {index}: {e}")
@@ -86,6 +145,7 @@ class VideoPlayer:
     def start(self, current_ms: float) -> None:
         """Start video playback at call time"""
         self.start_ms = current_ms
+        self._init_frame_generator()
         self._load_frame(0)
 
     def is_finished(self) -> bool:
@@ -110,22 +170,35 @@ class VideoPlayer:
 
         elapsed_time = get_current_ms() - self.start_ms
 
-        while (self.frame_index < len(self.frame_timestamps) and
-               elapsed_time >= self.frame_timestamps[self.frame_index]):
+        # Check if we need to advance frames
+        target_frame = 0
+        for i, timestamp in enumerate(self.frame_timestamps):
+            if elapsed_time >= timestamp:
+                target_frame = i
+            else:
+                break
+
+        # Load frames sequentially until we reach the target
+        while self.frame_index <= target_frame and self.frame_index < len(self.frame_timestamps):
+            self._load_frame(self.frame_index)
             self.frame_index += 1
-
-        current_index = max(0, self.frame_index - 1)
-
-        self._load_frame(current_index)
 
     def draw(self):
         """Draw video frames to the raylib canvas"""
         if self.texture is not None:
-            ray.DrawTexturePro(self.texture, (0, 0, self.texture.width, self.texture.height), (0, 0, tex.screen_width, tex.screen_height), (0, 0), 0, ray.WHITE)
+            ray.DrawTexturePro(
+                self.texture,
+                (0, 0, self.texture.width, self.texture.height),
+                (0, 0, tex.screen_width, tex.screen_height),
+                (0, 0),
+                0,
+                ray.WHITE
+            )
 
     def stop(self):
         """Stops the video, audio, and clears its buffer"""
-        self.video.close()
+        if self.container:
+            self.container.close()
 
         if self.texture is not None:
             ray.UnloadTexture(self.texture)

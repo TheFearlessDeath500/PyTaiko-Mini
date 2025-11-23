@@ -5,7 +5,7 @@ description = "Taiko no Tatsujin simulator written in python and raylib"
 readme = "README.md"
 requires-python = ">=3.13"
 dependencies = [
-    "moviepy>=2.2.1",
+    "av>=16.0.1",
     "raylib-sdl>=5.5.0.2",
     "tomlkit>=0.13.3",
 ]
@@ -17,8 +17,4 @@ paths = ["."]
 [dependency-groups]
 dev = [
     "nuitka>=2.8.4",
-    "pyinstrument>=5.1.1",
-    "pyrefly>=0.40.1",
-    "ruff>=0.14.2",
-    "vulture>=2.14",
 ]
