@@ -22,7 +22,7 @@ def create_dan(cache_path: Path):
     dan_data["charts"] = []
     for i in range(3):
         chart = dict()
-        chart_path = input(f"Enter chart path {i+1}: ")
+        chart_path = Path(input(f"Enter chart path {i+1}: "))
         with open(f"{cache_path}/path_to_hash.json", encoding='utf-8') as f:
             hash_directory = json.load(f)
             chart["hash"] = hash_directory.get(chart_path)
