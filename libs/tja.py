@@ -1178,16 +1178,10 @@ class TJAParser:
                             interp_x = judge_pos_x + (delta_x * t)
                             interp_y = judge_pos_y + (delta_y * t)
                             jpos_timeline = TimelineObject()
-                            pixels_per_frame_x = get_pixels_per_frame(bpm * time_signature * x_scroll_modifier, time_signature*4, self.distance)
-                            pixels_per_ms = get_pixels_per_ms(pixels_per_frame_x)
                             jpos_timeline.hit_ms = interpolated_ms
-                            if pixels_per_ms == 0:
-                                jpos_timeline.load_ms = jpos_timeline.hit_ms
-                            else:
-                                jpos_timeline.load_ms = jpos_timeline.hit_ms - (self.distance / pixels_per_ms)
                             jpos_timeline.judge_pos_x = interp_x
                             jpos_timeline.judge_pos_y = interp_y
-                            bisect.insort(curr_timeline, jpos_timeline, key=lambda x: x.load_ms)
+                            bisect.insort(curr_timeline, jpos_timeline, key=lambda x: x.hit_ms)
                         judge_pos_x = judge_target_x
                         judge_pos_y = judge_target_y
                     continue
