@@ -362,6 +362,9 @@ class Player:
         self.score_counter = ScoreCounter(self.score, self.is_2p)
         self.gogo_time: Optional[GogoTime] = None
         self.bpmchanges: deque[BPMChange]
+        self.delays: deque[Delay]
+        self.delay_start: Optional[float] = None
+        self.delay_end: Optional[float] = None
         self.combo_announce = ComboAnnounce(self.combo, 0, player_num, self.is_2p)
         self.branch_indicator = BranchIndicator(self.is_2p) if tja and tja.metadata.course_data[self.difficulty].is_branching else None
         self.ending_anim: Optional[FailAnimation | ClearAnimation | FCAnimation] = None
@@ -406,10 +409,33 @@ class Player:
         self.other_notes = deque([note for note in self.play_notes if note.type not in {NoteType.DON, NoteType.DON_L, NoteType.KAT, NoteType.KAT_L}])
         self.total_notes = len([note for note in self.play_notes if 0 < note.type < 5])
 
+        # Collect bpmchange, delay (remove from bars, and pre-adjust their hit_ms)
         self.bpmchanges = deque()
+        self.delays = deque()
+        new_draw_bar_list: deque[Note] = deque()
+        special_bars: deque[Note] = deque()
         for note in self.draw_bar_list:
+            if hasattr(note, 'bpmchange') or hasattr(note, 'delay'):
+                special_bars.append(note)
+            else:
+                new_draw_bar_list.append(note)
+        self.draw_bar_list = new_draw_bar_list
+
+        special_bars_len = len(special_bars)
+        for i, note in enumerate(special_bars):
             if hasattr(note, 'bpmchange'):
-                self.bpmchanges.append(BPMChange(note.hit_ms, note.bpmchange))
+                bpmchange = BPMChange(note.hit_ms, note.bpmchange)
+                self.bpmchanges.append(bpmchange)
+                for i2 in range(i + 1, special_bars_len):
+                    bar = special_bars[i2]
+                    bar.hit_ms = (bar.hit_ms - bpmchange.hit_ms) / bpmchange.bpmchange + bpmchange.hit_ms
+            if hasattr(note, 'delay'):
+                delay = Delay(note.hit_ms, note.delay)
+                self.delays.append(delay)
+                for i2 in range(i + 1, special_bars_len):
+                    bar = special_bars[i2]
+                    bar.hit_ms += delay.delay
+            
 
         total_notes = notes
         if self.branch_m:
@@ -454,11 +480,17 @@ class Player:
 
     def get_position_x(self, width: int, current_ms: float, load_ms: float, pixels_per_frame: float) -> int:
         """Calculates the x-coordinate of a note based on its load time and current time"""
+        # Override if delay active
+        if self.delay_end:
+            current_ms = self.delay_end
         time_diff = load_ms - current_ms
         return int(width + pixels_per_frame * 0.06 * time_diff - (tex.textures["notes"]["1"].width//2)) - self.visual_offset
 
     def get_position_y(self, current_ms: float, load_ms: float, pixels_per_frame: float, pixels_per_frame_x) -> int:
         """Calculates the y-coordinate of a note based on its load time and current time"""
+        # Override if delay active
+        if self.delay_end:
+            current_ms = self.delay_end
         time_diff = load_ms - current_ms
         return int((pixels_per_frame * 0.06 * time_diff) + ((self.tja.distance * pixels_per_frame) / pixels_per_frame_x))
 
@@ -967,12 +999,29 @@ class Player:
 
                     note.pixels_per_frame_x *= bpmchange.bpmchange
                     note.pixels_per_frame_y *= bpmchange.bpmchange
-
                 self.bpm *= bpmchange.bpmchange
                 self.bpmchanges.popleft()
-                # Adjust later bpmchanges too
-                for bpmchange_bar in self.bpmchanges:
-                    bpmchange_bar.hit_ms = (bpmchange_bar.hit_ms - bpmchange.hit_ms) / bpmchange.bpmchange + bpmchange.hit_ms
+        if len(self.delays) != 0:
+            if self.delay_start is not None and self.delay_end is not None:
+                # Currently, a delay is active: notes should be frozen at ms = delay_start
+                # Check if it ended
+                if ms_from_start >= self.delay_end:
+                    self.delay_start = None
+                    self.delay_end = None
+            # else:
+            delay = self.delays[0]
+            delay_success = delay.is_ready(ms_from_start)
+            if delay_success:
+                # Turn on delay visual
+                self.delay_start = delay.hit_ms
+                self.delay_end = delay.hit_ms + delay.delay
+                # Adjust notes
+                for note in chain(self.play_notes, self.current_bars, self.draw_bar_list):
+                    # time_diff must be the same throughout the delay
+                    # time_diff = note.load_ms - delay.hit_ms
+                    note.hit_ms += delay.delay
+                    note.load_ms += delay.delay
+                self.delays.popleft()
         if self.lane_hit_effect is not None:
             self.lane_hit_effect.update(current_time)
         self.animation_manager(self.draw_drum_hit_list, current_time)
@@ -1967,6 +2016,14 @@ class BPMChange:
     def __init__(self, hit_ms: float, bpmchange: float):
         self.hit_ms = hit_ms
         self.bpmchange = bpmchange
+    def is_ready(self, ms_from_start: float):
+        return ms_from_start >= self.hit_ms
+
+class Delay:
+    """For delay during HBSCROLL or BMSCROLL"""
+    def __init__(self, hit_ms: float, delay: float):
+        self.hit_ms = hit_ms
+        self.delay = delay
     def is_ready(self, ms_from_start: float):
         return ms_from_start >= self.hit_ms
 

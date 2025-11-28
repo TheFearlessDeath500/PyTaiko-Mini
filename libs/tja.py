@@ -62,6 +62,7 @@ class Note:
         is_branch_start (bool): Whether the note is the start of a branch.
         branch_params (str): The parameters (requirements) of the branch.
         bpmchange (float): If it exists, the bpm will be multiplied by it when the note passes the judgement circle
+        delay (float): Milliseconds, if it exists, the delay will be added when the note passes the judgement circle
     """
     type: int = field(init=False)
     hit_ms: float = field(init=False)
@@ -81,6 +82,7 @@ class Note:
     judge_pos_x: float = field(init=False)
     judge_pos_y: float = field(init=False)
     bpmchange: float = field(init=False)
+    delay: float = field(init=False)
 
     def __lt__(self, other):
         return self.hit_ms < other.hit_ms
@@ -905,8 +907,6 @@ class TJAParser:
                         bpmchange_bar.bpmchange = bpmchange
 
                         bisect.insort(curr_bar_list, bpmchange_bar, key=lambda x: x.load_ms)
-
-                        bpmchange = None
                     else:
                         bpm = parsed_bpm
                     continue
@@ -923,7 +923,33 @@ class TJAParser:
                     gogo_time = False
                     continue
                 elif part.startswith("#DELAY"):
-                    self.current_ms += float(part[6:]) * 1000
+                    delay_ms = float(part[6:]) * 1000
+                    if scroll_type == ScrollType.BMSCROLL or scroll_type == ScrollType.HBSCROLL:
+                        if delay_ms < 0:
+                            # No changes if negative
+                            pass
+                        else:
+                            # Do not modify current_ms, it will be modified live
+                            delay_bar = Note()
+                            delay_bar.pixels_per_frame_x = get_pixels_per_frame(bpm * time_signature * x_scroll_modifier, time_signature*4, self.distance)
+                            delay_bar.pixels_per_frame_y = get_pixels_per_frame(bpm * time_signature * y_scroll_modifier, time_signature*4, self.distance)
+                            pixels_per_ms = get_pixels_per_ms(delay_bar.pixels_per_frame_x)
+
+                            delay_bar.hit_ms = self.current_ms
+                            if pixels_per_ms == 0:
+                                delay_bar.load_ms = delay_bar.hit_ms
+                            else:
+                                delay_bar.load_ms = delay_bar.hit_ms - (self.distance / pixels_per_ms)
+                            delay_bar.type = 0
+                            delay_bar.display = False
+                            delay_bar.gogo_time = gogo_time
+                            delay_bar.bpm = bpm
+
+                            delay_bar.delay = delay_ms
+
+                            bisect.insort(curr_bar_list, delay_bar, key=lambda x: x.load_ms)
+                    else:
+                        self.current_ms += delay_ms
                     continue
                 elif part.startswith("#SUDDEN"):
                     # Parse #SUDDEN command
