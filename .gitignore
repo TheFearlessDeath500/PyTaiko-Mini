@@ -6,3 +6,5 @@ cache
 dev-config.toml
 libaudio.so
 latest.log
+libaudio.dll
+libaudio.dylib
