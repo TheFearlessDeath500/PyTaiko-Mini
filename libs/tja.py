@@ -1259,6 +1259,7 @@ class TJAParser:
                         timeline_obj = TimelineObject()
                         timeline_obj.hit_ms = self.current_ms
                         timeline_obj.bpm = parsed_bpm
+                        bpm = parsed_bpm
                         bisect.insort(curr_timeline, timeline_obj, key=lambda x: x.hit_ms)
                     continue
                 elif '#BARLINEOFF' in part:
@@ -1275,7 +1276,7 @@ class TJAParser:
                     continue
                 elif part.startswith("#DELAY"):
                     delay_ms = float(part[6:]) * 1000
-                    if scroll_type == ScrollType.BMSCROLL or scroll_type == ScrollType.HBSCROLL: 
+                    if scroll_type == ScrollType.BMSCROLL or scroll_type == ScrollType.HBSCROLL:
                         if delay_ms <= 0:
                             # No changes if not positive
                             pass

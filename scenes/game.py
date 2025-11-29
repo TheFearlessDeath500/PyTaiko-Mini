@@ -1138,7 +1138,7 @@ class Player:
         end_position += self.judge_x
         length = end_position - start_position
         color = ray.Color(255, head.color, head.color, 255)
-        y = tex.skin_config["notes"].y
+        y = tex.skin_config["notes"].y + self.get_position_y(current_ms, head.load_ms, head.pixels_per_frame_y, head.pixels_per_frame_x)
         moji_y = tex.skin_config["moji"].y
         moji_x = -(tex.textures["notes"]["moji"].width//2) + (tex.textures["notes"]["1"].width//2)
         if head.display:
@@ -1163,6 +1163,7 @@ class Player:
         end_position = self.get_position_x(tex.screen_width, current_ms, tail.load_ms, tail.pixels_per_frame_x)
         end_position += self.judge_x
         pause_position = tex.skin_config["balloon_pause_position"].x + self.judge_x
+        y = tex.skin_config["notes"].y + self.get_position_y(current_ms, head.load_ms, head.pixels_per_frame_y, head.pixels_per_frame_x)
         if current_ms >= tail.hit_ms:
             position = end_position
         elif current_ms >= head.hit_ms:
@@ -1170,8 +1171,8 @@ class Player:
         else:
             position = start_position
         if head.display:
-            tex.draw_texture('notes', str(head.type), frame=current_eighth % 2, x=position-offset, y=tex.skin_config["notes"].y+(self.is_2p*tex.skin_config["2p_offset"].y)+self.judge_y)
-        tex.draw_texture('notes', '10', frame=current_eighth % 2, x=position-offset+tex.textures["notes"]["10"].width, y=tex.skin_config["notes"].y+(self.is_2p*tex.skin_config["2p_offset"].y)+self.judge_y)
+            tex.draw_texture('notes', str(head.type), frame=current_eighth % 2, x=position-offset, y=y+(self.is_2p*tex.skin_config["2p_offset"].y)+self.judge_y)
+        tex.draw_texture('notes', '10', frame=current_eighth % 2, x=position-offset+tex.textures["notes"]["10"].width, y=y+(self.is_2p*tex.skin_config["2p_offset"].y)+self.judge_y)
 
     def draw_bars(self, current_ms: float):
         """Draw bars in the player's lane"""
