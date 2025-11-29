@@ -62,6 +62,8 @@ class TimelineObject:
     cam_rotation: float = field(init=False)
 
     bpm: float = field(init=False)
+    bpmchange: float = field(init=False)
+    delay: float = field(init=False)
     '''
     gogo_time: bool = field(init=False)
     branch_params: str = field(init=False)
@@ -109,8 +111,6 @@ class Note:
     lyric: str = field(init=False)
     sudden_appear_ms: float = field(init=False)
     sudden_moving_ms: float = field(init=False)
-    bpmchange: float = field(init=False)
-    delay: float = field(init=False)
 
     def __lt__(self, other):
         return self.hit_ms < other.hit_ms
@@ -810,25 +810,10 @@ class TJAParser:
         delay_last_note_ms = self.current_ms
 
         def add_delay_bar(hit_ms: float, delay: float):
-            delay_bar = Note()
-            delay_bar.pixels_per_frame_x = get_pixels_per_frame(bpm * time_signature * x_scroll_modifier, time_signature*4, self.distance)
-            delay_bar.pixels_per_frame_y = get_pixels_per_frame(bpm * time_signature * y_scroll_modifier, time_signature*4, self.distance)
-            pixels_per_ms = get_pixels_per_ms(delay_bar.pixels_per_frame_x)
-
-            delay_bar.hit_ms = hit_ms
-            if pixels_per_ms == 0:
-                delay_bar.load_ms = delay_bar.hit_ms
-            else:
-                delay_bar.load_ms = delay_bar.hit_ms - (self.distance / pixels_per_ms)
-            delay_bar.type = 0
-            delay_bar.display = False
-            delay_bar.gogo_time = gogo_time
-            delay_bar.bpm = bpm
-
-            delay_bar.delay = delay
-
-            bisect.insort(curr_bar_list, delay_bar, key=lambda x: x.load_ms)
-
+            delay_timeline = TimelineObject()
+            delay_timeline.hit_ms = hit_ms
+            delay_timeline.delay = delay
+            bisect.insort(curr_timeline, delay_timeline, key=lambda x: x.hit_ms)
 
         for bar in notes:
             bar_length = sum(len(part) for part in bar if '#' not in part)
@@ -1272,30 +1257,15 @@ class TJAParser:
                         bpmchange = parsed_bpm / bpmchange_last_bpm
                         bpmchange_last_bpm = parsed_bpm
                         
-                        bpmchange_bar = Note()
-                        bpmchange_bar.pixels_per_frame_x = get_pixels_per_frame(bpm * time_signature * x_scroll_modifier, time_signature*4, self.distance)
-                        bpmchange_bar.pixels_per_frame_y = get_pixels_per_frame(bpm * time_signature * y_scroll_modifier, time_signature*4, self.distance)
-                        pixels_per_ms = get_pixels_per_ms(bpmchange_bar.pixels_per_frame_x)
-
-                        bpmchange_bar.hit_ms = self.current_ms
-                        if pixels_per_ms == 0:
-                            bpmchange_bar.load_ms = bpmchange_bar.hit_ms
-                        else:
-                            bpmchange_bar.load_ms = bpmchange_bar.hit_ms - (self.distance / pixels_per_ms)
-                        bpmchange_bar.type = 0
-                        bpmchange_bar.display = False
-                        bpmchange_bar.gogo_time = gogo_time
-                        bpmchange_bar.bpm = bpm
-
-                        bpmchange_bar.bpmchange = bpmchange
-
-                        bisect.insort(curr_bar_list, bpmchange_bar, key=lambda x: x.load_ms)
+                        bpmchange_timeline = TimelineObject()
+                        bpmchange_timeline.hit_ms = self.current_ms
+                        bpmchange_timeline.bpmchange = bpmchange
+                        bisect.insort(curr_timeline, bpmchange_timeline, key=lambda x: x.hit_ms)
                     else:
-                        bpm = parsed_bpm
-                    timeline_obj = TimelineObject()
-                    timeline_obj.hit_ms = self.current_ms
-                    timeline_obj.bpm = bpm
-                    bisect.insort(curr_timeline, timeline_obj, key=lambda x: x.hit_ms)
+                        timeline_obj = TimelineObject()
+                        timeline_obj.hit_ms = self.current_ms
+                        timeline_obj.bpm = parsed_bpm
+                        bisect.insort(curr_timeline, timeline_obj, key=lambda x: x.hit_ms)
                     continue
                 elif '#BARLINEOFF' in part:
                     barline_display = False
@@ -1389,7 +1359,7 @@ class TJAParser:
                         continue
 
                     if delay_current != 0:
-                        logger.debug(delay_current)
+                        # logger.debug(delay_current)
                         add_delay_bar(delay_last_note_ms, delay_current)
                         delay_current = 0
 
