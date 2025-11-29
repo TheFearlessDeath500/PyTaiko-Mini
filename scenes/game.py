@@ -6,6 +6,7 @@ import sqlite3
 from collections import deque
 from pathlib import Path
 from typing import Optional
+from itertools import chain
 
 import pyray as ray
 
@@ -360,6 +361,8 @@ class Player:
         self.combo_display = Combo(self.combo, 0, self.is_2p)
         self.score_counter = ScoreCounter(self.score, self.is_2p)
         self.gogo_time: Optional[GogoTime] = None
+        self.delay_start: Optional[float] = None
+        self.delay_end: Optional[float] = None
         self.combo_announce = ComboAnnounce(self.combo, 0, player_num, self.is_2p)
         self.branch_indicator = BranchIndicator(self.is_2p) if tja and tja.metadata.course_data[self.difficulty].is_branching else None
         self.ending_anim: Optional[FailAnimation | ClearAnimation | FCAnimation] = None
@@ -383,6 +386,57 @@ class Player:
     def reset_chart(self):
         notes, self.branch_m, self.branch_e, self.branch_n = self.tja.notes_to_position(self.difficulty)
         self.play_notes, self.draw_note_list, self.draw_bar_list = apply_modifiers(notes, self.modifiers)
+
+        self.don_notes = deque([note for note in self.play_notes if note.type in {NoteType.DON, NoteType.DON_L}])
+        self.kat_notes = deque([note for note in self.play_notes if note.type in {NoteType.KAT, NoteType.KAT_L}])
+        self.other_notes = deque([note for note in self.play_notes if note.type not in {NoteType.DON, NoteType.DON_L, NoteType.KAT, NoteType.KAT_L}])
+        self.total_notes = len([note for note in self.play_notes if 0 < note.type < 5])
+        total_notes = notes
+        if self.branch_m:
+            for section in self.branch_m:
+                self.total_notes += len([note for note in section.play_notes if 0 < note.type < 5])
+                total_notes += section
+        self.base_score = calculate_base_score(total_notes)
+
+        #Note management
+        self.timeline = notes.timeline
+        self.timeline_index = 0 # Range: [0, len(timeline)]
+        self.current_bars: list[Note] = []
+        self.current_notes_draw: list[Note | Drumroll | Balloon] = []
+        self.is_drumroll = False
+        self.curr_drumroll_count = 0
+        self.is_balloon = False
+        self.curr_balloon_count = 0
+        self.is_branch = False
+        self.curr_branch_reqs = []
+        self.branch_condition_count = 0
+        self.branch_condition = ''
+        self.balloon_index = 0
+        self.bpm = 120
+        if self.timeline and hasattr(self.timeline[self.timeline_index], 'bpm'):
+            self.bpm = self.timeline[self.timeline_index].bpm
+        # Handle HBSCROLL, BMSCROLL (pre-modify hit_ms, so that notes can't be literally hit, but are still visually different) - basically it applies the transformations of #BPMCHANGE and #DELAY to hit_ms, so that notes can't be hit even if its visaulyl 
+        for i, o in enumerate(self.timeline):
+            if hasattr(o, 'bpmchange'):
+                hit_ms = o.hit_ms
+                bpmchange = o.bpmchange
+                for note in chain(self.play_notes, self.current_bars, self.draw_bar_list):
+                    if note.hit_ms > hit_ms:
+                        note.hit_ms = (note.hit_ms - hit_ms) / bpmchange + hit_ms
+                for i2 in range(i + 1, len(self.timeline)):
+                    o2 = self.timeline[i2]
+                    o2.hit_ms = (o2.hit_ms - hit_ms) / bpmchange + hit_ms
+            elif hasattr(o, 'delay'):
+                hit_ms = o.hit_ms
+                delay = o.delay
+                for note in chain(self.play_notes, self.current_bars, self.draw_bar_list):
+                    if note.hit_ms > hit_ms:
+                        note.hit_ms += delay
+                for i2 in range(i + 1, len(self.timeline)):
+                    o2 = self.timeline[i2]
+                    o2.hit_ms += delay
+        
+        # Decide end_time after all transforms have been applied
         self.end_time = 0
         if self.play_notes:
             self.end_time = self.play_notes[-1].hit_ms
@@ -398,35 +452,6 @@ class Player:
             for section in self.branch_n:
                 if section.play_notes:
                     self.end_time = max(self.end_time, section.play_notes[-1].hit_ms)
-
-        self.don_notes = deque([note for note in self.play_notes if note.type in {NoteType.DON, NoteType.DON_L}])
-        self.kat_notes = deque([note for note in self.play_notes if note.type in {NoteType.KAT, NoteType.KAT_L}])
-        self.other_notes = deque([note for note in self.play_notes if note.type not in {NoteType.DON, NoteType.DON_L, NoteType.KAT, NoteType.KAT_L}])
-        self.total_notes = len([note for note in self.play_notes if 0 < note.type < 5])
-        total_notes = notes
-        if self.branch_m:
-            for section in self.branch_m:
-                self.total_notes += len([note for note in section.play_notes if 0 < note.type < 5])
-                total_notes += section
-        self.base_score = calculate_base_score(total_notes)
-
-        #Note management
-        self.timeline = notes.timeline
-        self.timeline_index = 0
-        self.current_bars: list[Note] = []
-        self.current_notes_draw: list[Note | Drumroll | Balloon] = []
-        self.is_drumroll = False
-        self.curr_drumroll_count = 0
-        self.is_balloon = False
-        self.curr_balloon_count = 0
-        self.is_branch = False
-        self.curr_branch_reqs = []
-        self.branch_condition_count = 0
-        self.branch_condition = ''
-        self.balloon_index = 0
-        self.bpm = 120
-        if self.timeline and hasattr(self.timeline[self.timeline_index], 'bpm'):
-            self.bpm = self.timeline[self.timeline_index].bpm
 
     def merge_branch_section(self, branch_section: NoteList, current_ms: float):
         """Merges the branch notes into the current notes"""
@@ -450,18 +475,24 @@ class Player:
 
     def get_position_x(self, width: int, current_ms: float, load_ms: float, pixels_per_frame: float) -> int:
         """Calculates the x-coordinate of a note based on its load time and current time"""
+        # Override if delay active
+        if self.delay_start:
+            current_ms = self.delay_start
         time_diff = load_ms - current_ms
         return int(width + pixels_per_frame * 0.06 * time_diff - (tex.textures["notes"]["1"].width//2)) - self.visual_offset
 
     def get_position_y(self, current_ms: float, load_ms: float, pixels_per_frame: float, pixels_per_frame_x) -> int:
         """Calculates the y-coordinate of a note based on its load time and current time"""
+        # Override if delay active
+        if self.delay_start:
+            current_ms = self.delay_start
         time_diff = load_ms - current_ms
         if pixels_per_frame_x == 0:
             return int(pixels_per_frame * 0.06 * time_diff)
         return int((pixels_per_frame * 0.06 * time_diff) + ((self.tja.distance * pixels_per_frame) / pixels_per_frame_x))
 
     def handle_tjap3_extended_commands(self, current_ms: float):
-        if not self.timeline:
+        if not self.timeline or self.timeline_index >= len(self.timeline):
             return
 
         timeline_object = self.timeline[self.timeline_index]
@@ -497,28 +528,66 @@ class Player:
             global_data.camera.rotation = timeline_object.cam_rotation
             should_advance = True
 
-        if should_advance and self.timeline_index < len(self.timeline) - 1:
+        if should_advance:
             self.timeline_index += 1
 
     def get_judge_position(self, current_ms: float):
         """Get the current judgment circle position based on bar data"""
-        if not self.timeline:
+        if not self.timeline or self.timeline_index >= len(self.timeline):
             return
         timeline_object = self.timeline[self.timeline_index]
         if hasattr(timeline_object, 'judge_pos_x') and timeline_object.hit_ms <= current_ms:
             self.judge_x = timeline_object.judge_pos_x * tex.screen_scale
             self.judge_y = timeline_object.judge_pos_y * tex.screen_scale
-            if self.timeline_index < len(self.timeline) - 1:
-                self.timeline_index += 1
+            self.timeline_index += 1
+
+    def handle_scroll_type_commands(self, current_ms: float):
+        if not self.timeline or self.timeline_index >= len(self.timeline):
+            return
+
+        timeline_object = self.timeline[self.timeline_index]
+        should_advance = False
+
+        if hasattr(timeline_object, 'bpmchange') and timeline_object.hit_ms <= current_ms:
+            hit_ms = timeline_object.hit_ms
+            bpmchange = timeline_object.bpmchange
+            # Adjust notes (visually)
+            for note in chain(self.play_notes, self.current_bars, self.draw_bar_list):
+                # Already modified
+                # note.hit_ms = (note.hit_ms - hit_ms) / bpmchange + hit_ms
+                # time_diff * note.pixels_per_frame need to be the same before and after the adjustment
+                # that means time_diff should be divided by self.bpmchange.bpmchange
+                # current_ms = self.bpmchange.hit_ms
+                time_diff = note.load_ms - hit_ms
+                note.load_ms = time_diff / bpmchange + hit_ms
+
+                note.pixels_per_frame_x *= bpmchange
+                note.pixels_per_frame_y *= bpmchange
+            self.bpm *= bpmchange
+            should_advance = True
+
+        if hasattr(timeline_object, 'delay') and timeline_object.hit_ms <= current_ms:
+            hit_ms = timeline_object.hit_ms
+            delay = timeline_object.delay
+            if self.delay_start is not None:
+                logger.error('Needs fix: delay is currently active, but another delay is being activated')
+            else:
+                # Turn on delay visual
+                self.delay_start = hit_ms
+                self.delay_end = hit_ms + delay
+
+            should_advance = True
+
+        if should_advance:
+            self.timeline_index += 1
 
     def update_bpm(self, current_ms: float):
-        if not self.timeline:
+        if not self.timeline or self.timeline_index >= len(self.timeline):
             return
         timeline_object = self.timeline[self.timeline_index]
         if hasattr(timeline_object, 'bpm') and timeline_object.hit_ms <= current_ms:
             self.bpm = timeline_object.bpm
-            if self.timeline_index < len(self.timeline) - 1:
-                self.timeline_index += 1
+            self.timeline_index += 1
 
     def animation_manager(self, animation_list: list, current_time: float):
         if not animation_list:
@@ -992,6 +1061,16 @@ class Player:
         self.animation_manager(self.draw_drum_hit_list, current_time)
         self.get_judge_position(ms_from_start)
         self.handle_tjap3_extended_commands(ms_from_start)
+        self.handle_scroll_type_commands(ms_from_start)
+        if self.delay_start is not None and self.delay_end is not None:
+            # Currently, a delay is active: notes should be frozen at ms = delay_start
+            # Check if it ended
+            if ms_from_start >= self.delay_end:
+                delay = self.delay_end - self.delay_start
+                for note in chain(self.play_notes, self.current_bars, self.draw_bar_list):
+                    note.load_ms += delay
+                self.delay_start = None
+                self.delay_end = None
         self.update_bpm(ms_from_start)
 
         # More efficient arc management

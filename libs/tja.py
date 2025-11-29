@@ -41,6 +41,11 @@ class NoteType(IntEnum):
     TAIL = 8
     KUSUDAMA = 9
 
+class ScrollType(IntEnum):
+    NMSCROLL = 0
+    BMSCROLL = 1
+    HBSCROLL = 2
+
 @dataclass()
 class TimelineObject:
     hit_ms: float = field(init=False)
@@ -57,6 +62,8 @@ class TimelineObject:
     cam_rotation: float = field(init=False)
 
     bpm: float = field(init=False)
+    bpmchange: float = field(init=False)
+    delay: float = field(init=False)
     '''
     gogo_time: bool = field(init=False)
     branch_params: str = field(init=False)
@@ -64,6 +71,8 @@ class TimelineObject:
     is_section_marker: bool = False
     sudden_appear_ms: float = 0
     sudden_moving_ms: float = 0
+    bpmchange (float): If it exists, the bpm will be multiplied by it when the note passes the judgement circle
+    delay (float): Milliseconds, if it exists, the delay will be added when the note passes the judgement circle
     '''
 
     def __lt__(self, other):
@@ -540,6 +549,7 @@ class TJAParser:
         # Use enumerate for single iteration
         note_start = note_end = -1
         target_found = False
+        scroll_type = ScrollType.NMSCROLL
 
         # Find the section boundaries
         for i, line in enumerate(self.data):
@@ -552,6 +562,15 @@ class TJAParser:
                 elif line == "#END" and note_start != -1:
                     note_end = i
                     break
+                elif '#NMSCROLL' in line:
+                    scroll_type = ScrollType.NMSCROLL
+                    continue
+                elif '#BMSCROLL' in line:
+                    scroll_type = ScrollType.BMSCROLL
+                    continue
+                elif '#HBSCROLL' in line:
+                    scroll_type = ScrollType.HBSCROLL
+                    continue
 
         if note_start == -1 or note_end == -1:
             return []
@@ -560,6 +579,14 @@ class TJAParser:
         notes = []
         bar = []
         section_data = self.data[note_start:note_end]
+
+        # Prepend scroll type
+        if scroll_type == ScrollType.NMSCROLL:
+            bar.append('#NMSCROLL')
+        elif scroll_type == ScrollType.BMSCROLL:
+            bar.append('#BMSCROLL')
+        elif scroll_type == ScrollType.HBSCROLL:
+            bar.append('#HBSCROLL')
 
         for line in section_data:
             if line.startswith("#"):
@@ -775,6 +802,18 @@ class TJAParser:
         is_section_start = False
         section_bar = None
         lyric = ""
+        scroll_type = ScrollType.NMSCROLL
+
+        # Only used during BMSCROLL or HBSCROLL
+        bpmchange_last_bpm = bpm
+        delay_current = 0
+        delay_last_note_ms = self.current_ms
+
+        def add_delay_bar(hit_ms: float, delay: float):
+            delay_timeline = TimelineObject()
+            delay_timeline.hit_ms = hit_ms
+            delay_timeline.delay = delay
+            bisect.insort(curr_timeline, delay_timeline, key=lambda x: x.hit_ms)
 
         for bar in notes:
             bar_length = sum(len(part) for part in bar if '#' not in part)
@@ -1186,29 +1225,47 @@ class TJAParser:
                         judge_pos_y = judge_target_y
                     continue
                 elif '#NMSCROLL' in part:
+                    scroll_type = ScrollType.NMSCROLL
+                    continue
+                elif '#BMSCROLL' in part:
+                    scroll_type = ScrollType.BMSCROLL
+                    continue
+                elif '#HBSCROLL' in part:
+                    scroll_type = ScrollType.HBSCROLL
                     continue
                 elif '#MEASURE' in part:
                     divisor = part.find('/')
                     time_signature = float(part[9:divisor]) / float(part[divisor+1:])
                     continue
                 elif '#SCROLL' in part:
-                    scroll_value = part[7:]
-                    if 'i' in scroll_value:
-                        normalized = scroll_value.replace('.i', 'j').replace('i', 'j')
-                        normalized = normalized.replace(',', '')
-                        c = complex(normalized)
-                        x_scroll_modifier = c.real
-                        y_scroll_modifier = c.imag
-                    else:
-                        x_scroll_modifier = float(scroll_value)
-                        y_scroll_modifier = 0.0
+                    if scroll_type != ScrollType.BMSCROLL:
+                        scroll_value = part[7:]
+                        if 'i' in scroll_value:
+                            normalized = scroll_value.replace('.i', 'j').replace('i', 'j')
+                            normalized = normalized.replace(',', '')
+                            c = complex(normalized)
+                            x_scroll_modifier = c.real
+                            y_scroll_modifier = c.imag
+                        else:
+                            x_scroll_modifier = float(scroll_value)
+                            y_scroll_modifier = 0.0
                     continue
                 elif '#BPMCHANGE' in part:
-                    bpm = float(part[11:])
-                    timeline_obj = TimelineObject()
-                    timeline_obj.hit_ms = self.current_ms
-                    timeline_obj.bpm = bpm
-                    bisect.insort(curr_timeline, timeline_obj, key=lambda x: x.hit_ms)
+                    parsed_bpm = float(part[11:])
+                    if scroll_type == ScrollType.BMSCROLL or scroll_type == ScrollType.HBSCROLL:
+                        # Do not modify bpm, it needs to be changed live by bpmchange
+                        bpmchange = parsed_bpm / bpmchange_last_bpm
+                        bpmchange_last_bpm = parsed_bpm
+                        
+                        bpmchange_timeline = TimelineObject()
+                        bpmchange_timeline.hit_ms = self.current_ms
+                        bpmchange_timeline.bpmchange = bpmchange
+                        bisect.insort(curr_timeline, bpmchange_timeline, key=lambda x: x.hit_ms)
+                    else:
+                        timeline_obj = TimelineObject()
+                        timeline_obj.hit_ms = self.current_ms
+                        timeline_obj.bpm = parsed_bpm
+                        bisect.insort(curr_timeline, timeline_obj, key=lambda x: x.hit_ms)
                     continue
                 elif '#BARLINEOFF' in part:
                     barline_display = False
@@ -1223,7 +1280,18 @@ class TJAParser:
                     gogo_time = False
                     continue
                 elif part.startswith("#DELAY"):
-                    self.current_ms += float(part[6:]) * 1000
+                    delay_ms = float(part[6:]) * 1000
+                    if scroll_type == ScrollType.BMSCROLL or scroll_type == ScrollType.HBSCROLL:
+                        if delay_ms <= 0:
+                            # No changes if not positive
+                            pass
+                        else:
+                            # Do not modify current_ms, it will be modified live
+                            delay_current += delay_ms
+
+                            # Delays will be combined between notes, and attached to previous note
+                    else:
+                        self.current_ms += delay_ms
                     continue
                 elif part.startswith("#SUDDEN"):
                     parts = part.split()
@@ -1282,13 +1350,22 @@ class TJAParser:
                     if item == '.':
                         continue
                     if item == '0' or (not item.isdigit()):
+                        delay_last_note_ms = self.current_ms
                         self.current_ms += increment
                         continue
                     if item == '9' and curr_note_list and curr_note_list[-1].type == 9:
+                        delay_last_note_ms = self.current_ms
                         self.current_ms += increment
                         continue
 
+                    if delay_current != 0:
+                        # logger.debug(delay_current)
+                        add_delay_bar(delay_last_note_ms, delay_current)
+                        delay_current = 0
+
+
                     note = Note()
+                    delay_last_note_ms = self.current_ms
                     note.hit_ms = self.current_ms
                     note.display = True
                     note.pixels_per_frame_x = bar_line.pixels_per_frame_x
