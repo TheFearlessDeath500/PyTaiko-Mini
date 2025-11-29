@@ -809,12 +809,6 @@ class TJAParser:
         delay_current = 0
         delay_last_note_ms = self.current_ms
 
-        def add_delay_bar(hit_ms: float, delay: float):
-            delay_timeline = TimelineObject()
-            delay_timeline.hit_ms = hit_ms
-            delay_timeline.delay = delay
-            bisect.insort(curr_timeline, delay_timeline, key=lambda x: x.hit_ms)
-
         for bar in notes:
             bar_length = sum(len(part) for part in bar if '#' not in part)
             barline_added = False
@@ -1281,14 +1275,17 @@ class TJAParser:
                     continue
                 elif part.startswith("#DELAY"):
                     delay_ms = float(part[6:]) * 1000
-                    if delay_ms <= 0:
-                        # No changes if not positive
-                        pass
-                    else:
-                        # Do not modify current_ms, it will be modified live
-                        delay_current += delay_ms
+                    if scroll_type == ScrollType.BMSCROLL or scroll_type == ScrollType.HBSCROLL: 
+                        if delay_ms <= 0:
+                            # No changes if not positive
+                            pass
+                        else:
+                            # Do not modify current_ms, it will be modified live
+                            delay_current += delay_ms
 
-                        # Delays will be combined between notes, and attached to previous note
+                            # Delays will be combined between notes, and attached to previous note
+                    else:
+                        self.current_ms += delay_ms
                     continue
                 elif part.startswith("#SUDDEN"):
                     parts = part.split()
@@ -1357,7 +1354,11 @@ class TJAParser:
 
                     if delay_current != 0:
                         # logger.debug(delay_current)
-                        add_delay_bar(delay_last_note_ms, delay_current)
+                        delay_timeline = TimelineObject()
+                        delay_timeline.hit_ms = delay_last_note_ms
+                        delay_timeline.delay = delay_current
+                        bisect.insort(curr_timeline, delay_timeline, key=lambda x: x.hit_ms)
+
                         delay_current = 0
 
 
