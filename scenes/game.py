@@ -415,7 +415,7 @@ class Player:
 
         #Note management
         self.timeline = notes.timeline
-        self.timeline_index = 0
+        self.timeline_index = 0 # Range: [0, len(timeline)]
         self.current_bars: list[Note] = []
         self.current_notes_draw: list[Note | Drumroll | Balloon] = []
         self.is_drumroll = False
@@ -490,7 +490,7 @@ class Player:
         return int((pixels_per_frame * 0.06 * time_diff) + ((self.tja.distance * pixels_per_frame) / pixels_per_frame_x))
 
     def handle_tjap3_extended_commands(self, current_ms: float):
-        if not self.timeline:
+        if not self.timeline or self.timeline_index >= len(self.timeline):
             return
 
         timeline_object = self.timeline[self.timeline_index]
@@ -526,22 +526,21 @@ class Player:
             global_data.camera.rotation = timeline_object.cam_rotation
             should_advance = True
 
-        if should_advance and self.timeline_index < len(self.timeline) - 1:
+        if should_advance:
             self.timeline_index += 1
 
     def get_judge_position(self, current_ms: float):
         """Get the current judgment circle position based on bar data"""
-        if not self.timeline:
+        if not self.timeline or self.timeline_index >= len(self.timeline):
             return
         timeline_object = self.timeline[self.timeline_index]
         if hasattr(timeline_object, 'judge_pos_x') and timeline_object.hit_ms <= current_ms:
             self.judge_x = timeline_object.judge_pos_x * tex.screen_scale
             self.judge_y = timeline_object.judge_pos_y * tex.screen_scale
-            if self.timeline_index < len(self.timeline) - 1:
-                self.timeline_index += 1
+            self.timeline_index += 1
 
     def handle_scroll_type_commands(self, current_ms: float):
-        if not self.timeline:
+        if not self.timeline or self.timeline_index >= len(self.timeline):
             return
 
         timeline_object = self.timeline[self.timeline_index]
@@ -577,17 +576,16 @@ class Player:
 
             should_advance = True
 
-        if should_advance and self.timeline_index < len(self.timeline) - 1:
+        if should_advance:
             self.timeline_index += 1
 
     def update_bpm(self, current_ms: float):
-        if not self.timeline:
+        if not self.timeline or self.timeline_index >= len(self.timeline):
             return
         timeline_object = self.timeline[self.timeline_index]
         if hasattr(timeline_object, 'bpm') and timeline_object.hit_ms <= current_ms:
             self.bpm = timeline_object.bpm
-            if self.timeline_index < len(self.timeline) - 1:
-                self.timeline_index += 1
+            self.timeline_index += 1
 
     def animation_manager(self, animation_list: list, current_time: float):
         if not animation_list:
