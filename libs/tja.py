@@ -688,6 +688,8 @@ class TJAParser:
         # Only used during BMSCROLL or HBSCROLL
         bpmchange_last_bpm = bpm
         delay_current = 0
+        delay_last_note_ms = self.current_ms
+
         def add_delay_bar(hit_ms: float, delay: float):
             delay_bar = Note()
             delay_bar.pixels_per_frame_x = get_pixels_per_frame(bpm * time_signature * x_scroll_modifier, time_signature*4, self.distance)
@@ -1025,18 +1027,21 @@ class TJAParser:
                     if item == '.':
                         continue
                     if item == '0' or (not item.isdigit()):
+                        delay_last_note_ms = self.current_ms
                         self.current_ms += increment
                         continue
                     if item == '9' and curr_note_list and curr_note_list[-1].type == 9:
+                        delay_last_note_ms = self.current_ms
                         self.current_ms += increment
                         continue
 
                     if delay_current != 0:
                         logger.debug(delay_current)
-                        add_delay_bar(self.current_ms, delay_current)
+                        add_delay_bar(delay_last_note_ms, delay_current)
                         delay_current = 0
 
                     note = Note()
+                    delay_last_note_ms = self.current_ms
                     note.hit_ms = self.current_ms
                     note.display = True
                     note.pixels_per_frame_x = bar_line.pixels_per_frame_x
