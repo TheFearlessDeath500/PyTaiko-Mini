@@ -71,6 +71,8 @@ class TimelineObject:
     is_section_marker: bool = False
     sudden_appear_ms: float = 0
     sudden_moving_ms: float = 0
+    bpmchange (float): If it exists, the bpm will be multiplied by it when the note passes the judgement circle
+    delay (float): Milliseconds, if it exists, the delay will be added when the note passes the judgement circle
     '''
 
     def __lt__(self, other):
@@ -94,8 +96,6 @@ class Note:
         moji (int): The text drawn below the note.
         is_branch_start (bool): Whether the note is the start of a branch.
         branch_params (str): The parameters (requirements) of the branch.
-        bpmchange (float): If it exists, the bpm will be multiplied by it when the note passes the judgement circle
-        delay (float): Milliseconds, if it exists, the delay will be added when the note passes the judgement circle
     """
     type: int = field(init=False)
     hit_ms: float = field(init=False)
