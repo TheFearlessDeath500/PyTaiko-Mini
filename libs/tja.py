@@ -1316,7 +1316,7 @@ class TJAParser:
 
                 bar_line.pixels_per_frame_x = get_pixels_per_frame(bpm * time_signature * x_scroll_modifier, time_signature*4, self.distance)
                 bar_line.pixels_per_frame_y = get_pixels_per_frame(bpm * time_signature * y_scroll_modifier, time_signature*4, self.distance)
-                pixels_per_ms = get_pixels_per_ms(bar_line.pixels_per_frame_x)
+                pixels_per_ms = get_pixels_per_ms(max(bar_line.pixels_per_frame_x, bar_line.pixels_per_frame_y))
 
                 bar_line.hit_ms = self.current_ms
                 if pixels_per_ms == 0:
@@ -1374,7 +1374,7 @@ class TJAParser:
                     note.display = True
                     note.pixels_per_frame_x = bar_line.pixels_per_frame_x
                     note.pixels_per_frame_y = bar_line.pixels_per_frame_y
-                    pixels_per_ms = get_pixels_per_ms(note.pixels_per_frame_x)
+                    pixels_per_ms = get_pixels_per_ms(max(note.pixels_per_frame_x, note.pixels_per_frame_y))
                     note.load_ms = (note.hit_ms if pixels_per_ms == 0
                                     else note.hit_ms - (self.distance / pixels_per_ms))
                     note.type = int(item)
@@ -1402,7 +1402,7 @@ class TJAParser:
                     elif item == '8':
                         if prev_note is None:
                             raise ValueError("No previous note found")
-                        new_pixels_per_ms = prev_note.pixels_per_frame_x / (1000 / 60)
+                        new_pixels_per_ms = max(prev_note.pixels_per_frame_x, prev_note.pixels_per_frame_y) / (1000 / 60)
                         if new_pixels_per_ms == 0:
                             note.load_ms = note.hit_ms
                         else:

@@ -766,8 +766,9 @@ class Player:
         note = self.current_notes_draw[0]
         if note.type in {NoteType.ROLL_HEAD, NoteType.ROLL_HEAD_L, NoteType.BALLOON_HEAD, NoteType.KUSUDAMA} and len(self.current_notes_draw) > 1:
             note = self.current_notes_draw[1]
-        position = self.get_position_x(tex.screen_width, current_ms, note.hit_ms, note.pixels_per_frame_x)
-        if position < GameScreen.JUDGE_X + (650 * tex.screen_scale):
+        if current_ms > note.hit_ms + 200:
+            if note.type == NoteType.TAIL:
+                self.current_notes_draw.pop(0)
             self.current_notes_draw.pop(0)
 
     def note_manager(self, current_ms: float, background: Optional[Background]):
@@ -819,6 +820,8 @@ class Player:
             background.add_renda()
         self.score += 100
         self.base_score_list.append(ScoreCounterAnimation(self.player_num, 100, self.is_2p))
+        if not self.current_notes_draw:
+            return
         if not isinstance(self.current_notes_draw[0], Drumroll):
             return
         self.current_notes_draw[0].color = max(0, 255 - (self.curr_drumroll_count * 10))
