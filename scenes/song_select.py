@@ -5,7 +5,9 @@ from pathlib import Path
 import pyray as ray
 import logging
 
-from libs.file_navigator import BackBox, DanCourse, navigator
+from raylib import SHADER_UNIFORM_VEC3
+
+from libs.file_navigator import DEFAULT_COLORS, BackBox, DanCourse, GenreIndex, navigator
 from libs.audio import audio
 from libs.chara_2d import Chara2D
 from libs.file_navigator import Directory, SongBox, SongFile
@@ -57,14 +59,17 @@ class SongSelectScreen(Screen):
         self.coin_overlay = CoinOverlay()
         self.allnet_indicator = AllNetIcon()
         self.indicator = Indicator(Indicator.State.SELECT)
-        self.texture_index = SongBox.DEFAULT_INDEX
-        self.last_texture_index = SongBox.DEFAULT_INDEX
+        self.genre_index = GenreIndex.DEFAULT
+        self.last_genre_index = self.genre_index
         self.last_moved = get_current_ms()
         self.timer_browsing = Timer(100, get_current_ms(), self.navigator.select_current_item)
         self.timer_selected = Timer(40, get_current_ms(), self._confirm_selection_wrapper)
         self.screen_init = True
         self.ura_switch_animation = UraSwitchAnimation()
         self.dan_transition = DanTransition()
+        self.shader = ray.load_shader('', 'shader/colortransform.fs')
+        self.color = None
+        self.load_shader_values(self.color)
 
         session_data = global_data.session_data[global_data.player_num]
         self.player_1 = SongSelectPlayer(global_data.player_num, self.text_fade_in)
@@ -83,11 +88,22 @@ class SongSelectScreen(Screen):
             curr_item.box.get_scores()
         self.navigator.add_recent()
 
+    def load_shader_values(self, target_rgb):
+        source_rgb = (142, 212, 30)
+        if target_rgb is None:
+            target_rgb = source_rgb
+        source_color = ray.ffi.new('float[3]', [source_rgb[0]/255.0, source_rgb[1]/255.0, source_rgb[2]/255.0])
+        target_color = ray.ffi.new('float[3]', [target_rgb[0]/255.0, target_rgb[1]/255.0, target_rgb[2]/255.0])
+        source_loc = ray.get_shader_location(self.shader, 'sourceColor')
+        target_loc = ray.get_shader_location(self.shader, 'targetColor')
+        ray.set_shader_value(self.shader, source_loc, source_color, SHADER_UNIFORM_VEC3)
+        ray.set_shader_value(self.shader, target_loc, target_color, SHADER_UNIFORM_VEC3)
+
     def finalize_song(self, current_item: SongFile):
         global_data.session_data[global_data.player_num].selected_song = current_item.path
         global_data.session_data[global_data.player_num].song_hash = global_data.song_hashes[current_item.hash][0]["diff_hashes"][self.player_1.selected_difficulty]
         global_data.session_data[global_data.player_num].selected_difficulty = self.player_1.selected_difficulty
-        global_data.session_data[global_data.player_num].genre_index = current_item.box.name_texture_index
+        global_data.session_data[global_data.player_num].genre_index = current_item.box.genre_index
 
     def on_screen_end(self, next_screen):
         self.screen_init = False
@@ -268,11 +284,11 @@ class SongSelectScreen(Screen):
         elif self.state == State.SONG_SELECTED:
             self.timer_selected.update(current_time)
 
-        if self.last_texture_index != self.texture_index:
+        if self.last_genre_index != self.genre_index:
             if not self.background_fade_change.is_started:
                 self.background_fade_change.start()
             if self.background_fade_change.is_finished:
-                self.last_texture_index = self.texture_index
+                self.last_genre_index = self.genre_index
                 self.background_fade_change.reset()
 
         if self.game_transition is not None:
@@ -287,6 +303,8 @@ class SongSelectScreen(Screen):
 
         if self.navigator.genre_bg is not None:
             self.navigator.genre_bg.update(current_time)
+            if not self.navigator.genre_bg.shader_loaded:
+                self.navigator.genre_bg.load_shader()
 
         if self.diff_sort_selector is not None:
             self.diff_sort_selector.update(current_time)
@@ -309,7 +327,9 @@ class SongSelectScreen(Screen):
             if song.box.is_open:
                 current_box = song.box
                 if not isinstance(current_box, BackBox) and current_time >= song.box.wait + (83.33*3):
-                    self.texture_index = current_box.texture_index
+                    self.genre_index = current_box.genre_index
+                    self.color = current_box.back_color
+                    self.load_shader_values(self.color)
 
         if ray.is_key_pressed(global_data.config["keys"]["back_key"]):
             logger.info("Back key pressed, returning to ENTRY screen")
@@ -323,9 +343,16 @@ class SongSelectScreen(Screen):
 
     def draw(self):
         width = tex.textures['box']['background'].width
+        genre_index = self.genre_index
+        last_genre_index = self.last_genre_index
+        if genre_index in DEFAULT_COLORS and self.color != DEFAULT_COLORS[genre_index][0]:
+            ray.begin_shader_mode(self.shader)
+            genre_index = GenreIndex.VARIETY
+            last_genre_index = GenreIndex.VARIETY
         for i in range(0, width * 4, width):
-            tex.draw_texture('box', 'background', frame=self.last_texture_index, x=i-self.background_move.attribute)
-            tex.draw_texture('box', 'background', frame=self.texture_index, x=i-self.background_move.attribute, fade=1 - self.background_fade_change.attribute)
+            tex.draw_texture('box', 'background', frame=last_genre_index, x=i-self.background_move.attribute)
+            tex.draw_texture('box', 'background', frame=genre_index, x=i-self.background_move.attribute, fade=1 - self.background_fade_change.attribute)
+        ray.end_shader_mode()
 
         self.draw_background_diffs()
 
