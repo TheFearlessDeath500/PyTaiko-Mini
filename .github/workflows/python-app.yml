@@ -102,7 +102,7 @@ jobs:
       - name: Create Release Directory
         run: |
           mkdir -p release
-          cp -r Graphics Sounds Videos Songs config.toml shader model release/
+          cp -r Skins Songs config.toml shader model release/
 
           if [ "${{ runner.os }}" == "Windows" ]; then
             cp libs/audio/*.dll release/ 2>/dev/null || echo "libaudio not found"
