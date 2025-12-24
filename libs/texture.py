@@ -15,12 +15,13 @@ from libs.config import get_config
 logger = logging.getLogger(__name__)
 
 class SkinInfo:
-    def __init__(self, x: float, y: float, font_size: int, width: float, height: float):
+    def __init__(self, x: float, y: float, font_size: int, width: float, height: float, text: dict[str, str]):
         self.x = x
         self.y = y
         self.width = width
         self.height = height
         self.font_size = font_size
+        self.text = text
 
     def __repr__(self):
         return f"{self.__dict__}"
@@ -78,7 +79,7 @@ class TextureWrapper:
 
         data = json.loads((self.graphics_path / "skin_config.json").read_text())
         self.skin_config: dict[str, SkinInfo] = {
-            k: SkinInfo(v.get('x', 0), v.get('y', 0), v.get('font_size', 0), v.get('width', 0), v.get('height', 0)) for k, v in data.items()
+            k: SkinInfo(v.get('x', 0), v.get('y', 0), v.get('font_size', 0), v.get('width', 0), v.get('height', 0), v.get('text', dict())) for k, v in data.items()
         }
         self.screen_width = int(self.skin_config["screen"].width)
         self.screen_height = int(self.skin_config["screen"].height)
@@ -88,7 +89,7 @@ class TextureWrapper:
             self.parent_graphics_path = Path("Skins") / parent
             parent_data = json.loads((self.parent_graphics_path / "skin_config.json").read_text())
             for k, v in parent_data.items():
-                self.skin_config[k] = SkinInfo(v.get('x', 0) * self.screen_scale, v.get('y', 0) * self.screen_scale, v.get('font_size', 0) * self.screen_scale, v.get('width', 0) * self.screen_scale, v.get('height', 0) * self.screen_scale)
+                self.skin_config[k] = SkinInfo(v.get('x', 0) * self.screen_scale, v.get('y', 0) * self.screen_scale, v.get('font_size', 0) * self.screen_scale, v.get('width', 0) * self.screen_scale, v.get('height', 0) * self.screen_scale, v.get('text', dict()))
 
     def unload_textures(self):
         """Unload all textures and animations."""

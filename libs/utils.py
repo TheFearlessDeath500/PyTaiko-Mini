@@ -1,3 +1,4 @@
+import string
 import ctypes
 import hashlib
 import sys
@@ -135,7 +136,7 @@ for file in Path('cache/image').iterdir():
 
 class OutlinedText:
     """Create an outlined text object."""
-    def __init__(self, text: str, font_size: int, color: ray.Color, outline_thickness=5.0, vertical=False):
+    def __init__(self, text: str, font_size: int, color: ray.Color, outline_thickness=5.0, vertical=False, spacing=1):
         """
         Create an outlined text object.
 
@@ -158,7 +159,7 @@ class OutlinedText:
             if vertical:
                 self.texture = self._create_text_vertical(text, font_size, color, ray.BLANK, self.font)
             else:
-                self.texture = self._create_text_horizontal(text, font_size, color, ray.BLANK, self.font)
+                self.texture = self._create_text_horizontal(text, font_size, color, ray.BLANK, self.font, spacing=spacing)
         ray.gen_texture_mipmaps(self.texture)
         ray.set_texture_filter(self.texture, ray.TextureFilter.TEXTURE_FILTER_TRILINEAR)
         outline_size = ray.ffi.new('float*', self.outline_thickness)
@@ -358,19 +359,25 @@ class OutlinedText:
         ray.unload_image(image)
         return texture
 
-    def _create_text_horizontal(self, text: str, font_size: int, color: ray.Color, bg_color: ray.Color, font: Optional[ray.Font]=None, padding: int=10):
+    def _create_text_horizontal(self, text: str, font_size: int, color: ray.Color, bg_color: ray.Color, font: Optional[ray.Font]=None, padding: int=10, spacing: int=1):
         if font:
-            text_size = ray.measure_text_ex(font, text, font_size, 0)
+            text_size = ray.measure_text_ex(font, text, font_size, spacing)
+            for char in text:
+                if char in string.whitespace:
+                    text_size.x += 2
             total_width = text_size.x + (padding * 2)
             total_height = text_size.y + (padding * 2)
         else:
             total_width = ray.measure_text(text, font_size) + (padding * 2)
             total_height = font_size + (padding * 2)
+
         image = ray.gen_image_color(int(total_width), int(total_height), bg_color)
+
         if font:
-            text_image = ray.image_text_ex(font, text, font_size, 0, color)
+            text_image = ray.image_text_ex(font, text, font_size, spacing, color)
         else:
             text_image = ray.image_text(text, font_size, color)
+
         text_x = padding
         text_y = padding
         ray.image_draw(image, text_image,
@@ -378,7 +385,6 @@ class OutlinedText:
                     ray.Rectangle(text_x, text_y, text_image.width, text_image.height),
                     ray.WHITE)
         ray.unload_image(text_image)
-
         ray.export_image(image, f'cache/image/{self.hash}.png')
         texture = ray.load_texture_from_image(image)
         ray.unload_image(image)

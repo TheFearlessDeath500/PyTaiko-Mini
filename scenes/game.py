@@ -448,7 +448,7 @@ class Player:
             self.get_load_time(note)
             if note.type == NoteType.TAIL:
                 note.load_ms = last_note.load_ms
-                note.unload_ms = last_note.unload_ms
+                last_note.unload_ms = note.unload_ms
             last_note = note
 
         self.draw_note_list = deque(sorted(self.draw_note_list, key=lambda n: n.load_ms))

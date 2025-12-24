@@ -6,12 +6,14 @@ from libs.audio import audio
 from libs.global_objects import AllNetIcon, CoinOverlay, EntryOverlay
 from libs.texture import tex
 from libs.utils import (
+    OutlinedText,
     get_current_ms,
     global_data,
     global_tex,
     is_l_don_pressed,
     is_r_don_pressed,
 )
+import pyray as ray
 from libs.video import VideoPlayer
 from libs.screen import Screen
 
@@ -30,9 +32,6 @@ class TitleScreen(Screen):
         base = Path(f"Skins/{global_data.config["paths"]["skin"]}/Videos")
         self.op_video_list += list((base/"op_videos").glob("**/*.mp4"))
         self.attract_video_list += list((base/"attract_videos").glob("**/*.mp4"))
-        self.coin_overlay = CoinOverlay()
-        self.allnet_indicator = AllNetIcon()
-        self.entry_overlay = EntryOverlay()
 
     def on_screen_start(self):
         super().on_screen_start()
@@ -40,6 +39,10 @@ class TitleScreen(Screen):
         self.op_video = None
         self.attract_video = None
         self.warning_board = None
+        self.coin_overlay = CoinOverlay()
+        self.allnet_indicator = AllNetIcon()
+        self.entry_overlay = EntryOverlay()
+        self.hit_taiko_text = OutlinedText(global_tex.skin_config["hit_taiko_to_start"].text[global_data.config["general"]["language"]], tex.skin_config["hit_taiko_to_start"].font_size, ray.WHITE, spacing=5)
         self.fade_out = tex.get_animation(13)
         self.text_overlay_fade = tex.get_animation(14)
 
@@ -116,8 +119,8 @@ class TitleScreen(Screen):
         self.allnet_indicator.draw()
         self.entry_overlay.draw(tex.skin_config["entry_overlay_title"].x, y=tex.skin_config["entry_overlay_title"].y)
 
-        global_tex.draw_texture('overlay', 'hit_taiko_to_start', index=0, fade=self.text_overlay_fade.attribute)
-        global_tex.draw_texture('overlay', 'hit_taiko_to_start', index=1, fade=self.text_overlay_fade.attribute)
+        self.hit_taiko_text.draw(ray.BLACK, x=tex.screen_width*0.25 - self.hit_taiko_text.texture.width//2, y=tex.skin_config["hit_taiko_to_start"].y, fade=self.text_overlay_fade.attribute)
+        self.hit_taiko_text.draw(ray.BLACK, x=tex.screen_width*0.75 - self.hit_taiko_text.texture.width//2, y=tex.skin_config["hit_taiko_to_start"].y, fade=self.text_overlay_fade.attribute)
 
 class WarningScreen:
     """Warning screen for the game"""

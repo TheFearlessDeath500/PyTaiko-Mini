@@ -120,7 +120,10 @@ class BaseBox():
         self.wait = 0
 
     def load_text(self):
-        self.name = OutlinedText(self.text_name, tex.skin_config["song_box_name"].font_size, ray.WHITE, outline_thickness=5, vertical=True)
+        font_size = tex.skin_config["song_box_name"].font_size
+        if len(self.text_name) >= 30:
+            font_size -= int(10 * tex.screen_scale)
+        self.name = OutlinedText(self.text_name, font_size, ray.WHITE, outline_thickness=5, vertical=True)
         if self.back_color is not None:
             self.shader = ray.load_shader('shader/dummy.vs', 'shader/colortransform.fs')
             source_rgb = (142, 212, 30)

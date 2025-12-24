@@ -69,6 +69,8 @@ class SongSelectScreen(Screen):
         self.dan_transition = DanTransition()
         self.shader = ray.load_shader('shader/dummy.vs', 'shader/colortransform.fs')
         self.color = None
+        song_format = tex.skin_config["song_num"].text[global_data.config["general"]["language"]]
+        self.song_num = OutlinedText(song_format.format(global_data.songs_played+1), tex.skin_config["song_num"].font_size, ray.WHITE)
         self.load_shader_values(self.color)
 
         session_data = global_data.session_data[global_data.player_num]
@@ -387,8 +389,8 @@ class SongSelectScreen(Screen):
 
         self.indicator.draw(tex.skin_config['song_select_indicator'].x, tex.skin_config['song_select_indicator'].y)
 
-        tex.draw_texture('global', 'song_num_bg', fade=0.75)
-        tex.draw_texture('global', 'song_num', frame=global_data.songs_played % 4)
+        tex.draw_texture('global', 'song_num_bg', fade=0.75, x=-(self.song_num.texture.width-127), x2=(self.song_num.texture.width-127))
+        self.song_num.draw(ray.BLACK, x=tex.skin_config["song_num"].x-self.song_num.texture.width, y=tex.skin_config["song_num"].y)
         if self.state == State.BROWSING or self.state == State.DIFF_SORTING:
             self.timer_browsing.draw()
         elif self.state == State.SONG_SELECTED:

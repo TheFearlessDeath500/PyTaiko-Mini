@@ -3,6 +3,7 @@ from typing import Callable
 import pyray as ray
 
 from libs.global_data import PlayerNum
+from libs.global_data import global_data
 from libs.utils import OutlinedText, global_tex
 from libs.config import get_config
 from libs.audio import audio
@@ -98,6 +99,7 @@ class Indicator:
         self.don_fade = global_tex.get_animation(6)
         self.blue_arrow_move = global_tex.get_animation(7)
         self.blue_arrow_fade = global_tex.get_animation(8)
+        self.select_text = OutlinedText(global_tex.skin_config["indicator_text"].text[global_data.config["general"]["language"]], global_tex.skin_config["indicator_text"].font_size, ray.WHITE, spacing=-3)
 
     def update(self, current_time_ms: float):
         """Update the indicator's animations."""
@@ -109,7 +111,8 @@ class Indicator:
         """Draw the indicator at the given position with the given fade."""
         tex = global_tex
         tex.draw_texture('indicator', 'background', x=x, y=y, fade=fade)
-        tex.draw_texture('indicator', 'text', frame=self.state.value, x=x, y=y, fade=fade)
+        tex.draw_texture('indicator', 'text', frame=self.state.value, x=x, y=y, fade=fade, color=ray.BLACK)
+        self.select_text.draw(ray.BLANK, x=x+global_tex.skin_config["indicator_text"].x, y=y, fade=fade)
         tex.draw_texture('indicator', 'drum_face', index=self.state.value, x=x, y=y, fade=fade)
         if self.state == Indicator.State.SELECT:
             tex.draw_texture('indicator', 'drum_kat', fade=min(fade, self.don_fade.attribute), x=x, y=y)
@@ -127,15 +130,14 @@ class CoinOverlay:
     """Coin overlay for the game."""
     def __init__(self):
         """Initialize the coin overlay."""
-        pass
+        self.free_play = OutlinedText(global_tex.skin_config["free_play"].text[global_data.config["general"]["language"]], global_tex.skin_config["free_play"].font_size, ray.WHITE, spacing=5, outline_thickness=4)
     def update(self, current_time_ms: float):
         """Update the coin overlay. Unimplemented"""
         pass
     def draw(self, x: int = 0, y: int = 0):
         """Draw the coin overlay.
         Only draws free play for now."""
-        tex = global_tex
-        tex.draw_texture('overlay', 'free_play', x=x, y=y)
+        self.free_play.draw(ray.BLACK, x=global_tex.screen_width//2 - self.free_play.texture.width//2, y=global_tex.skin_config["free_play"].y)
 
 class AllNetIcon:
     """All.Net status icon for the game."""

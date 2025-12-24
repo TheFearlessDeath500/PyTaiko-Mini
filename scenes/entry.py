@@ -439,9 +439,9 @@ class BoxManager:
     """BoxManager class for the entry screen"""
     def __init__(self):
         self.box_titles: list[OutlinedText] = [
-        OutlinedText('演奏ゲーム', tex.skin_config["entry_box_text"].font_size, ray.WHITE, outline_thickness=5, vertical=True),
-        OutlinedText('特訓モード', tex.skin_config["entry_box_text"].font_size, ray.WHITE, outline_thickness=5, vertical=True),
-        OutlinedText('ゲーム設定', tex.skin_config["entry_box_text"].font_size, ray.WHITE, outline_thickness=5, vertical=True)]
+        OutlinedText(tex.skin_config["entry_game"].text[global_data.config["general"]["language"]], tex.skin_config["entry_box_text"].font_size, ray.WHITE, outline_thickness=5, vertical=True),
+        OutlinedText(tex.skin_config["entry_practice"].text[global_data.config["general"]["language"]], tex.skin_config["entry_box_text"].font_size, ray.WHITE, outline_thickness=5, vertical=True),
+        OutlinedText(tex.skin_config["entry_settings"].text[global_data.config["general"]["language"]], tex.skin_config["entry_box_text"].font_size, ray.WHITE, outline_thickness=5, vertical=True)]
         self.box_locations = ["SONG_SELECT", "PRACTICE_SELECT", "SETTINGS"]
         self.num_boxes = len(self.box_titles)
         self.boxes = [Box(self.box_titles[i], self.box_locations[i]) for i in range(len(self.box_titles))]
