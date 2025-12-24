@@ -4,7 +4,6 @@ import os
 import logging
 import sys
 import tempfile
-import zipfile
 from pathlib import Path
 from typing import Any, Optional
 
@@ -184,90 +183,39 @@ class TextureWrapper:
                 self.animations = parse_animations(anim_json)
             logger.info(f"Animations loaded for screen: {screen_name} (from parent)")
 
+    # TODO: rename to load_folder, add parent_folder logic
     def load_zip(self, screen_name: str, subset: str):
-        """Load textures from child zip, using parent texture.json if child doesn't have one."""
-        zip_path = (self.graphics_path / screen_name / subset).with_suffix('.zip')
-        parent_zip_path = (self.parent_graphics_path / screen_name / subset).with_suffix('.zip')
-
+        folder = (self.graphics_path / screen_name / subset)
         if screen_name in self.textures and subset in self.textures[screen_name]:
             return
-
-        # Child zip must exist
-        if not zip_path.exists():
-            logger.warning(f"Zip file not found: {subset} for screen {screen_name}")
-            return
-
         try:
-            with zipfile.ZipFile(zip_path, 'r') as zip_ref:
-                # Try to get texture.json from child first, then parent
-                tex_mapping_data = None
-                texture_json_source = "child"
+            if not os.path.isfile(folder / 'texture.json'):
+                raise Exception(f"texture.json file missing from {folder}")
 
-                if 'texture.json' in zip_ref.namelist():
-                    with zip_ref.open('texture.json') as json_file:
-                        tex_mapping_data = json.loads(json_file.read().decode('utf-8'))
-                elif self.parent_graphics_path != self.graphics_path and parent_zip_path.exists():
-                    # Fall back to parent's texture.json
-                    with zipfile.ZipFile(parent_zip_path, 'r') as parent_zip_ref:
-                        if 'texture.json' in parent_zip_ref.namelist():
-                            with parent_zip_ref.open('texture.json') as json_file:
-                                tex_mapping_data = json.loads(json_file.read().decode('utf-8'))
-                                for tex_map in tex_mapping_data:
-                                    if isinstance(tex_mapping_data[tex_map], list):
-                                        for index, item in enumerate(tex_mapping_data[tex_map]):
-                                            for key in item:
-                                                if key in ["x", "y", "x2", "y2"]:
-                                                    tex_mapping_data[tex_map][index][key] = tex_mapping_data[tex_map][index][key] * self.screen_scale
-                                    else:
-                                        for key in tex_mapping_data[tex_map]:
-                                            if key in ["x", "y", "x2", "y2"]:
-                                                tex_mapping_data[tex_map][key] = tex_mapping_data[tex_map][key] * self.screen_scale
-                            texture_json_source = "parent"
-                        else:
-                            raise Exception(f"texture.json file missing from both {zip_path} and {parent_zip_path}")
+            with open(folder / 'texture.json') as json_file:
+                tex_mapping_data: dict[str, dict] = json.load(json_file)
+                self.textures[folder.stem] = dict()
+
+            encoding = sys.getfilesystemencoding()
+            for tex_name in tex_mapping_data:
+                tex_dir = folder / tex_name
+                tex_file = folder / f"{tex_name}.png"
+                tex_mapping = tex_mapping_data[tex_name]
+
+                if tex_dir.is_dir():
+                    frames = [ray.LoadTexture(str(frame).encode(encoding)) for frame in sorted(tex_dir.iterdir(),
+                                key=lambda x: int(x.stem)) if frame.is_file()]
+                    self.textures[folder.stem][tex_name] = Texture(tex_name, frames, tex_mapping)
+                    self._read_tex_obj_data(tex_mapping, self.textures[folder.stem][tex_name])
+                elif tex_file.is_file():
+                    tex = ray.LoadTexture(str(tex_file).encode(encoding))
+                    self.textures[folder.stem][tex_name] = Texture(tex_name, tex, tex_mapping)
+                    self._read_tex_obj_data(tex_mapping, self.textures[folder.stem][tex_name])
                 else:
-                    raise Exception(f"texture.json file missing from {zip_path}")
-
-                self.textures[zip_path.stem] = dict()
-
-                encoding = sys.getfilesystemencoding()
-                for tex_name in tex_mapping_data:
-                    if f"{tex_name}/" in zip_ref.namelist():
-                        tex_mapping = tex_mapping_data[tex_name]
-
-                        with tempfile.TemporaryDirectory() as temp_dir:
-                            zip_ref.extractall(temp_dir, members=[name for name in zip_ref.namelist()
-                                                                if name.startswith(tex_name)])
-
-                            extracted_path = Path(temp_dir) / tex_name
-                            if extracted_path.is_dir():
-                                frames = [ray.LoadTexture(str(frame).encode(encoding)) for frame in sorted(extracted_path.iterdir(),
-                                            key=lambda x: int(x.stem)) if frame.is_file()]
-                            else:
-                                frames = [ray.LoadTexture(str(extracted_path).encode(encoding))]
-                        self.textures[zip_path.stem][tex_name] = FramedTexture(tex_name, frames, tex_mapping)
-                        self._read_tex_obj_data(tex_mapping, self.textures[zip_path.stem][tex_name])
-                    elif f"{tex_name}.png" in zip_ref.namelist():
-                        tex_mapping = tex_mapping_data[tex_name]
-
-                        png_filename = f"{tex_name}.png"
-                        with tempfile.NamedTemporaryFile(suffix='.png', delete=False) as temp_file:
-                            temp_file.write(zip_ref.read(png_filename))
-                            temp_path = temp_file.name
-
-                        try:
-                            tex = ray.LoadTexture(temp_path.encode(encoding))
-                            self.textures[zip_path.stem][tex_name] = Texture(tex_name, tex, tex_mapping)
-                            self._read_tex_obj_data(tex_mapping, self.textures[zip_path.stem][tex_name])
-                        finally:
-                            os.unlink(temp_path)
-                    else:
-                        logger.error(f"Texture {tex_name} was not found in {zip_path}")
-
-            json_note = f" (texture.json from {texture_json_source})" if texture_json_source == "parent" else ""
-            logger.info(f"Textures loaded from zip: {zip_path}{json_note}")
+                    logger.error(f"Texture {tex_name} was not found in {folder}")
+            logger.info(f"Textures loaded from zip: {folder}")
         except Exception as e:
-            logger.error(f"Failed to load textures from zip {zip_path}: {e}")
+            logger.error(f"Failed to load textures from zip {folder}: {e}")
 
     def load_screen_textures(self, screen_name: str) -> None:
         """Load textures for a screen."""
