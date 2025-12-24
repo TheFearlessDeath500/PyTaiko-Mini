@@ -23,7 +23,7 @@ class TwoPlayerGameScreen(GameScreen):
 
     def load_hitsounds(self):
         """Load the hit sounds"""
-        sounds_dir = Path("Sounds")
+        sounds_dir = Path(f"Skins/{global_data.config["paths"]["skin"]}/Sounds")
 
         # Load hitsounds for 1P
         if global_data.hit_sound[PlayerNum.P1] == -1:

@@ -1,9 +1,7 @@
 import copy
 import json
-import os
 import logging
 import sys
-import tempfile
 from pathlib import Path
 from typing import Any, Optional
 
@@ -73,8 +71,8 @@ class TextureWrapper:
         self.textures: dict[str, dict[str, Texture | FramedTexture]] = dict()
         self.animations: dict[int, BaseAnimation] = dict()
         self.skin_config: dict[str, SkinInfo] = dict()
-        self.graphics_path = Path(get_config()['paths']['graphics_path'])
-        self.parent_graphics_path = Path(get_config()['paths']['graphics_path'])
+        self.graphics_path = Path(f'Skins/{get_config()['paths']['skin']}/Graphics')
+        self.parent_graphics_path = Path(f'Skins/{get_config()['paths']['skin']}/Graphics')
         if not (self.graphics_path / "skin_config.json").exists():
             raise Exception("skin is missing a skin_config.json")
 
@@ -87,7 +85,7 @@ class TextureWrapper:
         self.screen_scale = self.screen_width / 1280
         if "parent" in data["screen"]:
             parent = data["screen"]["parent"]
-            self.parent_graphics_path = Path("Graphics") / parent
+            self.parent_graphics_path = Path("Skins") / parent
             parent_data = json.loads((self.parent_graphics_path / "skin_config.json").read_text())
             for k, v in parent_data.items():
                 self.skin_config[k] = SkinInfo(v.get('x', 0) * self.screen_scale, v.get('y', 0) * self.screen_scale, v.get('font_size', 0) * self.screen_scale, v.get('width', 0) * self.screen_scale, v.get('height', 0) * self.screen_scale)
@@ -189,7 +187,7 @@ class TextureWrapper:
         if screen_name in self.textures and subset in self.textures[screen_name]:
             return
         try:
-            if not os.path.isfile(folder / 'texture.json'):
+            if not (folder / 'texture.json').exists():
                 raise Exception(f"texture.json file missing from {folder}")
 
             with open(folder / 'texture.json') as json_file:
@@ -205,7 +203,7 @@ class TextureWrapper:
                 if tex_dir.is_dir():
                     frames = [ray.LoadTexture(str(frame).encode(encoding)) for frame in sorted(tex_dir.iterdir(),
                                 key=lambda x: int(x.stem)) if frame.is_file()]
-                    self.textures[folder.stem][tex_name] = Texture(tex_name, frames, tex_mapping)
+                    self.textures[folder.stem][tex_name] = FramedTexture(tex_name, frames, tex_mapping)
                     self._read_tex_obj_data(tex_mapping, self.textures[folder.stem][tex_name])
                 elif tex_file.is_file():
                     tex = ray.LoadTexture(str(tex_file).encode(encoding))
@@ -230,7 +228,7 @@ class TextureWrapper:
 
         # Load zip files from child screen path only
         for zip_file in screen_path.iterdir():
-            if zip_file.is_file() and zip_file.suffix == ".zip":
+            if zip_file.is_dir():
                 self.load_zip(screen_name, zip_file.stem)
 
         logger.info(f"Screen textures loaded for: {screen_name}")

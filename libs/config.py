@@ -30,8 +30,7 @@ class NameplateConfig(TypedDict):
 
 class PathsConfig(TypedDict):
     tja_path: list[Path]
-    video_path: list[Path]
-    graphics_path: Path
+    skin: Path
 
 class KeysConfig(TypedDict):
     exit_key: int

@@ -29,9 +29,7 @@ rainbow = false
 
 [paths]
 tja_path = ['Songs']
-video_path = ['Videos']
-#You can change this path to Graphics/GreenVer1080 for the 1080p skin
-graphics_path = 'Graphics/GreenVer'
+skin = 'PyTaikoGreen'
 
 [keys]
 exit_key = 'Q'

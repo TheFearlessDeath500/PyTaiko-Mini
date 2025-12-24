@@ -131,7 +131,7 @@ class AudioEngine:
         self.audio_device_ready = False
         self.volume_presets = volume_presets
 
-        self.sounds_path = Path("Sounds")
+        self.sounds_path = Path(f"Skins/{get_config()["paths"]["skin"]}/Sounds")
 
     def set_log_level(self, level: int):
         lib.set_log_level(level) # type: ignore

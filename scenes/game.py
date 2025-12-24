@@ -116,7 +116,7 @@ class GameScreen(Screen):
 
     def load_hitsounds(self):
         """Load the hit sounds"""
-        sounds_dir = Path("Sounds")
+        sounds_dir = Path(f"Skins/{global_data.config["paths"]["skin"]}/Sounds")
         if global_data.hit_sound == -1:
             audio.load_sound(Path('none.wav'), 'hitsound_don_1p')
             audio.load_sound(Path('none.wav'), 'hitsound_kat_1p')

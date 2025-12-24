@@ -25,16 +25,11 @@ class State:
 class TitleScreen(Screen):
     def __init__(self, name: str):
         super().__init__(name)
-        #normalize to accept both stings and lists in toml
-        #maybe normalize centrally? but it's used only here
-        vp = global_data.config["paths"]["video_path"]
-        video_paths = [vp] if isinstance(vp, str) else vp
         self.op_video_list = []
         self.attract_video_list = []
-        for base in video_paths:
-            base = Path(base)
-            self.op_video_list += list((base/"op_videos").glob("**/*.mp4"))
-            self.attract_video_list += list((base/"attract_videos").glob("**/*.mp4"))
+        base = Path(f"Skins/{global_data.config["paths"]["skin"]}/Videos")
+        self.op_video_list += list((base/"op_videos").glob("**/*.mp4"))
+        self.attract_video_list += list((base/"attract_videos").glob("**/*.mp4"))
         self.coin_overlay = CoinOverlay()
         self.allnet_indicator = AllNetIcon()
         self.entry_overlay = EntryOverlay()
