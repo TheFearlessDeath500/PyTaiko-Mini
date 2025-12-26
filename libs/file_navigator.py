@@ -864,10 +864,11 @@ class ScoreHistory:
                     tex.draw_texture('leaderboard', 'shinuchi_ura', index=self.long)
                 else:
                     tex.draw_texture('leaderboard', 'shinuchi', index=self.long)
+                tex.draw_texture('leaderboard', 'pts', color=ray.WHITE, index=self.long)
             case ScoreMethod.GEN3:
                     tex.draw_texture('leaderboard', 'normal', index=self.long)
+                    tex.draw_texture('leaderboard', 'pts', color=ray.BLACK, index=self.long)
 
-        tex.draw_texture('leaderboard', 'pts', color=ray.WHITE, index=self.long)
         tex.draw_texture('leaderboard', 'difficulty', frame=self.curr_difficulty, index=self.long)
 
         for i in range(4):
@@ -891,7 +892,7 @@ class ScoreHistory:
                         case ScoreMethod.SHINUCHI:
                             tex.draw_texture('leaderboard', 'counter', frame=int(counter[i]), x=-((len(counter) * tex.skin_config["score_info_counter_margin"].width) // 2) + (i * tex.skin_config["score_info_counter_margin"].width), color=ray.WHITE, index=self.long)
                         case ScoreMethod.GEN3:
-                            tex.draw_texture('leaderboard', 'counter_gen3', frame=int(counter[i]), x=-((len(counter) * tex.skin_config["score_info_counter_margin"].width) // 2) + (i * tex.skin_config["score_info_counter_margin"].width), color=ray.WHITE, index=self.long)
+                            tex.draw_texture('leaderboard', 'counter', frame=int(counter[i]), x=-((len(counter) * tex.skin_config["score_info_counter_margin"].width) // 2) + (i * tex.skin_config["score_info_counter_margin"].width), color=ray.BLACK, index=self.long)
                 else:
                     tex.draw_texture('leaderboard', 'judge_num', frame=int(counter[i]), x=-(len(counter) - i) * margin, y=j*tex.skin_config["score_info_bg_offset"].y)
 
