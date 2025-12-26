@@ -480,13 +480,14 @@ class SongSelectPlayer:
             audio.play_sound('skip', 'sound')
             return "skip_right"
 
+        wheel = ray.get_mouse_wheel_move()
         # Navigate left
-        if is_l_kat_pressed(self.player_num):
+        if is_l_kat_pressed(self.player_num) or wheel > 0:
             audio.play_sound('kat', 'sound')
             return "navigate_left"
 
         # Navigate right
-        if is_r_kat_pressed(self.player_num):
+        if is_r_kat_pressed(self.player_num) or wheel < 0:
             audio.play_sound('kat', 'sound')
             return "navigate_right"
 
