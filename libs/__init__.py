@@ -1,7 +1,7 @@
 """
 PyTaiko Libraries Package
 
-This package contains core libraries for the PyTaiko rhythm game.
+This package contains core libraries for PyTaiko.
 
 Modules:
     animation: Animation system for game objects
