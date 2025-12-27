@@ -72,6 +72,13 @@ class TextureWrapper:
         self.animations: dict[int, BaseAnimation] = dict()
         self.skin_config: dict[str, SkinInfo] = dict()
         self.graphics_path = Path(f'Skins/{get_config()['paths']['skin']}/Graphics')
+        if not self.graphics_path.exists():
+            logger.error("No skin has been configured")
+            self.screen_width = 1280
+            self.screen_height = 720
+            self.screen_scale = 1.0
+            self.skin_config = dict()
+            return
         self.parent_graphics_path = Path(f'Skins/{get_config()['paths']['skin']}/Graphics')
         if not (self.graphics_path / "skin_config.json").exists():
             raise Exception("skin is missing a skin_config.json")
