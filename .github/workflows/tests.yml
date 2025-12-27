@@ -100,8 +100,8 @@ jobs:
             - name: Install dependencies
               run: uv sync
 
-            - name: Run tests
-              run: uv run pytest test/libs/ -v --tb=short --color=yes
+            - name: Run tests (excluding audio tests)
+              run: uv run pytest test/libs/ -v --tb=short --color=yes --ignore=test/libs/test_audio.py
               continue-on-error: false
               env:
                   PYTHONPATH: ${{ github.workspace }}

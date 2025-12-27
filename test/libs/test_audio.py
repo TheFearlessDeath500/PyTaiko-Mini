@@ -69,7 +69,7 @@ class TestAudioEngine(unittest.TestCase):
         self.mock_config_path = self.sounds_dir
         # Store original audio singleton state to avoid test pollution
         self._original_audio_sounds_path = audio.sounds_path
-    
+
     def tearDown(self):
         """Tear down each test."""
         # Restore original audio singleton state
@@ -105,7 +105,7 @@ class TestAudioEngine(unittest.TestCase):
         mock_config.return_value = {"paths": {"skin": f"{self.sounds_dir}"}}
 
         engine = AudioEngine(0, 44100.0, 512, self.volume_presets, sounds_path=self.sounds_dir)
-        engine.set_log_level(10)
+
 
         # Initialize
         success = engine.init_audio_device()
@@ -122,7 +122,7 @@ class TestAudioEngine(unittest.TestCase):
         """Test master volume control."""
         mock_config.return_value = {"paths": {"skin": f"{self.sounds_dir}"}}
         engine = AudioEngine(0, 44100.0, 512, self.volume_presets, sounds_path=self.sounds_dir)
-        engine.set_log_level(10)
+
 
         if engine.init_audio_device():
             try:
@@ -147,7 +147,7 @@ class TestAudioEngine(unittest.TestCase):
         """Test loading and unloading sounds."""
         mock_config.return_value = {"paths": {"skin": f"{self.sounds_dir}"}}
         engine = AudioEngine(0, 44100.0, 512, self.volume_presets, sounds_path=self.sounds_dir)
-        engine.set_log_level(10)
+
 
         if engine.init_audio_device():
             try:
@@ -169,7 +169,7 @@ class TestAudioEngine(unittest.TestCase):
         """Test loading a non-existent sound file."""
         mock_config.return_value = {"paths": {"skin": f"{self.sounds_dir}"}}
         engine = AudioEngine(0, 44100.0, 512, self.volume_presets, sounds_path=self.sounds_dir)
-        engine.set_log_level(10)
+
 
         if engine.init_audio_device():
             try:
@@ -184,7 +184,7 @@ class TestAudioEngine(unittest.TestCase):
         """Test playing and stopping sounds."""
         mock_config.return_value = {"paths": {"skin": f"{self.sounds_dir}"}}
         engine = AudioEngine(0, 44100.0, 512, self.volume_presets, sounds_path=self.sounds_dir)
-        engine.set_log_level(10)
+
 
         if engine.init_audio_device():
             try:
@@ -214,7 +214,7 @@ class TestAudioEngine(unittest.TestCase):
         """Test playing the special don and kat sounds."""
         mock_config.return_value = {"paths": {"skin": f"{self.sounds_dir}"}}
         engine = AudioEngine(0, 44100.0, 512, self.volume_presets, sounds_path=self.sounds_dir)
-        engine.set_log_level(10)
+
 
         if engine.init_audio_device():
             try:
@@ -238,7 +238,7 @@ class TestAudioEngine(unittest.TestCase):
         """Test setting sound volume."""
         mock_config.return_value = {"paths": {"skin": f"{self.sounds_dir}"}}
         engine = AudioEngine(0, 44100.0, 512, self.volume_presets, sounds_path=self.sounds_dir)
-        engine.set_log_level(10)
+
 
         if engine.init_audio_device():
             try:
@@ -257,7 +257,7 @@ class TestAudioEngine(unittest.TestCase):
         """Test setting sound pan."""
         mock_config.return_value = {"paths": {"skin": f"{self.sounds_dir}"}}
         engine = AudioEngine(0, 44100.0, 512, self.volume_presets, sounds_path=self.sounds_dir)
-        engine.set_log_level(10)
+
 
         if engine.init_audio_device():
             try:
@@ -277,7 +277,7 @@ class TestAudioEngine(unittest.TestCase):
         """Test loading sounds for a screen."""
         mock_config.return_value = {"paths": {"skin": f"{self.sounds_dir}"}}
         engine = AudioEngine(0, 44100.0, 512, self.volume_presets, sounds_path=self.sounds_dir)
-        engine.set_log_level(10)
+
 
         if engine.init_audio_device():
             try:
@@ -298,7 +298,7 @@ class TestAudioEngine(unittest.TestCase):
         """Test unloading all sounds."""
         mock_config.return_value = {"paths": {"skin": f"{self.sounds_dir}"}}
         engine = AudioEngine(0, 44100.0, 512, self.volume_presets, sounds_path=self.sounds_dir)
-        engine.set_log_level(10)
+
 
         if engine.init_audio_device():
             try:
@@ -321,7 +321,7 @@ class TestAudioEngine(unittest.TestCase):
         """Test loading and playing music streams."""
         mock_config.return_value = {"paths": {"skin": f"{self.sounds_dir}"}}
         engine = AudioEngine(0, 44100.0, 512, self.volume_presets, sounds_path=self.sounds_dir)
-        engine.set_log_level(10)
+
 
         if engine.init_audio_device():
             try:
@@ -353,7 +353,7 @@ class TestAudioEngine(unittest.TestCase):
         """Test getting music time length and played."""
         mock_config.return_value = {"paths": {"skin": f"{self.sounds_dir}"}}
         engine = AudioEngine(0, 44100.0, 512, self.volume_presets, sounds_path=self.sounds_dir)
-        engine.set_log_level(10)
+
 
         if engine.init_audio_device():
             try:
@@ -384,7 +384,7 @@ class TestAudioEngine(unittest.TestCase):
         """Test setting music volume."""
         mock_config.return_value = {"paths": {"skin": f"{self.sounds_dir}"}}
         engine = AudioEngine(0, 44100.0, 512, self.volume_presets, sounds_path=self.sounds_dir)
-        engine.set_log_level(10)
+
 
         if engine.init_audio_device():
             try:
@@ -402,7 +402,7 @@ class TestAudioEngine(unittest.TestCase):
         """Test seeking in music stream."""
         mock_config.return_value = {"paths": {"skin": f"{self.sounds_dir}"}}
         engine = AudioEngine(0, 44100.0, 512, self.volume_presets, sounds_path=self.sounds_dir)
-        engine.set_log_level(10)
+
 
         if engine.init_audio_device():
             try:
@@ -420,7 +420,7 @@ class TestAudioEngine(unittest.TestCase):
         """Test unloading music stream."""
         mock_config.return_value = {"paths": {"skin": f"{self.sounds_dir}"}}
         engine = AudioEngine(0, 44100.0, 512, self.volume_presets, sounds_path=self.sounds_dir)
-        engine.set_log_level(10)
+
 
 
         if engine.init_audio_device():
@@ -441,7 +441,7 @@ class TestAudioEngine(unittest.TestCase):
         """Test unloading all music streams."""
         mock_config.return_value = {"paths": {"skin": f"{self.sounds_dir}"}}
         engine = AudioEngine(0, 44100.0, 512, self.volume_presets, sounds_path=self.sounds_dir)
-        engine.set_log_level(10)
+
 
         if engine.init_audio_device():
             try:
@@ -463,7 +463,7 @@ class TestAudioEngine(unittest.TestCase):
         """Test host API query functions."""
         mock_config.return_value = {"paths": {"skin": f"{self.sounds_dir}"}}
         engine = AudioEngine(0, 44100.0, 512, self.volume_presets, sounds_path=self.sounds_dir)
-        engine.set_log_level(10)
+
         engine.init_audio_device()
 
         # List host APIs (should not crash)
@@ -478,7 +478,7 @@ class TestAudioEngine(unittest.TestCase):
         """Test complete audio engine lifecycle."""
         mock_config.return_value = {"paths": {"skin": f"{self.sounds_dir}"}}
         engine = AudioEngine(0, 44100.0, 512, self.volume_presets, sounds_path=self.sounds_dir)
-        engine.set_log_level(10)
+
 
         if engine.init_audio_device():
             try:

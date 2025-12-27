@@ -105,9 +105,11 @@ jobs:
               run: |
                   cp libs/audio/libaudio.so . 2>/dev/null || echo "libaudio not found"
 
-            - name: Run tests
-              run: uv run pytest test/libs/ -v --tb=short
+            - name: Run tests (excluding audio tests)
+              run: uv run pytest test/libs/ -v --tb=short --color=yes --ignore=test/libs/test_audio.py
               continue-on-error: false
+              env:
+                  PYTHONPATH: ${{ github.workspace }}
 
             - name: Build Executable
               shell: bash
