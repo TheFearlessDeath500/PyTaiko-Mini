@@ -8,6 +8,7 @@ A TJA player and Taiko simulator written in Python using the [raylib](https://ww
 [![GitHub Stars](https://img.shields.io/github/stars/Yonokid/PyTaiko?style=flat&label=stars)](https://github.com/Yonokid/PyTaiko/stargazers)
 [![Discord Members](https://img.shields.io/discord/722513061419810946.svg?label=Discord&logo=discord)](https://discord.gg/XHcVYKW)
 [![Builds](https://github.com/Yonokid/PyTaiko/actions/workflows/python-app.yml/badge.svg)](https://github.com/Yonokid/PyTaiko/actions/workflows/python-app.yml)
+[![Tests](https://github.com/Yonokid/PyTaiko/actions/workflows/tests.yml/badge.svg)](https://github.com/Yonokid/PyTaiko/actions/workflows/tests.yml)
 
 <img src="/docs/demo.gif">
 
