@@ -1,6 +1,6 @@
 [project]
 name = "pytaiko"
-version = "1.0"
+version = "1.1"
 description = "Taiko no Tatsujin simulator written in python and raylib"
 readme = "README.md"
 requires-python = ">=3.13"
