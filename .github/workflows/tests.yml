@@ -23,8 +23,6 @@ jobs:
         steps:
             - name: Check-out repository
               uses: actions/checkout@v4
-              with:
-                  submodules: recursive
 
             - name: Install libaudio Dependencies (macOS)
               if: runner.os == 'macOS'
