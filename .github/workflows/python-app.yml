@@ -84,6 +84,31 @@ jobs:
             - name: Setup Python
               run: uv python install
 
+            - name: Install dependencies
+              run: uv sync
+
+            - name: Copy libaudio to project root (Windows)
+              if: runner.os == 'Windows'
+              shell: bash
+              run: |
+                  cp libs/audio/*.dll . 2>/dev/null || echo "libaudio not found"
+
+            - name: Copy libaudio to project root (macOS)
+              if: runner.os == 'macOS'
+              shell: bash
+              run: |
+                  cp libs/audio/libaudio.dylib . 2>/dev/null || echo "libaudio not found"
+
+            - name: Copy libaudio to project root (Linux)
+              if: runner.os == 'Linux'
+              shell: bash
+              run: |
+                  cp libs/audio/libaudio.so . 2>/dev/null || echo "libaudio not found"
+
+            - name: Run tests
+              run: uv run pytest test/libs/ -v --tb=short
+              continue-on-error: false
+
             - name: Build Executable
               shell: bash
               run: |

@@ -119,7 +119,8 @@ except OSError as e:
 
 class AudioEngine:
     """Initialize an audio engine for playing sounds and music."""
-    def __init__(self, device_type: int, sample_rate: float, buffer_size: int, volume_presets: VolumeConfig):
+    def __init__(self, device_type: int, sample_rate: float, buffer_size: int,
+                 volume_presets: VolumeConfig, sounds_path: Path | None = None):
         self.device_type = max(device_type, 0)
         if sample_rate < 0:
             self.target_sample_rate = 44100
@@ -131,7 +132,10 @@ class AudioEngine:
         self.audio_device_ready = False
         self.volume_presets = volume_presets
 
-        self.sounds_path = Path(f"Skins/{get_config()["paths"]["skin"]}/Sounds")
+        if sounds_path is None:
+            self.sounds_path = Path(f"Skins/{get_config()['paths']['skin']}/Sounds")
+        else:
+            self.sounds_path = sounds_path
 
     def set_log_level(self, level: int):
         lib.set_log_level(level) # type: ignore

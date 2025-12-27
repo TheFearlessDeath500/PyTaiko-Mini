@@ -7,8 +7,46 @@ requires-python = ">=3.13"
 dependencies = [
     "av>=16.0.1",
     "pypresence>=4.6.1",
+    "pytest>=9.0.2",
     "raylib-sdl>=5.5.0.2",
     "tomlkit>=0.13.3",
+]
+
+[tool.pytest.ini_options]
+testpaths = ["test"]
+python_files = "test_*.py"
+python_classes = "Test*"
+python_functions = "test_*"
+addopts = [
+    "-v",
+    "--strict-markers",
+    "--tb=short",
+    "--color=yes",
+]
+markers = [
+    "slow: marks tests as slow (deselect with '-m \"not slow\"')",
+    "integration: marks tests as integration tests",
+]
+
+[tool.coverage.run]
+source = ["libs"]
+omit = [
+    "*/test/*",
+    "*/__pycache__/*",
+    "*/venv/*",
+    "*/.venv/*",
+]
+
+[tool.coverage.report]
+exclude_lines = [
+    "pragma: no cover",
+    "def __repr__",
+    "raise AssertionError",
+    "raise NotImplementedError",
+    "if __name__ == .__main__.:",
+    "if TYPE_CHECKING:",
+    "class .*\\bProtocol\\):",
+    "@(abc\\.)?abstractmethod",
 ]
 
 [tool.vulture]
@@ -18,4 +56,5 @@ paths = ["."]
 [dependency-groups]
 dev = [
     "nuitka>=2.8.4",
+    "pytest-cov>=6.0.0",
 ]
