@@ -193,14 +193,7 @@ def update_camera_for_window_size(camera, virtual_width, virtual_height):
 
     camera.rotation = global_data.camera.rotation
 
-def main():
-    force_dedicated_gpu()
-    global_data.config = get_config()
-    match global_data.config["general"]["score_method"]:
-        case ScoreMethod.GEN3:
-            global_data.score_db = 'scores_gen3.db'
-        case ScoreMethod.SHINUCHI:
-            global_data.score_db = 'scores.db'
+def setup_logging():
     log_level = global_data.config["general"]["log_level"]
     if sys.platform == 'win32':
         import io
@@ -219,12 +212,8 @@ def main():
         handlers=[console_handler, file_handler]
     )
     sys.excepthook = handle_exception
-    logger.info("Starting PyTaiko")
 
-    logger.debug(f"Loaded config: {global_data.config}")
-    screen_width = global_tex.screen_width
-    screen_height = global_tex.screen_height
-
+def set_config_flags():
     if global_data.config["video"]["vsync"]:
         ray.set_config_flags(ray.ConfigFlags.FLAG_VSYNC_HINT)
         logger.info("VSync enabled")
@@ -235,54 +224,8 @@ def main():
     ray.set_config_flags(ray.ConfigFlags.FLAG_WINDOW_RESIZABLE)
     ray.set_trace_log_level(ray.TraceLogLevel.LOG_WARNING)
 
-    ray.init_window(screen_width, screen_height, "PyTaiko")
-    logger.info(f"Window initialized: {screen_width}x{screen_height}")
-    global_tex.load_screen_textures('global')
-    logger.info("Global screen textures loaded")
-    global_tex.load_zip('chara', 'chara_0')
-    global_tex.load_zip('chara', 'chara_1')
-    logger.info("Chara textures loaded")
-    if global_data.config["video"]["borderless"]:
-        ray.toggle_borderless_windowed()
-        logger.info("Borderless window enabled")
-    if global_data.config["video"]["fullscreen"]:
-        ray.toggle_fullscreen()
-        logger.info("Fullscreen enabled")
-
-    current_screen = Screens.LOADING
-
-    if len(sys.argv) == 1:
-        pass
-    else:
-        parser = argparse.ArgumentParser(description='Launch game with specified song file')
-        parser.add_argument('song_path', type=str, help='Path to the TJA song file')
-        parser.add_argument('difficulty', type=int, nargs='?', default=None,
-                            help='Difficulty level (optional, defaults to max difficulty)')
-        parser.add_argument('--auto', action='store_true',
-                            help='Enable auto mode')
-        parser.add_argument('--practice', action='store_true',
-                            help='Start in practice mode')
-        args = parser.parse_args()
-        path = Path(args.song_path)
-        if not path.exists():
-            parser.error(f"Song file not found: {args.song_path}")
-        else:
-            path = Path(os.path.abspath(path))
-            tja = TJAParser(path)
-            if args.difficulty is not None:
-                if args.difficulty not in tja.metadata.course_data.keys():
-                    parser.error(f"Invalid difficulty: {args.difficulty}. Available: {list(tja.metadata.course_data.keys())}")
-                selected_difficulty = args.difficulty
-            else:
-                selected_difficulty = max(tja.metadata.course_data.keys())
-            current_screen = Screens.GAME_PRACTICE if args.practice else Screens.GAME
-            global_data.session_data[PlayerNum.P1].selected_song = path
-            global_data.session_data[PlayerNum.P1].selected_difficulty = selected_difficulty
-            global_data.modifiers[PlayerNum.P1].auto = args.auto
-
-    logger.info(f"Initial screen: {current_screen}")
-
-    audio.set_log_level((log_level-1)//10)
+def init_audio():
+    audio.set_log_level((logger.level-1)//10)
     old_stderr = os.dup(2)
     devnull = os.open(os.devnull, os.O_WRONLY)
     os.dup2(devnull, 2)
@@ -291,6 +234,99 @@ def main():
     os.dup2(old_stderr, 2)
     os.close(old_stderr)
     logger.info("Audio device initialized")
+
+def check_args():
+    if len(sys.argv) == 1:
+        return Screens.LOADING
+
+    parser = argparse.ArgumentParser(description='Launch game with specified song file')
+    parser.add_argument('song_path', type=str, help='Path to the TJA song file')
+    parser.add_argument('difficulty', type=int, nargs='?', default=None,
+                        help='Difficulty level (optional, defaults to max difficulty)')
+    parser.add_argument('--auto', action='store_true',
+                        help='Enable auto mode')
+    parser.add_argument('--practice', action='store_true',
+                        help='Start in practice mode')
+    args = parser.parse_args()
+    path = Path(args.song_path)
+    if not path.exists():
+        parser.error(f"Song file not found: {args.song_path}")
+    else:
+        path = Path(os.path.abspath(path))
+        tja = TJAParser(path)
+        if args.difficulty is not None:
+            if args.difficulty not in tja.metadata.course_data.keys():
+                parser.error(f"Invalid difficulty: {args.difficulty}. Available: {list(tja.metadata.course_data.keys())}")
+            selected_difficulty = args.difficulty
+        else:
+            selected_difficulty = max(tja.metadata.course_data.keys())
+        current_screen = Screens.GAME_PRACTICE if args.practice else Screens.GAME
+        global_data.session_data[PlayerNum.P1].selected_song = path
+        global_data.session_data[PlayerNum.P1].selected_difficulty = selected_difficulty
+        global_data.modifiers[PlayerNum.P1].auto = args.auto
+        return current_screen
+
+def check_discord_heartbeat(current_screen):
+    if global_data.session_data[global_data.player_num].selected_song != Path():
+        details = f"Playing Song: {global_data.session_data[global_data.player_num].song_title}"
+    else:
+        details = "Idling"
+    RPC.update(
+        state=f"In Screen {current_screen}",
+        details=details,
+        large_text="PyTaiko",
+        start=get_current_ms()/1000,
+        buttons=[{"label": "Play Now", "url": "https://github.com/Yonokid/PyTaiko"}]
+    )
+
+def draw_fps(last_fps: int):
+    curr_fps = ray.get_fps()
+    if curr_fps != 0 and curr_fps != last_fps:
+        last_fps = curr_fps
+    if last_fps < 30:
+        ray.draw_text(f'{last_fps} FPS', 20, 20, 20, ray.RED)
+    elif last_fps < 60:
+        ray.draw_text(f'{last_fps} FPS', 20, 20, 20, ray.YELLOW)
+    else:
+        ray.draw_text(f'{last_fps} FPS', 20, 20, 20, ray.LIME)
+
+def draw_outer_border(screen_width: int, screen_height: int, last_color: ray.Color):
+    ray.draw_rectangle(-screen_width, 0, screen_width, screen_height, last_color)
+    ray.draw_rectangle(screen_width, 0, screen_width, screen_height, last_color)
+    ray.draw_rectangle(0, -screen_height, screen_width, screen_height, last_color)
+    ray.draw_rectangle(0, screen_height, screen_width, screen_height, last_color)
+
+def main():
+    force_dedicated_gpu()
+
+    global_data.config = get_config()
+    match global_data.config["general"]["score_method"]:
+        case ScoreMethod.GEN3:
+            global_data.score_db = 'scores_gen3.db'
+        case ScoreMethod.SHINUCHI:
+            global_data.score_db = 'scores.db'
+    setup_logging()
+    logger.info("Starting PyTaiko")
+    logger.debug(f"Loaded config: {global_data.config}")
+    screen_width = global_tex.screen_width
+    screen_height = global_tex.screen_height
+
+    ray.init_window(screen_width, screen_height, "PyTaiko")
+
+    logger.info(f"Window initialized: {screen_width}x{screen_height}")
+    global_tex.load_screen_textures('global')
+    global_tex.load_zip('chara', 'chara_0')
+    global_tex.load_zip('chara', 'chara_1')
+    if global_data.config["video"]["borderless"]:
+        ray.toggle_borderless_windowed()
+        logger.info("Borderless window enabled")
+    if global_data.config["video"]["fullscreen"]:
+        ray.toggle_fullscreen()
+        logger.info("Fullscreen enabled")
+
+    current_screen = check_args()
+
+    logger.info(f"Initial screen: {current_screen}")
 
     create_song_db()
 
@@ -346,17 +382,7 @@ def main():
 
     while not ray.window_should_close():
         if discord_connected:
-            if global_data.session_data[global_data.player_num].selected_song != Path():
-                details = f"Playing Song: {global_data.session_data[global_data.player_num].song_title}"
-            else:
-                details = "Idling"
-            RPC.update(
-                state=f"In Screen {current_screen}",
-                details=details,
-                large_text="PyTaiko",
-                start=get_current_ms()/1000,
-                buttons=[{"label": "Play Now", "url": "https://github.com/Yonokid/PyTaiko"}]
-            )
+            check_discord_heartbeat(current_screen)
 
         if ray.is_key_pressed(global_data.config["keys"]["fullscreen_key"]):
             ray.toggle_fullscreen()
@@ -388,20 +414,9 @@ def main():
             global_data.input_locked = 0
 
         if global_data.config["general"]["fps_counter"]:
-            curr_fps = ray.get_fps()
-            if curr_fps != 0 and curr_fps != last_fps:
-                last_fps = curr_fps
-            if last_fps < 30:
-                ray.draw_text(f'{last_fps} FPS', 20, 20, 20, ray.RED)
-            elif last_fps < 60:
-                ray.draw_text(f'{last_fps} FPS', 20, 20, 20, ray.YELLOW)
-            else:
-                ray.draw_text(f'{last_fps} FPS', 20, 20, 20, ray.LIME)
+            draw_fps(last_fps)
 
-        ray.draw_rectangle(-screen_width, 0, screen_width, screen_height, last_color)
-        ray.draw_rectangle(screen_width, 0, screen_width, screen_height, last_color)
-        ray.draw_rectangle(0, -screen_height, screen_width, screen_height, last_color)
-        ray.draw_rectangle(0, screen_height, screen_width, screen_height, last_color)
+        draw_outer_border(screen_width, screen_height, last_color)
 
         ray.end_blend_mode()
         ray.end_mode_2d()
