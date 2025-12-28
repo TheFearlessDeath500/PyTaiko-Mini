@@ -126,7 +126,7 @@ class SongSelectScreen(Screen):
         self.screen_init = False
         self.reset_demo_music()
         current_item = self.navigator.get_current_item()
-        if isinstance(current_item, SongFile):
+        if isinstance(current_item, SongFile) and self.player_1.is_ready:
             self.finalize_song(current_item)
         self.player_1.nameplate.unload()
         if isinstance(current_item.box, SongBox) and current_item.box.yellow_box is not None:
@@ -1104,7 +1104,7 @@ class NeiroSelector:
     def __init__(self, player_num: PlayerNum):
         self.player_num = player_num
         self.selected_sound = global_data.hit_sound[self.player_num]
-        with open(Path("Sounds") / 'hit_sounds' / 'neiro_list.txt', encoding='utf-8-sig') as neiro_list:
+        with open(Path('Skins') / global_data.config["paths"]["skin"] / Path("Sounds") / 'hit_sounds' / 'neiro_list.txt', encoding='utf-8-sig') as neiro_list:
             self.sounds = neiro_list.readlines()
             self.sounds.append('無音')
         self.load_sound()
@@ -1125,9 +1125,9 @@ class NeiroSelector:
         if self.selected_sound == len(self.sounds):
             return
         if self.selected_sound == 0:
-            self.curr_sound = audio.load_sound(Path("Sounds") / "hit_sounds" / str(self.selected_sound) / "don.wav", 'hit_sound')
+            self.curr_sound = audio.load_sound(Path('Skins') / global_data.config["paths"]["skin"] / Path("Sounds") / "hit_sounds" / str(self.selected_sound) / "don.wav", 'hit_sound')
         else:
-            self.curr_sound = audio.load_sound(Path("Sounds") / "hit_sounds" / str(self.selected_sound) / "don.ogg", 'hit_sound')
+            self.curr_sound = audio.load_sound(Path('Skins') / global_data.config["paths"]["skin"] / Path("Sounds") / "hit_sounds" / str(self.selected_sound) / "don.ogg", 'hit_sound')
 
     def move_left(self):
         if self.move.is_started and not self.move.is_finished:
