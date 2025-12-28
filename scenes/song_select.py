@@ -1219,12 +1219,19 @@ class ModifierSelector:
         "inverse": "mod_abekobe",
         "random": "mod_kimagure"
     }
-    NAME_MAP = {
+    NAME_MAP_JA = {
         "auto": "オート",
         "speed": "はやさ",
         "display": "ドロン",
         "inverse": "あべこべ",
         "random": "ランダム"
+    }
+    NAME_MAP_EN = {
+        "auto": "Auto",
+        "speed": "Speed",
+        "display": "Display",
+        "inverse": "Inverse",
+        "random": "Random"
     }
     def __init__(self, player_num: PlayerNum):
         self.player_num = player_num
@@ -1240,19 +1247,24 @@ class ModifierSelector:
         self.fade_sideways = tex.get_animation(32, is_copy=True)
         self.direction = -1
         audio.play_sound(f'voice_options_{self.player_num}p', 'sound')
-        self.text_name = [OutlinedText(ModifierSelector.NAME_MAP[mod.name], tex.skin_config["modifier_text"].font_size, ray.WHITE, outline_thickness=3.5) for mod in self.mods]
-        self.text_true = OutlinedText('する', tex.skin_config["modifier_text"].font_size, ray.WHITE, outline_thickness=3.5)
-        self.text_false = OutlinedText('しない', tex.skin_config["modifier_text"].font_size, ray.WHITE, outline_thickness=3.5)
+        self.language = global_data.config["general"]["language"]
+        if self.language == 'en':
+            name_map = ModifierSelector.NAME_MAP_EN
+        else:
+            name_map = ModifierSelector.NAME_MAP_JA
+        self.text_name = [OutlinedText(name_map[mod.name], tex.skin_config["modifier_text"].font_size, ray.WHITE, outline_thickness=3.5) for mod in self.mods]
+        self.text_true = OutlinedText(tex.skin_config["modifier_text_true"].text[self.language], tex.skin_config["modifier_text"].font_size, ray.WHITE, outline_thickness=3.5)
+        self.text_false = OutlinedText(tex.skin_config["modifier_text_false"].text[self.language], tex.skin_config["modifier_text"].font_size, ray.WHITE, outline_thickness=3.5)
         self.text_speed = OutlinedText(str(global_data.modifiers[self.player_num].speed), tex.skin_config["modifier_text"].font_size, ray.WHITE, outline_thickness=3.5)
-        self.text_kimagure = OutlinedText('きまぐれ', tex.skin_config["modifier_text"].font_size, ray.WHITE, outline_thickness=3.5)
-        self.text_detarame = OutlinedText('でたらめ', tex.skin_config["modifier_text"].font_size, ray.WHITE, outline_thickness=3.5)
+        self.text_kimagure = OutlinedText(tex.skin_config["modifier_text_kimagure"].text[self.language], tex.skin_config["modifier_text"].font_size, ray.WHITE, outline_thickness=3.5)
+        self.text_detarame = OutlinedText(tex.skin_config["modifier_text_detarame"].text[self.language], tex.skin_config["modifier_text"].font_size, ray.WHITE, outline_thickness=3.5)
 
         # Secondary text objects for animation
-        self.text_true_2 = OutlinedText('する', tex.skin_config["modifier_text"].font_size, ray.WHITE, outline_thickness=3.5)
-        self.text_false_2 = OutlinedText('しない', tex.skin_config["modifier_text"].font_size, ray.WHITE, outline_thickness=3.5)
+        self.text_true_2 = OutlinedText(tex.skin_config["modifier_text_true"].text[self.language], tex.skin_config["modifier_text"].font_size, ray.WHITE, outline_thickness=3.5)
+        self.text_false_2 = OutlinedText(tex.skin_config["modifier_text_false"].text[self.language], tex.skin_config["modifier_text"].font_size, ray.WHITE, outline_thickness=3.5)
         self.text_speed_2 = OutlinedText(str(global_data.modifiers[self.player_num].speed), tex.skin_config["modifier_text"].font_size, ray.WHITE, outline_thickness=3.5)
-        self.text_kimagure_2 = OutlinedText('きまぐれ', tex.skin_config["modifier_text"].font_size, ray.WHITE, outline_thickness=3.5)
-        self.text_detarame_2 = OutlinedText('でたらめ', tex.skin_config["modifier_text"].font_size, ray.WHITE, outline_thickness=3.5)
+        self.text_kimagure_2 = OutlinedText(tex.skin_config["modifier_text_kimagure"].text[self.language], tex.skin_config["modifier_text"].font_size, ray.WHITE, outline_thickness=3.5)
+        self.text_detarame_2 = OutlinedText(tex.skin_config["modifier_text_detarame"].text[self.language], tex.skin_config["modifier_text"].font_size, ray.WHITE, outline_thickness=3.5)
 
     def update(self, current_ms):
         self.is_finished = self.is_confirmed and self.move.is_finished
@@ -1293,20 +1305,20 @@ class ModifierSelector:
             if current_value:
                 self.text_true.unload()
                 self.text_true = self.text_true_2
-                self.text_true_2 = OutlinedText('する', tex.skin_config["modifier_text"].font_size, ray.WHITE, outline_thickness=3.5)
+                self.text_true_2 = OutlinedText(tex.skin_config["modifier_text_true"].text[self.language], tex.skin_config["modifier_text"].font_size, ray.WHITE, outline_thickness=3.5)
             else:
                 self.text_false.unload()
                 self.text_false = self.text_false_2
-                self.text_false_2 = OutlinedText('しない', tex.skin_config["modifier_text"].font_size, ray.WHITE, outline_thickness=3.5)
+                self.text_false_2 = OutlinedText(tex.skin_config["modifier_text_false"].text[self.language], tex.skin_config["modifier_text"].font_size, ray.WHITE, outline_thickness=3.5)
         elif current_mod.name == 'random':
             if current_value == 1:
                 self.text_kimagure.unload()
                 self.text_kimagure = self.text_kimagure_2
-                self.text_kimagure_2 = OutlinedText('きまぐれ', tex.skin_config["modifier_text"].font_size, ray.WHITE, outline_thickness=3.5)
+                self.text_kimagure_2 = OutlinedText(tex.skin_config["modifier_text_kimagure"].text[self.language], tex.skin_config["modifier_text"].font_size, ray.WHITE, outline_thickness=3.5)
             elif current_value == 2:
                 self.text_detarame.unload()
                 self.text_detarame = self.text_detarame_2
-                self.text_detarame_2 = OutlinedText('でたらめ', tex.skin_config["modifier_text"].font_size, ray.WHITE, outline_thickness=3.5)
+                self.text_detarame_2 = OutlinedText(tex.skin_config["modifier_text_detarame"].text[self.language], tex.skin_config["modifier_text"].font_size, ray.WHITE, outline_thickness=3.5)
 
     def left(self):
         if self.is_confirmed:

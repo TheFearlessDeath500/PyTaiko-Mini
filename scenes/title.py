@@ -43,7 +43,7 @@ class TitleScreen(Screen):
         self.coin_overlay = CoinOverlay()
         self.allnet_indicator = AllNetIcon()
         self.entry_overlay = EntryOverlay()
-        self.hit_taiko_text = OutlinedText(global_tex.skin_config["hit_taiko_to_start"].text[global_data.config["general"]["language"]], tex.skin_config["hit_taiko_to_start"].font_size, ray.WHITE, spacing=5)
+        self.hit_taiko_text = OutlinedText(global_tex.skin_config["hit_taiko_to_start"].text[global_data.config["general"]["language"]], tex.skin_config["hit_taiko_to_start"].font_size, ray.WHITE, spacing=5, outline_thickness=4)
         self.fade_out = tex.get_animation(13)
         self.text_overlay_fade = tex.get_animation(14)
 

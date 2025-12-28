@@ -56,6 +56,9 @@ class EntryScreen(Screen):
         self.chara = Chara2D(0)
         self.announce_played = False
         self.players: list[Optional[EntryPlayer]] = [None, None]
+
+        self.text_cancel = OutlinedText(tex.skin_config["entry_cancel"].text[global_data.config["general"]["language"]], tex.skin_config["entry_cancel"].font_size, ray.WHITE, outline_thickness=4, spacing=-4)
+        self.text_question = OutlinedText(tex.skin_config["entry_question"].text[global_data.config["general"]["language"]], tex.skin_config["entry_question"].font_size, ray.WHITE, outline_thickness=4, spacing=-1)
         audio.play_sound('bgm', 'music')
 
     def on_screen_end(self, next_screen: str):
@@ -164,7 +167,7 @@ class EntryScreen(Screen):
         tex.draw_texture('side_select', 'box_right', fade=fade)
         tex.draw_texture('side_select', 'box_center', fade=fade)
 
-        tex.draw_texture('side_select', 'question', fade=fade)
+        self.text_question.draw(outline_color=ray.BLACK, x=tex.skin_config["entry_question"].x-self.text_question.texture.width//2, y=tex.skin_config["entry_question"].y, fade=fade)
 
         self.chara.draw(tex.skin_config["chara_entry"].x, tex.skin_config["chara_entry"].y)
 
@@ -180,7 +183,7 @@ class EntryScreen(Screen):
         else:
             tex.draw_texture('side_select', '2P_highlight', fade=fade)
             tex.draw_texture('side_select', '1P2P_outline', index=1, fade=fade)
-        tex.draw_texture('side_select', 'cancel_text', fade=fade)
+        self.text_cancel.draw(outline_color=ray.BLACK, x=tex.skin_config["entry_cancel"].x-self.text_cancel.texture.width//2, y=tex.skin_config["entry_cancel"].y, fade=fade)
         self.nameplate.draw(tex.skin_config["nameplate_entry"].x, tex.skin_config["nameplate_entry"].y)
 
     def draw_player_drum(self):
