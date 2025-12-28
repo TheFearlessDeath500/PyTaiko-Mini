@@ -324,6 +324,8 @@ def main():
         ray.toggle_fullscreen()
         logger.info("Fullscreen enabled")
 
+    init_audio()
+
     current_screen = check_args()
 
     logger.info(f"Initial screen: {current_screen}")
