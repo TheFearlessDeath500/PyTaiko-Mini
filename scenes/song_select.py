@@ -45,6 +45,7 @@ class State:
     BROWSING = 0
     SONG_SELECTED = 1
     DIFF_SORTING = 2
+    SEARCHING = 3
 
 class SongSelectScreen(Screen):
     BOX_CENTER = 444
@@ -69,6 +70,7 @@ class SongSelectScreen(Screen):
         self.game_transition = None
         self.demo_song = None
         self.diff_sort_selector = None
+        self.search_box = None
         self.coin_overlay = CoinOverlay()
         self.allnet_indicator = AllNetIcon()
         self.indicator = Indicator(Indicator.State.SELECT)
@@ -167,6 +169,11 @@ class SongSelectScreen(Screen):
             self.diff_sort_selector = DiffSortSelect(self.navigator.diff_sort_statistics, self.navigator.diff_sort_diff, self.navigator.diff_sort_level)
             self.text_fade_in.start()
             self.text_fade_out.start()
+        elif action == "search":
+            self.state = State.SEARCHING
+            self.search_box = SearchBox()
+            self.text_fade_in.start()
+            self.text_fade_out.start()
         elif action == "select_song":
             current_song = self.navigator.get_current_item()
             if isinstance(current_song, Directory) and current_song.box.genre_index == GenreIndex.DAN:
@@ -224,6 +231,21 @@ class SongSelectScreen(Screen):
                     self.navigator.diff_sort_diff = diff
                     self.navigator.diff_sort_level = level
                 self.navigator.select_current_item()
+
+    def handle_input_search(self):
+        if self.search_box is None:
+            raise Exception("search box was not able to be created")
+
+        result = self.player_1.handle_input_search()
+        self.search_box.current_search = self.player_1.search_string
+
+        if result is not None:
+            self.state = State.BROWSING
+            self.search_box = None
+            self.text_fade_out.reset()
+            self.text_fade_in.reset()
+            self.navigator.current_search = result
+            self.navigator.select_current_item()
 
     def _cancel_selection(self):
         """Reset to browsing state"""
@@ -324,6 +346,9 @@ class SongSelectScreen(Screen):
         if self.diff_sort_selector is not None:
             self.diff_sort_selector.update(current_time)
 
+        if self.search_box is not None:
+            self.search_box.update(current_time)
+
         self.check_for_selection()
 
         for song in self.navigator.items:
@@ -386,6 +411,9 @@ class SongSelectScreen(Screen):
         if self.diff_sort_selector is not None:
             self.diff_sort_selector.draw()
 
+        if self.search_box is not None:
+            self.search_box.draw()
+
         if (self.player_1.selected_song and self.state == State.SONG_SELECTED):
             tex.draw_texture('global', 'difficulty_select', fade=self.text_fade_in.attribute)
         elif self.state == State.DIFF_SORTING:
@@ -428,6 +456,7 @@ class SongSelectPlayer:
         self.diff_select_move_right = False
         self.neiro_selector = None
         self.modifier_selector = None
+        self.search_string = ''
 
         # References to shared animations
         self.diff_selector_move_1 = tex.get_animation(26, is_copy=True)
@@ -511,6 +540,8 @@ class SongSelectPlayer:
                 return "go_back"
             elif isinstance(selected_item, Directory) and selected_item.collection == Directory.COLLECTIONS[3]:
                 return "diff_sort"
+            elif isinstance(selected_item, Directory) and selected_item.collection == Directory.COLLECTIONS[5]:
+                return "search"
             else:
                 return "select_song"
 
@@ -538,6 +569,20 @@ class SongSelectPlayer:
 
         return None
 
+    def handle_input_search(self):
+        if ray.is_key_pressed(ray.KeyboardKey.KEY_BACKSPACE):
+            self.search_string = self.search_string[:-1]
+        elif ray.is_key_pressed(ray.KeyboardKey.KEY_ENTER):
+            result = self.search_string
+            self.search_string = ''
+            return result
+        key = ray.get_char_pressed()
+
+        while key > 0:
+            self.search_string += chr(key)
+            key = ray.get_char_pressed()
+        return None
+
     def handle_input(self, state, screen):
         """Main input dispatcher. Delegates to state-specific handlers."""
         if self.is_voice_playing() or self.is_ready:
@@ -549,6 +594,8 @@ class SongSelectPlayer:
             screen.handle_input_selected()
         elif state == State.DIFF_SORTING:
             screen.handle_input_diff_sort()
+        elif state == State.SEARCHING:
+            screen.handle_input_search()
 
     def handle_input_selected(self, current_item):
         """Handle input for selecting difficulty. Returns 'cancel', 'confirm', or None"""
@@ -1026,6 +1073,31 @@ class DiffSortSelect:
             self.draw_level_select()
         else:
             self.draw_diff_select()
+
+class SearchBox:
+    def __init__(self):
+        self.bg_resize = tex.get_animation(19)
+        self.diff_fade_in = tex.get_animation(20)
+        self.bg_resize.start()
+        self.diff_fade_in.start()
+        self.current_search = ''
+
+    def update(self, current_ms):
+        self.bg_resize.update(current_ms)
+        self.diff_fade_in.update(current_ms)
+
+    def draw(self):
+        ray.draw_rectangle(0, 0, tex.screen_width, tex.screen_height, ray.fade(ray.BLACK, 0.6))
+        tex.draw_texture('diff_sort', 'background', scale=self.bg_resize.attribute, center=True)
+        background = tex.textures['diff_sort']['background']
+        fade = self.diff_fade_in.attribute
+        text_box_width, text_box_height = 400 * tex.screen_scale, 60 * tex.screen_scale
+        x, y = background.width//2 + background.x[0] - text_box_width//2, background.height//2 + background.y[0] - text_box_height//2
+        text_box = ray.Rectangle(x, y, text_box_width, text_box_height)
+        ray.draw_rectangle_rec(text_box, ray.fade(ray.LIGHTGRAY, fade))
+        ray.draw_rectangle_lines(int(text_box.x), int(text_box.y), int(text_box.width), int(text_box.height), ray.fade(ray.DARKGRAY, fade))
+        text_size = ray.measure_text_ex(global_data.font, self.current_search, int(30 * tex.screen_scale), 1)
+        ray.draw_text_ex(global_data.font, self.current_search, ray.Vector2(x + text_box_width//2 - text_size.x//2, y + text_box_height//2 - text_size.y//2), int(30 * tex.screen_scale), 1, ray.BLACK)
 
 class NeiroSelector:
     """The menu for selecting the game hitsounds."""

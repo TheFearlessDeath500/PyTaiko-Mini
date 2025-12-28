@@ -1038,7 +1038,8 @@ class Directory(FileSystemItem):
         'RECENT',
         'FAVORITE',
         'DIFFICULTY',
-        'RECOMMENDED'
+        'RECOMMENDED',
+        'SEARCH'
     ]
     def __init__(self, path: Path, name: str, back_color: Optional[tuple[int, int, int]], fore_color: Optional[tuple[int, int, int]], texture_index: TextureIndex, genre_index: GenreIndex, has_box_def=False, to_root=False, back=False, tja_count=0, box_texture=None, collection=None):
         super().__init__(path, name)
@@ -1143,6 +1144,7 @@ class FileNavigator:
         self.genre_bg = None
         self.song_count = 0
         self.in_dan_select = False
+        self.current_search = ''
         logger.info("FileNavigator initialized")
 
     def initialize(self, root_dirs: list[Path]):
@@ -1392,6 +1394,43 @@ class FileNavigator:
                             temp_items.append(item)
         return random.sample(temp_items, min(10, len(temp_items)))
 
+    def _levenshtein_distance(self, s1: str, s2: str):
+        # Create a matrix to store distances
+        m, n = len(s1), len(s2)
+        dp = [[0] * (n + 1) for _ in range(m + 1)]
+
+        # Initialize base cases
+        for i in range(m + 1):
+            dp[i][0] = i
+        for j in range(n + 1):
+            dp[0][j] = j
+
+        # Fill the matrix
+        for i in range(1, m + 1):
+            for j in range(1, n + 1):
+                if s1[i-1] == s2[j-1]:
+                    dp[i][j] = dp[i-1][j-1]  # No operation needed
+                else:
+                    dp[i][j] = 1 + min(
+                        dp[i-1][j],      # Deletion
+                        dp[i][j-1],      # Insertion
+                        dp[i-1][j-1]     # Substitution
+                    )
+
+        return dp[m][n]
+
+    def search_song(self, search_name: str):
+        items = []
+        for path, song in self.all_song_files.items():
+            logger.info(f"{song.name[:-4].lower()}, {search_name.lower()}, {self._levenshtein_distance(song.name[:-4].lower(), search_name.lower())}")
+            if self._levenshtein_distance(song.name[:-4].lower(), search_name.lower()) < 2:
+                items.append(song)
+            if isinstance(song, SongFile):
+                if self._levenshtein_distance(song.tja.metadata.subtitle["en"].lower(), search_name.lower()) < 2:
+                    items.append(song)
+
+        return items
+
     def load_current_directory(self, selected_item: Optional[Directory] = None):
         """Load pre-generated items for the current directory (unified for root and subdirs)"""
         dir_key = str(self.current_dir)
@@ -1438,6 +1477,8 @@ class FileNavigator:
                     content_items = self.load_diff_sort_items(selected_item, dir_key)
                 elif selected_item.collection == Directory.COLLECTIONS[4]:
                     content_items = self.load_recommended_items(selected_item, dir_key)
+                elif selected_item.collection == Directory.COLLECTIONS[5]:
+                    content_items = self.search_song(self.current_search)
 
             if content_items == []:
                 self.go_back()
