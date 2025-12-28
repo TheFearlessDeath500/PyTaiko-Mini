@@ -311,6 +311,7 @@ def main():
     screen_width = global_tex.screen_width
     screen_height = global_tex.screen_height
 
+    set_config_flags()
     ray.init_window(screen_width, screen_height, "PyTaiko")
 
     logger.info(f"Window initialized: {screen_width}x{screen_height}")
