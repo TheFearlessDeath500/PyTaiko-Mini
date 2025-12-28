@@ -1422,7 +1422,6 @@ class FileNavigator:
     def search_song(self, search_name: str):
         items = []
         for path, song in self.all_song_files.items():
-            logger.info(f"{song.name[:-4].lower()}, {search_name.lower()}, {self._levenshtein_distance(song.name[:-4].lower(), search_name.lower())}")
             if self._levenshtein_distance(song.name[:-4].lower(), search_name.lower()) < 2:
                 items.append(song)
             if isinstance(song, SongFile):
