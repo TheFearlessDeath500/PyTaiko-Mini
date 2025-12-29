@@ -1148,7 +1148,6 @@ def modifier_inverse(notes: NoteList):
 def modifier_random(notes: NoteList, value: int):
     """Randomly modifies the type of the notes in the given NoteList.
     value: 1 == kimagure, 2 == detarame"""
-    #value: 1 == kimagure, 2 == detarame
     modded_notes = notes.play_notes.copy()
     percentage = int(len(modded_notes) / 5) * value
     selected_notes = random.sample(range(len(modded_notes)), percentage)
@@ -1166,7 +1165,9 @@ def apply_modifiers(notes: NoteList, modifiers: Modifiers):
         play_notes = modifier_inverse(notes)
     play_notes = modifier_random(notes, modifiers.random)
     draw_notes, bars = modifier_speed(notes, modifiers.speed)
-    return deque(play_notes), deque(draw_notes), deque(bars)
+    play_notes = modifier_difficulty(notes, modifiers.subdiff)
+    draw_notes = modifier_difficulty(notes, modifiers.subdiff)
+    return play_notes, draw_notes, bars
 
 class Interval(IntEnum):
     UNKNOWN = 0
@@ -1188,7 +1189,7 @@ def modifier_difficulty(notes: NoteList, level: int):
         Modified list of notes
     """
     # Levels with no changes: Easy (1), Normal (2-5), Hard (9), Oni (13)
-    if level in [1, 2, 3, 4, 5, 9, 13]:
+    if level in [0, 1, 2, 3, 4, 5, 9, 13]:
         return notes.play_notes
 
     modded_notes = notes.play_notes.copy()

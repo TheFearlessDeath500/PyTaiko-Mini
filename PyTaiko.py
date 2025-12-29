@@ -27,6 +27,7 @@ from libs.utils import (
     global_data,
     global_tex,
 )
+from scenes.ai_battle.game import AIBattleGameScreen
 from scenes.ai_battle.song_select import AISongSelectScreen
 from scenes.dan.dan_result import DanResultScreen
 from scenes.dan.dan_select import DanSelectScreen
@@ -70,6 +71,7 @@ class Screens:
     PRACTICE_SELECT = "PRACTICE_SELECT"
     GAME_PRACTICE = "GAME_PRACTICE"
     AI_SELECT = "AI_SELECT"
+    AI_GAME = "AI_GAME"
     SETTINGS = "SETTINGS"
     DEV_MENU = "DEV_MENU"
     LOADING = "LOADING"
@@ -346,6 +348,7 @@ def main():
     game_screen_practice = PracticeGameScreen('game')
     practice_select_screen = PracticeSongSelectScreen('song_select')
     ai_select_screen = AISongSelectScreen('song_select')
+    ai_game_screen = AIBattleGameScreen('game')
     result_screen = ResultScreen('result')
     result_screen_2p = TwoPlayerResultScreen('result')
     settings_screen = SettingsScreen('settings')
@@ -364,6 +367,7 @@ def main():
         Screens.GAME_2P: game_screen_2p,
         Screens.GAME_PRACTICE: game_screen_practice,
         Screens.AI_SELECT: ai_select_screen,
+        Screens.AI_GAME: ai_game_screen,
         Screens.RESULT: result_screen,
         Screens.RESULT_2P: result_screen_2p,
         Screens.SETTINGS: settings_screen,

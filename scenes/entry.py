@@ -452,8 +452,9 @@ class BoxManager:
         self.box_titles: list[OutlinedText] = [
         OutlinedText(tex.skin_config["entry_game"].text[global_data.config["general"]["language"]], tex.skin_config["entry_box_text"].font_size, ray.WHITE, outline_thickness=5, vertical=True),
         OutlinedText(tex.skin_config["entry_practice"].text[global_data.config["general"]["language"]], tex.skin_config["entry_box_text"].font_size, ray.WHITE, outline_thickness=5, vertical=True),
-        OutlinedText(tex.skin_config["entry_settings"].text[global_data.config["general"]["language"]], tex.skin_config["entry_box_text"].font_size, ray.WHITE, outline_thickness=5, vertical=True)]
-        self.box_locations = ["SONG_SELECT", "PRACTICE_SELECT", "SETTINGS"]
+        OutlinedText(tex.skin_config["entry_ai_battle"].text[global_data.config["general"]["language"]], tex.skin_config["entry_box_text"].font_size, ray.WHITE, outline_thickness=5, vertical=True),
+        OutlinedText(tex.skin_config["entry_settings"].text[global_data.config["general"]["language"]], tex.skin_config["entry_box_text"].font_size, ray.WHITE, outline_thickness=5, vertical=True),]
+        self.box_locations = ["SONG_SELECT", "PRACTICE_SELECT", "AI_SELECT", "SETTINGS"]
         self.num_boxes = len(self.box_titles)
         self.boxes = [Box(self.box_titles[i], self.box_locations[i]) for i in range(len(self.box_titles))]
         self.selected_box_index = 0
@@ -512,7 +513,7 @@ class BoxManager:
     def update(self, current_time_ms: float, is_2p: bool):
         self.is_2p = is_2p
         if self.is_2p:
-            self.box_locations = ["SONG_SELECT_2P", "PRACTICE_SELECT", "SETTINGS"]
+            self.box_locations = ["SONG_SELECT_2P", "PRACTICE_SELECT", "AI_SELECT", "SETTINGS"]
             for i, box in enumerate(self.boxes):
                 box.location = self.box_locations[i]
         self.fade_out.update(current_time_ms)

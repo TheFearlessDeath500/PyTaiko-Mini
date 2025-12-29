@@ -381,7 +381,7 @@ class SongSelectScreen(Screen):
     def draw_players(self):
         self.player_1.draw(self.state)
 
-    def draw(self):
+    def draw_background(self):
         width = tex.textures['box']['background'].width
         genre_index = self.genre_index
         last_genre_index = self.last_genre_index
@@ -393,6 +393,26 @@ class SongSelectScreen(Screen):
             tex.draw_texture('box', 'background', frame=last_genre_index, x=i-self.background_move.attribute)
             tex.draw_texture('box', 'background', frame=genre_index, x=i-self.background_move.attribute, fade=1 - self.background_fade_change.attribute)
         ray.end_shader_mode()
+
+    def draw_overlay(self):
+        self.indicator.draw(tex.skin_config['song_select_indicator'].x, tex.skin_config['song_select_indicator'].y)
+
+        tex.draw_texture('global', 'song_num_bg', fade=0.75, x=-(self.song_num.texture.width-127), x2=(self.song_num.texture.width-127))
+        self.song_num.draw(ray.BLACK, x=tex.skin_config["song_num"].x-self.song_num.texture.width, y=tex.skin_config["song_num"].y)
+        if self.state == State.BROWSING or self.state == State.DIFF_SORTING:
+            self.timer_browsing.draw()
+        elif self.state == State.SONG_SELECTED:
+            self.timer_selected.draw()
+        self.coin_overlay.draw()
+        if self.game_transition is not None:
+            self.game_transition.draw()
+
+        if self.dan_transition.is_started:
+            self.dan_transition.draw()
+        self.allnet_indicator.draw()
+
+    def draw(self):
+        self.draw_background()
 
         self.draw_background_diffs()
 
@@ -428,21 +448,7 @@ class SongSelectScreen(Screen):
             if isinstance(curr_item, SongFile):
                 curr_item.box.draw_score_history()
 
-        self.indicator.draw(tex.skin_config['song_select_indicator'].x, tex.skin_config['song_select_indicator'].y)
-
-        tex.draw_texture('global', 'song_num_bg', fade=0.75, x=-(self.song_num.texture.width-127), x2=(self.song_num.texture.width-127))
-        self.song_num.draw(ray.BLACK, x=tex.skin_config["song_num"].x-self.song_num.texture.width, y=tex.skin_config["song_num"].y)
-        if self.state == State.BROWSING or self.state == State.DIFF_SORTING:
-            self.timer_browsing.draw()
-        elif self.state == State.SONG_SELECTED:
-            self.timer_selected.draw()
-        self.coin_overlay.draw()
-        if self.game_transition is not None:
-            self.game_transition.draw()
-
-        if self.dan_transition.is_started:
-            self.dan_transition.draw()
-        self.allnet_indicator.draw()
+        self.draw_overlay()
 
 class SongSelectPlayer:
     def __init__(self, player_num: PlayerNum, text_fade_in):
@@ -639,8 +645,6 @@ class SongSelectPlayer:
         if is_l_kat_pressed(self.player_num) or is_r_kat_pressed(self.player_num):
             audio.play_sound('kat', 'sound')
             selected_song = current_item
-            if isinstance(selected_song, Directory):
-                raise Exception("Directory was chosen instead of song")
             diffs = sorted(selected_song.tja.metadata.course_data)
             prev_diff = self.selected_difficulty
             ret_val = None
@@ -1235,7 +1239,7 @@ class ModifierSelector:
     }
     def __init__(self, player_num: PlayerNum):
         self.player_num = player_num
-        self.mods = fields(Modifiers)
+        self.mods = fields(Modifiers)[:-1]
         self.current_mod_index = 0
         self.is_confirmed = False
         self.is_finished = False

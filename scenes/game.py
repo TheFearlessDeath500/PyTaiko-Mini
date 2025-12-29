@@ -401,7 +401,7 @@ class Player:
 
     def reset_chart(self):
         notes, self.branch_m, self.branch_e, self.branch_n = self.tja.notes_to_position(self.difficulty)
-        self.play_notes, self.draw_note_list, self.draw_bar_list = apply_modifiers(notes, self.modifiers)
+        self.play_notes, self.draw_note_list, self.draw_bar_list = deque(apply_modifiers(notes, self.modifiers)[0]), deque(apply_modifiers(notes, self.modifiers)[1]), deque(apply_modifiers(notes, self.modifiers)[2])
 
         self.don_notes = deque([note for note in self.play_notes if note.type in {NoteType.DON, NoteType.DON_L}])
         self.kat_notes = deque([note for note in self.play_notes if note.type in {NoteType.KAT, NoteType.KAT_L}])
@@ -449,7 +449,7 @@ class Player:
         self.bpm = 120
         if self.timeline and hasattr(self.timeline[self.timeline_index], 'bpm'):
             self.bpm = self.timeline[self.timeline_index].bpm
-        last_note = self.draw_note_list[0]
+        last_note = self.draw_note_list[0] if self.draw_note_list else self.branch_m[0].draw_notes[0]
         for note in chain(self.draw_note_list, self.draw_bar_list):
             self.get_load_time(note)
             if note.type == NoteType.TAIL:
@@ -490,6 +490,7 @@ class Player:
         for branch in (self.branch_m, self.branch_e, self.branch_n):
             if branch:
                 for section in branch:
+                    section.play_notes, section.draw_notes, section.bars = apply_modifiers(section, self.modifiers)
                     if section.draw_notes:
                         for note in section.draw_notes:
                             self.get_load_time(note)

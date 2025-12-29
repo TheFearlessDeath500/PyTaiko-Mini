@@ -44,6 +44,7 @@ class Modifiers:
     display: bool = False
     inverse: bool = False
     random: int = 0
+    subdiff: int = 0
 
 @dataclass
 class DanResultSong:
