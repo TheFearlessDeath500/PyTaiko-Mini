@@ -5,7 +5,8 @@ import sqlite3
 import sys
 from pathlib import Path
 
-import pyray as ray
+import pyray
+import raylib as ray
 from pypresence.presence import Presence
 from raylib.defines import (
     RL_FUNC_ADD,
@@ -26,6 +27,7 @@ from libs.utils import (
     global_data,
     global_tex,
 )
+from scenes.ai_battle.song_select import AISongSelectScreen
 from scenes.dan.dan_result import DanResultScreen
 from scenes.dan.dan_select import DanSelectScreen
 from scenes.dan.game_dan import DanGameScreen
@@ -67,6 +69,7 @@ class Screens:
     DAN_RESULT = "DAN_RESULT"
     PRACTICE_SELECT = "PRACTICE_SELECT"
     GAME_PRACTICE = "GAME_PRACTICE"
+    AI_SELECT = "AI_SELECT"
     SETTINGS = "SETTINGS"
     DEV_MENU = "DEV_MENU"
     LOADING = "LOADING"
@@ -161,12 +164,12 @@ def create_song_db():
 
 def update_camera_for_window_size(camera, virtual_width, virtual_height):
     """Update camera zoom, offset, scale, and rotation to maintain aspect ratio"""
-    screen_width = ray.get_screen_width()
-    screen_height = ray.get_screen_height()
+    screen_width = ray.GetScreenWidth()
+    screen_height = ray.GetScreenHeight()
 
     if screen_width == 0 or screen_height == 0:
         camera.zoom = 1.0
-        camera.offset = ray.Vector2(0, 0)
+        camera.offset = (0, 0)
         camera.rotation = 0.0
         return
 
@@ -186,7 +189,7 @@ def update_camera_for_window_size(camera, virtual_width, virtual_height):
     h_scale_offset_x = (virtual_width * scale * (h_scale - 1.0)) * 0.5
     v_scale_offset_y = (virtual_height * scale * (v_scale - 1.0)) * 0.5
 
-    camera.offset = ray.Vector2(
+    camera.offset = (
         base_offset_x - zoom_offset_x - h_scale_offset_x + (global_data.camera.offset.x * scale),
         base_offset_y - zoom_offset_y - v_scale_offset_y + (global_data.camera.offset.y * scale)
     )
@@ -215,14 +218,14 @@ def setup_logging():
 
 def set_config_flags():
     if global_data.config["video"]["vsync"]:
-        ray.set_config_flags(ray.ConfigFlags.FLAG_VSYNC_HINT)
+        ray.SetConfigFlags(ray.FLAG_VSYNC_HINT)
         logger.info("VSync enabled")
     if global_data.config["video"]["target_fps"] != -1:
-        ray.set_target_fps(global_data.config["video"]["target_fps"])
+        ray.SetTargetFPS(global_data.config["video"]["target_fps"])
         logger.info(f"Target FPS set to {global_data.config['video']['target_fps']}")
-    ray.set_config_flags(ray.ConfigFlags.FLAG_MSAA_4X_HINT)
-    ray.set_config_flags(ray.ConfigFlags.FLAG_WINDOW_RESIZABLE)
-    ray.set_trace_log_level(ray.TraceLogLevel.LOG_WARNING)
+    ray.SetConfigFlags(ray.FLAG_MSAA_4X_HINT)
+    ray.SetConfigFlags(ray.FLAG_WINDOW_RESIZABLE)
+    ray.SetTraceLogLevel(ray.LOG_WARNING)
 
 def init_audio():
     audio.set_log_level((logger.level-1)//10)
@@ -280,21 +283,21 @@ def check_discord_heartbeat(current_screen):
     )
 
 def draw_fps(last_fps: int):
-    curr_fps = ray.get_fps()
+    curr_fps = ray.GetFPS()
     if curr_fps != 0 and curr_fps != last_fps:
         last_fps = curr_fps
     if last_fps < 30:
-        ray.draw_text(f'{last_fps} FPS', 20, 20, 20, ray.RED)
+        ray.DrawText(f'{last_fps} FPS'.encode('utf-8'), 20, 20, 20, ray.RED)
     elif last_fps < 60:
-        ray.draw_text(f'{last_fps} FPS', 20, 20, 20, ray.YELLOW)
+        ray.DrawText(f'{last_fps} FPS'.encode('utf-8'), 20, 20, 20, ray.YELLOW)
     else:
-        ray.draw_text(f'{last_fps} FPS', 20, 20, 20, ray.LIME)
+        ray.DrawText(f'{last_fps} FPS'.encode('utf-8'), 20, 20, 20, ray.LIME)
 
-def draw_outer_border(screen_width: int, screen_height: int, last_color: ray.Color):
-    ray.draw_rectangle(-screen_width, 0, screen_width, screen_height, last_color)
-    ray.draw_rectangle(screen_width, 0, screen_width, screen_height, last_color)
-    ray.draw_rectangle(0, -screen_height, screen_width, screen_height, last_color)
-    ray.draw_rectangle(0, screen_height, screen_width, screen_height, last_color)
+def draw_outer_border(screen_width: int, screen_height: int, last_color: pyray.Color):
+    pyray.draw_rectangle(-screen_width, 0, screen_width, screen_height, last_color)
+    pyray.draw_rectangle(screen_width, 0, screen_width, screen_height, last_color)
+    pyray.draw_rectangle(0, -screen_height, screen_width, screen_height, last_color)
+    pyray.draw_rectangle(0, screen_height, screen_width, screen_height, last_color)
 
 def main():
     force_dedicated_gpu()
@@ -312,17 +315,17 @@ def main():
     screen_height = global_tex.screen_height
 
     set_config_flags()
-    ray.init_window(screen_width, screen_height, "PyTaiko")
+    ray.InitWindow(screen_width, screen_height, "PyTaiko".encode('utf-8'))
 
     logger.info(f"Window initialized: {screen_width}x{screen_height}")
     global_tex.load_screen_textures('global')
     global_tex.load_zip('chara', 'chara_0')
     global_tex.load_zip('chara', 'chara_1')
     if global_data.config["video"]["borderless"]:
-        ray.toggle_borderless_windowed()
+        ray.ToggleBorderlessWindowed()
         logger.info("Borderless window enabled")
     if global_data.config["video"]["fullscreen"]:
-        ray.toggle_fullscreen()
+        ray.ToggleFullscreen()
         logger.info("Fullscreen enabled")
 
     init_audio()
@@ -342,6 +345,7 @@ def main():
     game_screen_2p = TwoPlayerGameScreen('game')
     game_screen_practice = PracticeGameScreen('game')
     practice_select_screen = PracticeSongSelectScreen('song_select')
+    ai_select_screen = AISongSelectScreen('song_select')
     result_screen = ResultScreen('result')
     result_screen_2p = TwoPlayerResultScreen('result')
     settings_screen = SettingsScreen('settings')
@@ -359,6 +363,7 @@ def main():
         Screens.GAME: game_screen,
         Screens.GAME_2P: game_screen_2p,
         Screens.GAME_PRACTICE: game_screen_practice,
+        Screens.AI_SELECT: ai_select_screen,
         Screens.RESULT: result_screen,
         Screens.RESULT_2P: result_screen_2p,
         Screens.SETTINGS: settings_screen,
@@ -369,41 +374,41 @@ def main():
         Screens.LOADING: load_screen
     }
 
-    camera = ray.Camera2D()
-    camera.target = ray.Vector2(0, 0)
+    camera = pyray.Camera2D()
+    camera.target = pyray.Vector2(0, 0)
     camera.rotation = 0.0
     update_camera_for_window_size(camera, screen_width, screen_height)
     logger.info("Camera2D initialized")
 
-    ray.rl_set_blend_factors_separate(RL_SRC_ALPHA, RL_ONE_MINUS_SRC_ALPHA, RL_ONE, RL_ONE_MINUS_SRC_ALPHA, RL_FUNC_ADD, RL_FUNC_ADD)
-    ray.set_exit_key(global_data.config["keys"]["exit_key"])
+    ray.rlSetBlendFactorsSeparate(RL_SRC_ALPHA, RL_ONE_MINUS_SRC_ALPHA, RL_ONE, RL_ONE_MINUS_SRC_ALPHA, RL_FUNC_ADD, RL_FUNC_ADD)
+    ray.SetExitKey(global_data.config["keys"]["exit_key"])
 
-    ray.hide_cursor()
+    ray.HideCursor()
     logger.info("Cursor hidden")
     last_fps = 1
-    last_color = ray.BLACK
+    last_color = pyray.BLACK
 
-    while not ray.window_should_close():
+    while not ray.WindowShouldClose():
         if discord_connected:
             check_discord_heartbeat(current_screen)
 
-        if ray.is_key_pressed(global_data.config["keys"]["fullscreen_key"]):
-            ray.toggle_fullscreen()
+        if ray.IsKeyPressed(global_data.config["keys"]["fullscreen_key"]):
+            ray.ToggleFullscreen()
             logger.info("Toggled fullscreen")
-        elif ray.is_key_pressed(global_data.config["keys"]["borderless_key"]):
-            ray.toggle_borderless_windowed()
+        elif ray.IsKeyPressed(global_data.config["keys"]["borderless_key"]):
+            ray.ToggleBorderlessWindowed()
             logger.info("Toggled borderless windowed mode")
 
         update_camera_for_window_size(camera, screen_width, screen_height)
 
-        ray.begin_drawing()
+        ray.BeginDrawing()
 
         if global_data.camera.border_color != last_color:
-            ray.clear_background(global_data.camera.border_color)
+            pyray.clear_background(global_data.camera.border_color)
             last_color = global_data.camera.border_color
 
-        ray.begin_mode_2d(camera)
-        ray.begin_blend_mode(ray.BlendMode.BLEND_CUSTOM_SEPARATE)
+        pyray.begin_mode_2d(camera)
+        ray.BeginBlendMode(ray.BLEND_CUSTOM_SEPARATE)
 
         screen = screen_mapping[current_screen]
 
@@ -421,11 +426,11 @@ def main():
 
         draw_outer_border(screen_width, screen_height, last_color)
 
-        ray.end_blend_mode()
-        ray.end_mode_2d()
-        ray.end_drawing()
+        ray.EndBlendMode()
+        ray.EndMode2D()
+        ray.EndDrawing()
 
-    ray.close_window()
+    ray.CloseWindow()
     audio.close_audio_device()
     if discord_connected:
         RPC.close()
