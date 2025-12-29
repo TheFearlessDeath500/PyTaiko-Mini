@@ -1167,3 +1167,390 @@ def apply_modifiers(notes: NoteList, modifiers: Modifiers):
     play_notes = modifier_random(notes, modifiers.random)
     draw_notes, bars = modifier_speed(notes, modifiers.speed)
     return deque(play_notes), deque(draw_notes), deque(bars)
+
+class Interval(IntEnum):
+    UNKNOWN = 0
+    QUARTER = 1
+    EIGHTH = 2
+    TWELFTH = 3
+    SIXTEENTH = 4
+    TWENTYFOURTH = 6
+    THIRTYSECOND = 8
+
+def modifier_difficulty(notes: NoteList, level: int):
+    """Modifies notes based on difficulty level according to the difficulty table.
+
+    Args:
+        notes: The NoteList to modify
+        level: The numerical difficulty level (1-13)
+
+    Returns:
+        Modified list of notes
+    """
+    # Levels with no changes: Easy (1), Normal (2-5), Hard (9), Oni (13)
+    if level in [1, 2, 3, 4, 5, 9, 13]:
+        return notes.play_notes
+
+    modded_notes = notes.play_notes.copy()
+
+    # Helper function to calculate note interval category
+    def get_note_interval_type(interval_ms: float, bpm: float, time_sig: float = 4.0) -> Interval:
+        """Classify note interval as 1/8, 1/16, 1/12, or 1/24 note."""
+        if bpm == 0:
+            return Interval.UNKNOWN
+
+        ms_per_measure = get_ms_per_measure(bpm, time_sig) / time_sig
+        tolerance = 15  # ms tolerance for timing classification
+
+        eighth_note = ms_per_measure / 8
+        sixteenth_note = ms_per_measure / 16
+        twelfth_note = ms_per_measure / 12
+        twentyfourth_note = ms_per_measure / 24
+        thirtysecond_note = ms_per_measure / 32
+        quarter_note = ms_per_measure / 4
+
+        if abs(interval_ms - eighth_note) < tolerance:
+            return Interval.EIGHTH
+        elif abs(interval_ms - sixteenth_note) < tolerance:
+            return Interval.SIXTEENTH
+        elif abs(interval_ms - twelfth_note) < tolerance:
+            return Interval.TWELFTH
+        elif abs(interval_ms - twentyfourth_note) < tolerance:
+            return Interval.TWENTYFOURTH
+        elif abs(interval_ms - thirtysecond_note) < tolerance:
+            return Interval.THIRTYSECOND
+        elif abs(interval_ms - quarter_note) < tolerance:
+            return Interval.QUARTER
+        return Interval.UNKNOWN
+
+    # Helper function to make notes single-color
+    def make_single_color(note_indices: list[int]):
+        """Convert notes to single color (auto-detects majority color if not specified)."""
+        don_count = 0
+        kat_count = 0
+
+        for idx in note_indices:
+            if idx < len(modded_notes):
+                note_type = modded_notes[idx].type
+                if note_type in [NoteType.DON, NoteType.DON_L]:
+                    don_count += 1
+                elif note_type in [NoteType.KAT, NoteType.KAT_L]:
+                    kat_count += 1
+
+        # Use majority color, defaulting to DON if tied or no valid notes
+        color = NoteType.DON if don_count >= kat_count else NoteType.KAT
+
+        # Convert all notes to the determined color
+        for idx in note_indices:
+            if idx < len(modded_notes):
+                if modded_notes[idx].type in [NoteType.DON, NoteType.KAT]:
+                    modded_notes[idx].type = color
+                elif modded_notes[idx].type in [NoteType.DON_L, NoteType.KAT_L]:
+                    modded_notes[idx].type = NoteType.DON_L if color == NoteType.DON else NoteType.KAT_L
+
+    # Helper function to find note streams
+    def find_streams(interval_type: Interval) -> list[tuple[int, int]]:
+        """Find consecutive notes with the given interval type.
+        Returns list of (start_index, length) tuples."""
+        streams = []
+        i = 0
+        while i < len(modded_notes) - 1:
+            if isinstance(modded_notes[i], (Drumroll, Balloon)):
+                i += 1
+                continue
+
+            stream_start = i
+            stream_length = 1
+
+            while i < len(modded_notes) - 1:
+                if isinstance(modded_notes[i + 1], (Drumroll, Balloon)):
+                    break
+
+                interval = modded_notes[i + 1].hit_ms - modded_notes[i].hit_ms
+                note_type = get_note_interval_type(interval, modded_notes[i].bpm)
+
+                if note_type == interval_type:
+                    stream_length += 1
+                    i += 1
+                else:
+                    break
+
+            if stream_length >= 2:  # At least 2 notes to form a stream
+                streams.append((stream_start, stream_length))
+
+            i += 1
+
+        return streams
+
+    def find_2plus2_patterns(interval_type: Interval) -> list[int]:
+        """Find 2+2 patterns with the given interval type.
+        A 2+2 pattern consists of:
+        - 2 notes with the specified interval between them
+        - A gap (size of the interval)
+        - 2 more notes with the specified interval between them
+        - A gap after (at least the size of the interval)
+
+        Returns list of starting indices for 2+2 patterns."""
+        patterns = []
+        i = 0
+
+        while i < len(modded_notes) - 3:
+            if isinstance(modded_notes[i], (Drumroll, Balloon)):
+                i += 1
+                continue
+
+            # Check if we have at least 4 notes ahead
+            valid_notes_ahead = 0
+            for j in range(i, min(i + 4, len(modded_notes))):
+                if not isinstance(modded_notes[j], (Drumroll, Balloon)):
+                    valid_notes_ahead += 1
+
+            if valid_notes_ahead < 4:
+                i += 1
+                continue
+
+            # Get the next 3 valid note indices (total 4 notes including current)
+            note_indices = [i]
+            j = i + 1
+            while len(note_indices) < 4 and j < len(modded_notes):
+                if not isinstance(modded_notes[j], (Drumroll, Balloon)):
+                    note_indices.append(j)
+                j += 1
+
+            if len(note_indices) < 4:
+                i += 1
+                continue
+
+            # Check intervals between the 4 notes
+            interval1 = modded_notes[note_indices[1]].hit_ms - modded_notes[note_indices[0]].hit_ms
+            interval2 = modded_notes[note_indices[2]].hit_ms - modded_notes[note_indices[1]].hit_ms
+            interval3 = modded_notes[note_indices[3]].hit_ms - modded_notes[note_indices[2]].hit_ms
+
+            type1 = get_note_interval_type(interval1, modded_notes[note_indices[0]].bpm)
+            type3 = get_note_interval_type(interval3, modded_notes[note_indices[2]].bpm)
+
+            # Check for 2+2 pattern:
+            # - First interval matches our target type (between notes 0 and 1)
+            # - Second interval is ~2x the target type (the gap, between notes 1 and 2)
+            # - Third interval matches our target type (between notes 2 and 3)
+            # - After the last note, there should be a gap (check next note)
+            if type1 == interval_type and type3 == interval_type:
+                # Check if middle interval is approximately 2x the note interval (represents the gap)
+                ms_per_measure = get_ms_per_measure(modded_notes[note_indices[0]].bpm, 4.0) / 4.0
+                target_interval = 0
+                if interval_type == Interval.SIXTEENTH:
+                    target_interval = ms_per_measure / 16
+                elif interval_type == Interval.EIGHTH:
+                    target_interval = ms_per_measure / 8
+                elif interval_type == Interval.TWELFTH:
+                    target_interval = ms_per_measure / 12
+                elif interval_type == Interval.TWENTYFOURTH:
+                    target_interval = ms_per_measure / 24
+
+                # The gap should be approximately 2x the note interval (with tolerance)
+                expected_gap = target_interval * 2
+                tolerance = 20  # ms tolerance for gap detection
+
+                if abs(interval2 - expected_gap) < tolerance:
+                    # Check if there's a gap after the 4th note
+                    if note_indices[3] + 1 < len(modded_notes):
+                        if not isinstance(modded_notes[note_indices[3] + 1], (Drumroll, Balloon)):
+                            interval_after = modded_notes[note_indices[3] + 1].hit_ms - modded_notes[note_indices[3]].hit_ms
+                            type_after = get_note_interval_type(interval_after, modded_notes[note_indices[3]].bpm)
+                            # Gap after should be at least the size of the interval
+                            if interval_after >= target_interval * 1.5 or type_after != interval_type:
+                                patterns.append(i)
+                    else:
+                        # End of notes, so pattern is valid
+                        patterns.append(i)
+
+            i += 1
+
+        return patterns
+
+    # Level 6 (Hard): 1/8 note streams become single-color; 1/8 note triplets become 1/4 notes
+    if level == 6:
+        streams = find_streams(Interval.EIGHTH)
+        for start, length in streams:
+            if length == 3:
+                modded_notes[start + 1].type = NoteType.NONE
+            elif length > 3:
+                make_single_color(list(range(start, start + length)))
+
+    # Level 7 (Hard): 1/8 note 5-hit streams become 3-1 pattern; 7+ hits repeat 3-1-1 pattern
+    elif level == 7:
+        streams = find_streams(Interval.EIGHTH)
+        for start, length in streams:
+            if length == 5:
+                modded_notes[start + 3].type = NoteType.NONE
+            elif length >= 7:
+                idx = start
+                while idx < start + length:
+                    idx += 3
+                    if idx < start + length and idx < len(modded_notes):
+                        modded_notes[idx].type = NoteType.NONE
+                        idx += 1
+
+    # Level 8 (Hard): 1/16 note triplets become 1/8 notes; 1/16 note 5-hit streams become 3+1 or 2+2
+    elif level == 8:
+        streams = find_streams(Interval.SIXTEENTH)
+        for start, length in streams:
+            if length == 3:
+                modded_notes[start + 1].type = NoteType.NONE
+            elif length == 5:
+                #3+1 if start with don, 2+2 if start with kat
+                if modded_notes[start].type in [NoteType.DON, NoteType.DON_L]:
+                    modded_notes[start + 3].type = NoteType.NONE
+                else:
+                    modded_notes[start + 2].type = NoteType.NONE
+
+    # Level 10 (Oni):
+    # 1/16 note 5-hit streams become 3+1
+    # 1/16 note doubles become single-color
+    # 2+2 hits become 2+1 hits (annoying)
+    # 1/16 4+ hits become 8th doubles
+    # 1/24ths are removed
+    # 1/16th streams become triplet followed by interval below
+    elif level == 10:
+        streams = find_streams(Interval.THIRTYSECOND)
+        for start, length in streams:
+            idx = start + 1
+            while idx < start + length:
+                if idx < start + length and idx < len(modded_notes):
+                    modded_notes[idx].type = NoteType.NONE
+                    idx += 2
+
+        streams = find_streams(Interval.TWENTYFOURTH)
+        for start, length in streams:
+            idx = start + 1
+            while idx < start + length - 1:
+                if idx < len(modded_notes) and idx + 1 < len(modded_notes):
+                    modded_notes[idx].type = NoteType.NONE
+                    modded_notes[idx + 1].type = NoteType.NONE
+                idx += 3
+        streams = find_streams(Interval.SIXTEENTH)
+        for start, length in streams:
+            if length == 2:
+                modded_notes[start].type = modded_notes[start + 1].type
+            if length == 3:
+                modded_notes[start + 1].type = NoteType.NONE
+            if length == 4 or length == 5:
+                modded_notes[start + 3].type = NoteType.NONE
+                make_single_color(list(range(start, start + length)))
+            elif length > 5:
+                modded_notes[start + 3].type = NoteType.NONE
+                idx = start + 5
+                while idx < start + length:
+                    if idx < start + length and idx < len(modded_notes):
+                        modded_notes[idx].type = NoteType.NONE
+                        idx += 2
+
+        streams_2_2 = find_2plus2_patterns(Interval.SIXTEENTH)
+        for index in streams_2_2:
+            modded_notes[index + 2].type = NoteType.NONE
+
+    # Level 11 (Oni):
+    # Level 10 variation
+    elif level == 11:
+        streams = find_streams(Interval.THIRTYSECOND)
+        for start, length in streams:
+            idx = start + 1
+            while idx < start + length:
+                if idx < start + length and idx < len(modded_notes):
+                    modded_notes[idx].type = NoteType.NONE
+                    idx += 2
+
+        streams = find_streams(Interval.TWENTYFOURTH)
+        for start, length in streams:
+            idx = start + 1
+            while idx < start + length - 1:
+                if idx < len(modded_notes) and idx + 1 < len(modded_notes):
+                    modded_notes[idx].type = NoteType.NONE
+                    modded_notes[idx + 1].type = NoteType.NONE
+                idx += 3
+
+        streams = find_streams(Interval.TWELFTH)
+        for start, length in streams:
+            idx = start + 1
+            while idx < start + length - 1:
+                if idx < len(modded_notes) and idx + 1 < len(modded_notes):
+                    modded_notes[idx].type = NoteType.NONE
+                idx += 3
+
+        streams = find_streams(Interval.SIXTEENTH)
+        for start, length in streams:
+            if length == 2:
+                modded_notes[start].type = modded_notes[start + 1].type
+            if length == 3:
+                modded_notes[start + 1].type = NoteType.NONE
+            if length == 4 or length == 5:
+                modded_notes[start + 3].type = NoteType.NONE
+                make_single_color(list(range(start, start + length)))
+            elif length > 5:
+                idx = start
+                while idx < start + length:
+                    triplet_end = min(idx + 3, start + length)
+                    if triplet_end - idx >= 2:
+                        make_single_color(list(range(idx, triplet_end)))
+                    idx += 3
+                    if idx < start + length and idx < len(modded_notes):
+                        modded_notes[idx].type = NoteType.NONE
+                        idx += 2
+                    if idx < start + length and idx < len(modded_notes):
+                        modded_notes[idx].type = NoteType.NONE
+                        idx += 1
+    # Level 12 (Oni):
+    # Level 10 variation
+    elif level == 12:
+        streams = find_streams(Interval.THIRTYSECOND)
+        for start, length in streams:
+            idx = start + 1
+            while idx < start + length:
+                if idx < start + length and idx < len(modded_notes):
+                    modded_notes[idx].type = NoteType.NONE
+                    idx += 2
+
+        streams = find_streams(Interval.TWENTYFOURTH)
+        for start, length in streams:
+            idx = start + 1
+            while idx < start + length - 1:
+                if idx < len(modded_notes) and idx + 1 < len(modded_notes):
+                    modded_notes[idx].type = NoteType.NONE
+                    modded_notes[idx + 1].type = NoteType.NONE
+                idx += 3
+
+        streams = find_streams(Interval.TWELFTH)
+        for start, length in streams:
+            if length <= 4:
+                make_single_color(list(range(start, start + length)))
+            else:
+                idx = start + 1
+                while idx < start + length - 1:
+                    if idx < len(modded_notes) and idx + 1 < len(modded_notes):
+                        modded_notes[idx].type = NoteType.NONE
+                    idx += 3
+
+        streams = find_streams(Interval.SIXTEENTH)
+        for start, length in streams:
+            if length == 3:
+                make_single_color(list(range(start, start + length)))
+            if length == 4 or length == 5:
+                modded_notes[start + 3].type = NoteType.NONE
+                make_single_color(list(range(start, start + length)))
+            elif length > 5:
+                idx = start
+                while idx < start + length:
+                    triplet_end = min(idx + 3, start + length)
+                    if triplet_end - idx >= 2:
+                        make_single_color(list(range(idx, triplet_end)))
+                    idx += 3
+                    if idx < start + length and idx < len(modded_notes):
+                        modded_notes[idx].type = NoteType.NONE
+                        idx += 2
+                    if idx < start + length and idx < len(modded_notes):
+                        modded_notes[idx].type = NoteType.NONE
+                        idx += 1
+
+    filtered_notes = [note for note in modded_notes if note.type != NoteType.NONE]
+
+    return filtered_notes
