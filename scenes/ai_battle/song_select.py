@@ -3,6 +3,7 @@ import logging
 import pyray as ray
 
 from libs.audio import audio
+from libs.chara_2d import Chara2D
 from libs.file_navigator import SongFile
 from libs.global_data import Difficulty, PlayerNum, global_data
 from libs.texture import tex
@@ -27,9 +28,11 @@ class AISongSelectScreen(SongSelectScreen):
         super().on_screen_start()
         self.player_1 = AISongSelectPlayer(global_data.player_num, self.text_fade_in)
         global_data.modifiers[global_data.player_num].subdiff = 0
+        self.ai_chara = Chara2D(PlayerNum.AI-1)
 
     def update_players(self, current_time) -> str:
         self.player_1.update(current_time)
+        self.ai_chara.update(current_time)
         if self.text_fade_out.is_finished:
             self.player_1.selected_song = True
         next_screen = "AI_GAME"
@@ -69,6 +72,7 @@ class AISongSelectScreen(SongSelectScreen):
             tex.draw_texture('global', 'song_select', fade=self.text_fade_out.attribute)
 
         self.draw_players()
+        self.ai_chara.draw(x=tex.skin_config["song_select_chara_2p"].x, y=tex.skin_config["song_select_chara_2p"].y, mirror=True)
 
         if self.state == State.BROWSING and self.navigator.items != []:
             curr_item = self.navigator.get_current_item()
@@ -183,12 +187,8 @@ class AISongSelectPlayer(SongSelectPlayer):
         offset = 0
         if self.subdiff_selector is not None:
             offset = -self.subdiff_selector.move.attribute*1.05
-        if self.player_num == PlayerNum.P1:
-            self.nameplate.draw(tex.skin_config["song_select_nameplate_1p"].x, tex.skin_config["song_select_nameplate_1p"].y)
-            self.chara.draw(x=tex.skin_config["song_select_chara_1p"].x, y=tex.skin_config["song_select_chara_1p"].y + (offset*0.6))
-        else:
-            self.nameplate.draw(tex.skin_config["song_select_nameplate_2p"].x, tex.skin_config["song_select_nameplate_2p"].y)
-            self.chara.draw(mirror=True, x=tex.skin_config["song_select_chara_2p"].x, y=tex.skin_config["song_select_chara_2p"].y + (offset*0.6))
+        self.nameplate.draw(tex.skin_config["song_select_nameplate_1p"].x, tex.skin_config["song_select_nameplate_1p"].y)
+        self.chara.draw(x=tex.skin_config["song_select_chara_1p"].x, y=tex.skin_config["song_select_chara_1p"].y + (offset*0.6))
 
         if self.subdiff_selector is not None:
             self.subdiff_selector.draw()

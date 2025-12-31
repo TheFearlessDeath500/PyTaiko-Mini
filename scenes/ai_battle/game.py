@@ -13,7 +13,7 @@ from libs.chara_2d import Chara2D
 from libs.global_data import Difficulty, Modifiers, PlayerNum, global_data
 from libs.global_objects import Nameplate
 from libs.texture import tex
-from libs.tja import Note, TJAParser
+from libs.tja import TJAParser
 from libs.utils import get_current_ms, global_tex
 from scenes.game import (
     DrumType,
@@ -103,6 +103,15 @@ class AIBattleGameScreen(GameScreen):
         self.total_notes = len(self.player_1.don_notes) + len(self.player_1.kat_notes)
         logger.info(f"TJA initialized for two-player song: {song}")
 
+    def update_scoreboards(self):
+        section_notes = self.total_notes // 5
+        if self.player_1.good_count + self.player_1.ok_count + self.player_1.bad_count == section_notes:
+            self.player_2.good_percentage = self.player_1.good_count / section_notes
+            self.player_2.ok_percentage = self.player_1.ok_count / section_notes
+            logger.info(f"AI Good Percentage: {self.player_2.good_percentage}, AI OK Percentage: {self.player_2.ok_percentage}")
+            self.player_1.good_count, self.player_1.ok_count, self.player_1.bad_count = 0, 0, 0
+            self.player_2.good_count, self.player_2.ok_count, self.player_2.bad_count = 0, 0, 0
+
     def update(self):
         super(GameScreen, self).update()
         current_time = get_current_ms()
@@ -119,13 +128,7 @@ class AIBattleGameScreen(GameScreen):
 
         self.player_1.update(self.current_ms, current_time, None)
         self.player_2.update(self.current_ms, current_time, None)
-        section_notes = self.total_notes // 5
-        if self.player_1.good_count + self.player_1.ok_count + self.player_1.bad_count == section_notes:
-            self.player_2.good_percentage = self.player_1.good_count / section_notes
-            self.player_2.ok_percentage = self.player_1.ok_count / section_notes
-            logger.info(f"AI Good Percentage: {self.player_2.good_percentage}, AI OK Percentage: {self.player_2.ok_percentage}")
-            self.player_1.good_count, self.player_1.ok_count, self.player_1.bad_count = 0, 0, 0
-            self.player_2.good_count, self.player_2.ok_count, self.player_2.bad_count = 0, 0, 0
+        self.update_scoreboards()
 
         self.song_info.update(current_time)
         self.result_transition.update(current_time)
@@ -149,7 +152,9 @@ class AIBattleGameScreen(GameScreen):
         return self.global_keys()
 
     def update_background(self, current_time):
-        self.background.update(current_time, (self.player_1.good_count, self.player_1.ok_count), (self.player_2.good_count, self.player_2.ok_count))
+        if self.player_1.don_notes == self.player_2.don_notes and self.player_1.kat_notes == self.player_2.kat_notes:
+            self.background.update_values((self.player_1.good_count, self.player_1.ok_count), (self.player_2.good_count, self.player_2.ok_count))
+        self.background.update(current_time)
 
     def draw(self):
         if self.movie is not None:
@@ -420,11 +425,13 @@ class AIBackground:
         self.contest_point_fade = Animation.create_fade(166, initial_opacity=0.0, final_opacity=1.0, reverse_delay=166, delay=166, loop=True)
         self.contest_point_fade.start()
 
-    def update(self, current_ms: float, player_judge: tuple[int, int], ai_judge: tuple[int, int]):
+    def update(self, current_ms: float):
         self.contest_point_fade.update(current_ms)
+
+    def update_values(self, player_judge: tuple[int, int], ai_judge: tuple[int, int]):
         player_total = (player_judge[0] * self.multipliers[self.difficulty][0]) + (player_judge[1] * self.multipliers[self.difficulty][1])
         ai_total = (ai_judge[0] * self.multipliers[self.difficulty][0]) + (ai_judge[1] * self.multipliers[self.difficulty][1])
-        self.contest_point = player_total - ai_total + 10
+        self.contest_point = ((player_total - ai_total) // 2) + 10
         self.contest_point = min(max(1, self.contest_point), self.total_tiles - 1)
 
     def unload(self):
