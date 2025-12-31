@@ -297,7 +297,7 @@ class TextureWrapper:
         else:
             ray.DrawTexturePro(tex_object.texture, source_rect, dest_rect, origin, rotation, final_color)
         if tex_object.controllable[index] or controllable:
-            self.control(tex_object)
+            self.control(tex_object, index)
 
     def draw_texture(self, subset: str, texture: str, color: Color = Color(255, 255, 255, 255), frame: int = 0, scale: float = 1.0, center: bool = False,
                             mirror: str = '', x: float = 0, y: float = 0, x2: float = 0, y2: float = 0,

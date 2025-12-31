@@ -1282,21 +1282,21 @@ class Player:
             modifiers_to_draw.append('mod_shinuchi')
 
         # Speed modifiers
-        if global_data.modifiers[self.player_num].speed >= 4:
+        if self.modifiers.speed >= 4:
             modifiers_to_draw.append('mod_yonbai')
-        elif global_data.modifiers[self.player_num].speed >= 3:
+        elif self.modifiers.speed >= 3:
             modifiers_to_draw.append('mod_sanbai')
-        elif global_data.modifiers[self.player_num].speed > 1:
+        elif self.modifiers.speed > 1:
             modifiers_to_draw.append('mod_baisaku')
 
         # Other modifiers
-        if global_data.modifiers[self.player_num].display:
+        if self.modifiers.display:
             modifiers_to_draw.append('mod_doron')
-        if global_data.modifiers[self.player_num].inverse:
+        if self.modifiers.inverse:
             modifiers_to_draw.append('mod_abekobe')
-        if global_data.modifiers[self.player_num].random == 2:
+        if self.modifiers.random == 2:
             modifiers_to_draw.append('mod_detarame')
-        elif global_data.modifiers[self.player_num].random == 1:
+        elif self.modifiers.random == 1:
             modifiers_to_draw.append('mod_kimagure')
 
         # Draw all modifiers in one batch
@@ -1336,13 +1336,13 @@ class Player:
             self.judge_counter.draw()
 
         # Group 7: Player-specific elements
-        if not self.modifiers.auto:
+        if self.modifiers.auto:
+            tex.draw_texture('lane', 'auto_icon', index=self.is_2p)
+        else:
             if self.is_2p:
                 self.nameplate.draw(tex.skin_config["game_nameplate_1p"].x, tex.skin_config["game_nameplate_1p"].y)
             else:
                 self.nameplate.draw(tex.skin_config["game_nameplate_2p"].x, tex.skin_config["game_nameplate_2p"].y)
-        else:
-            tex.draw_texture('lane', 'auto_icon', index=self.is_2p)
         self.draw_modifiers()
         self.chara.draw(y=(self.is_2p*tex.skin_config["game_2p_offset"].y))
 
@@ -1360,6 +1360,8 @@ class Player:
     def draw(self, ms_from_start: float, start_ms: float, mask_shader: ray.Shader, dan_transition = None):
         # Group 1: Background and lane elements
         tex.draw_texture('lane', 'lane_background', index=self.is_2p)
+        if self.player_num == PlayerNum.AI:
+            tex.draw_texture('lane', 'ai_lane_background')
         if self.branch_indicator is not None:
             self.branch_indicator.draw()
         if self.gauge is not None:
@@ -1767,7 +1769,7 @@ class BalloonAnimation:
             tex.draw_texture('balloon', 'pop', frame=7, color=self.color, y=self.is_2p*tex.skin_config["2p_offset"].y)
         elif self.balloon_count >= 1:
             balloon_index = min(6, (self.balloon_count - 1) * 6 // self.balloon_total)
-            tex.draw_texture('balloon', 'pop', frame=balloon_index, color=self.color, index=self.player_num-1, y=self.is_2p*tex.skin_config["2p_offset"].y)
+            tex.draw_texture('balloon', 'pop', frame=balloon_index, color=self.color, index=self.is_2p, y=self.is_2p*tex.skin_config["2p_offset"].y)
         if self.balloon_count > 0:
             tex.draw_texture('balloon', 'bubble', y=self.is_2p*(410 * tex.screen_scale), mirror='vertical' if self.is_2p else '')
             counter = str(max(0, self.balloon_total - self.balloon_count + 1))

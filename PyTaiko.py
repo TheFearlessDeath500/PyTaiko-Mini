@@ -323,6 +323,7 @@ def main():
     global_tex.load_screen_textures('global')
     global_tex.load_zip('chara', 'chara_0')
     global_tex.load_zip('chara', 'chara_1')
+    global_tex.load_zip('chara', 'chara_4')
     if global_data.config["video"]["borderless"]:
         ray.ToggleBorderlessWindowed()
         logger.info("Borderless window enabled")

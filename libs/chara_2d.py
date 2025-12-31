@@ -107,7 +107,7 @@ class Chara2D:
                 self.current_anim = self.past_anim
             self.anims[self.current_anim].restart()
 
-    def draw(self, x: float = 0, y: float = 0, mirror=False):
+    def draw(self, x: float = 0, y: float = 0, mirror=False, scale=1.0):
         """
         Draw the character on the screen.
 
@@ -117,9 +117,9 @@ class Chara2D:
             mirror (bool): Whether to mirror the character horizontally.
         """
         if self.is_rainbow and self.current_anim not in {'soul_in', 'balloon_pop', 'balloon_popping'}:
-            self.tex.draw_texture(self.name, self.current_anim + '_max', frame=self.anims[self.current_anim].attribute, x=x, y=y)
+            self.tex.draw_texture(self.name, self.current_anim + '_max', frame=self.anims[self.current_anim].attribute, x=x, y=y, scale=scale)
         else:
             if mirror:
-                self.tex.draw_texture(self.name, self.current_anim, frame=self.anims[self.current_anim].attribute, x=x, y=y, mirror='horizontal')
+                self.tex.draw_texture(self.name, self.current_anim, frame=self.anims[self.current_anim].attribute, x=x, y=y, mirror='horizontal', scale=scale)
             else:
-                self.tex.draw_texture(self.name, self.current_anim, frame=self.anims[self.current_anim].attribute, x=x, y=y)
+                self.tex.draw_texture(self.name, self.current_anim, frame=self.anims[self.current_anim].attribute, x=x, y=y, scale=scale)

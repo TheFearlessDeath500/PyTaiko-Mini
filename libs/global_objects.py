@@ -58,6 +58,9 @@ class Nameplate:
         """
         tex = global_tex
         tex.draw_texture('nameplate', 'shadow', x=x, y=y, fade=min(0.5, fade))
+        if self.player_num == PlayerNum.AI:
+            tex.draw_texture('nameplate', 'ai', x=x, y=y)
+            return
         if self.player_num == 0:
             frame = 2
             title_offset = 0

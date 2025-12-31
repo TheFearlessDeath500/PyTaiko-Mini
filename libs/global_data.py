@@ -14,6 +14,7 @@ class PlayerNum(IntEnum):
     P2 = 2
     TWO_PLAYER = 3
     DAN = 4
+    AI = 5
 
 class ScoreMethod():
     GEN3 = "gen3"
