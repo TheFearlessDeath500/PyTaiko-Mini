@@ -47,18 +47,30 @@ Just make sure to use `/` and not `\`!<br>
 Q: I'm trying to play on Mac and it can't open!<br>
 A: Delete your installation and follow these commands in the terminal:<br>
 ```
-/bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
-curl -LsSf https://astral.sh/uv/install.sh | sh
-source $HOME/.local/bin/env
+# Move to the place where you want to download Pytaiko, this example will be in the desktop
+# Make sure the directory is not saved in iCloud! This will create an issue on macOS where the executable cannot compile.
+cd ~/Desktop
+
+# Installing dependencies
+brew install python@3.12 uv git speexdsp libsndfile
+
+# Downloading Pytaiko project
 git clone https://github.com/Yonokid/PyTaiko
 cd PyTaiko
-brew install libsndfile
-brew install speexdsp
+
+# Compiling audio libraries
 cd libs/audio
 make
-mv libaudio.dylib ../../
-cd ../../
+mv libaudio.dylib ...
+cd ...
+
+# Running game (for testing)
 uv run PyTaiko.py
+
+# Creating executable
+
+uv add nuitka
+uv run nuitka --mode=app --noinclude-setuptools-mode=nofollow --noinclude-IPython-mode=nofollow --assume-yes-for-downloads PyTaiko.py
 ```
 ## Installation
 
@@ -71,7 +83,7 @@ Download the latest release for your operating system from the [releases page](h
 2. Run `PyTaiko.exe`
 
 #### macOS
-- Run with Python directly (see [Building from Source](#building-from-source))
+- Run with Python directly or self compile (see [Building from Source](#building-from-source))
 
 #### Linux
 - Try running the compiled `PyTaiko.bin` binary
