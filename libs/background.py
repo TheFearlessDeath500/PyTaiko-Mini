@@ -130,10 +130,17 @@ class Background:
                 current_milestone = min(self.max_dancers - 1, int(gauge_1p.gauge_length / (clear_threshold / self.max_dancers)))
             else:
                 current_milestone = self.max_dancers
+
             if current_milestone > self.last_milestone and current_milestone <= self.max_dancers:
                 self.dancer.add_dancer()
                 self.last_milestone = current_milestone
                 logger.info(f"Dancer milestone reached: {current_milestone}/{self.max_dancers}")
+            elif current_milestone < self.last_milestone:
+                dancers_to_remove = self.last_milestone - current_milestone
+                for _ in range(dancers_to_remove):
+                    self.dancer.remove_dancer()
+                self.last_milestone = current_milestone
+                logger.info(f"Dancer milestones lost: {current_milestone}/{self.max_dancers} (removed {dancers_to_remove})")
         if self.bg_fever is not None and gauge_1p is not None:
             if not self.is_clear and gauge_1p.is_clear:
                 self.bg_fever.start()

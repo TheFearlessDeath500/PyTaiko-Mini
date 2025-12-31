@@ -162,6 +162,12 @@ class BaseDancerGroup():
             dancer.start()
             self.active_count += 1
 
+    def remove_dancer(self):
+        if self.active_count > 1:
+            self.active_count -= 1
+            position = self.spawn_positions[self.active_count]
+            self.active_dancers[position] = None
+
     def update(self, current_time_ms: float, bpm: float):
         for dancer in self.dancers:
             dancer.update(current_time_ms, bpm)
