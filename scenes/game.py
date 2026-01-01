@@ -2,6 +2,7 @@ import bisect
 import logging
 import math
 import sqlite3
+import time
 from collections import deque
 from enum import IntEnum
 from itertools import chain
@@ -77,6 +78,7 @@ class GameScreen(Screen):
         self.paused = False
         self.pause_time = 0
         self.audio_time = 0
+        self.last_resync = 0
         self.movie = None
         self.song_music = None
         if global_data.config["general"]["nijiiro_notes"]:
@@ -153,6 +155,7 @@ class GameScreen(Screen):
 
         self.player_1 = Player(self.tja, global_data.player_num, global_data.session_data[global_data.player_num].selected_difficulty, False, global_data.modifiers[global_data.player_num])
         self.start_ms = get_current_ms() - self.tja.metadata.offset*1000
+        self.precise_start = time.time() - self.tja.metadata.offset
 
     def write_score(self):
         """Write the score to the database"""
@@ -249,6 +252,20 @@ class GameScreen(Screen):
             if self.background is not None:
                 self.background.update(current_time, self.bpm, self.player_1.gauge, None)
 
+    def update_audio(self, ms_from_start: float):
+        if not self.song_started:
+            return
+        if self.song_music is not None:
+            audio.update_music_stream(self.song_music)
+            '''
+            raw_audio_time = audio.get_music_time_played(self.song_music)
+            current_time = time.time() - self.precise_start
+            if abs(raw_audio_time - current_time) >= 0.006 and current_time > self.last_resync + 1000:
+                audio.seek_music_stream(self.song_music, current_time)
+                logger.info(f"Resyncing due to difference: {raw_audio_time} - {current_time} = {raw_audio_time - current_time}")
+                self.last_resync = current_time
+            '''
+
     def update(self):
         super().update()
         current_time = get_current_ms()
@@ -261,8 +278,7 @@ class GameScreen(Screen):
             self.start_ms = current_time - self.tja.metadata.offset*1000
         self.update_background(current_time)
 
-        if self.song_music is not None:
-            audio.update_music_stream(self.song_music)
+        self.update_audio(self.current_ms)
 
         self.player_1.update(self.current_ms, current_time, self.background)
         self.song_info.update(current_time)

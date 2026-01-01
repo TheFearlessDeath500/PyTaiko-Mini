@@ -265,7 +265,7 @@ def check_args():
             selected_difficulty = args.difficulty
         else:
             selected_difficulty = max(tja.metadata.course_data.keys())
-        current_screen = Screens.GAME_PRACTICE if args.practice else Screens.GAME
+        current_screen = Screens.GAME_PRACTICE if args.practice else Screens.AI_GAME
         global_data.session_data[PlayerNum.P1].selected_song = path
         global_data.session_data[PlayerNum.P1].selected_difficulty = selected_difficulty
         global_data.modifiers[PlayerNum.P1].auto = args.auto
@@ -392,10 +392,13 @@ def main():
     logger.info("Cursor hidden")
     last_fps = 1
     last_color = pyray.BLACK
+    last_discord_check = 0
 
     while not ray.WindowShouldClose():
-        if discord_connected:
+        current_time = get_current_ms()
+        if discord_connected and current_time > last_discord_check + 1000:
             check_discord_heartbeat(current_screen)
+            last_discord_check = current_time
 
         if ray.IsKeyPressed(global_data.config["keys"]["fullscreen_key"]):
             ray.ToggleFullscreen()

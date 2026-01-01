@@ -1,6 +1,8 @@
 import copy
 import logging
 import random
+import time
+from enum import Enum
 from pathlib import Path
 from typing import Optional
 
@@ -26,12 +28,23 @@ from scenes.game import (
 
 logger = logging.getLogger(__name__)
 
+class AIDifficulty(Enum):
+    LVL_1 = (0.90, 0.10)
+    LVL_2 = (0.92, 0.08)
+    LVL_3 = (0.94, 0.06)
+    LVL_4 = (0.96, 0.04)
+    LVL_5 = (0.98, 0.02)
+
+    def __iter__(self):
+        return iter(self.value)
+
 class AIBattleGameScreen(GameScreen):
     def on_screen_start(self):
         super().on_screen_start()
         session_data = global_data.session_data[global_data.player_num]
         self.song_info = SongInfoAI(session_data.song_title, session_data.genre_index)
         self.background = AIBackground(session_data.selected_difficulty)
+        self.section_board = SectionBoard()
 
     def global_keys(self):
         if ray.is_key_pressed(global_data.config["keys"]["restart_key"]):
@@ -89,28 +102,35 @@ class AIBattleGameScreen(GameScreen):
         """Initialize the TJA file"""
         self.tja = TJAParser(song, start_delay=self.start_delay)
         self.movie = None
-        global_data.session_data[global_data.player_num].song_title = self.tja.metadata.title.get(global_data.config['general']['language'].lower(), self.tja.metadata.title['en'])
+        session_data = global_data.session_data[global_data.player_num]
+        session_data.song_title = self.tja.metadata.title.get(global_data.config['general']['language'].lower(), self.tja.metadata.title['en'])
         if self.tja.metadata.wave.exists() and self.tja.metadata.wave.is_file() and self.song_music is None:
             self.song_music = audio.load_music_stream(self.tja.metadata.wave, 'song')
 
         tja_copy = copy.deepcopy(self.tja)
-        self.player_1 = PlayerNoChara(self.tja, global_data.player_num, global_data.session_data[global_data.player_num].selected_difficulty, False, global_data.modifiers[global_data.player_num])
+        self.player_1 = PlayerNoChara(self.tja, global_data.player_num, session_data.selected_difficulty, False, global_data.modifiers[global_data.player_num])
         self.player_1.gauge = AIGauge(self.player_1.player_num, self.player_1.difficulty, self.tja.metadata.course_data[self.player_1.difficulty].level, self.player_1.total_notes, self.player_1.is_2p)
         ai_modifiers = copy.deepcopy(global_data.modifiers[global_data.player_num])
         ai_modifiers.auto = True
-        self.player_2 = AIPlayer(tja_copy, PlayerNum.AI, global_data.session_data[global_data.player_num].selected_difficulty, True, ai_modifiers)
+        self.player_2 = AIPlayer(tja_copy, PlayerNum.AI, session_data.selected_difficulty, True, ai_modifiers, AIDifficulty.LVL_2)
         self.start_ms = (get_current_ms() - self.tja.metadata.offset*1000)
+        self.precise_start = time.time() - self.tja.metadata.offset
         self.total_notes = len(self.player_1.don_notes) + len(self.player_1.kat_notes)
         logger.info(f"TJA initialized for two-player song: {song}")
 
     def update_scoreboards(self):
-        section_notes = self.total_notes // 5
+        section_notes = (self.total_notes // 5) if self.section_board.num < 3 else (self.total_notes // 5) + (self.total_notes % 5) - 1
         if self.player_1.good_count + self.player_1.ok_count + self.player_1.bad_count == section_notes:
             self.player_2.good_percentage = self.player_1.good_count / section_notes
             self.player_2.ok_percentage = self.player_1.ok_count / section_notes
             logger.info(f"AI Good Percentage: {self.player_2.good_percentage}, AI OK Percentage: {self.player_2.ok_percentage}")
             self.player_1.good_count, self.player_1.ok_count, self.player_1.bad_count = 0, 0, 0
             self.player_2.good_count, self.player_2.ok_count, self.player_2.bad_count = 0, 0, 0
+            if self.background.contest_point >= 10:
+                self.section_board.wins[self.section_board.num] = True
+            else:
+                self.section_board.wins[self.section_board.num] = False
+            self.section_board.num += 1
 
     def update(self):
         super(GameScreen, self).update()
@@ -123,12 +143,12 @@ class AIBattleGameScreen(GameScreen):
             self.start_ms = current_time - self.tja.metadata.offset*1000
         self.update_background(current_time)
 
-        if self.song_music is not None:
-            audio.update_music_stream(self.song_music)
+        self.update_audio(self.current_ms)
 
         self.player_1.update(self.current_ms, current_time, None)
         self.player_2.update(self.current_ms, current_time, None)
         self.update_scoreboards()
+        self.section_board.update(current_time, self.player_1.good_count + self.player_1.ok_count + self.player_1.bad_count, self.total_notes)
 
         self.song_info.update(current_time)
         self.result_transition.update(current_time)
@@ -142,6 +162,8 @@ class AIBattleGameScreen(GameScreen):
                 if current_time >= self.end_ms + 1000:
                     if self.player_1.ending_anim is None:
                         self.spawn_ending_anims()
+                        if self.player_1.modifiers.subdiff in [0, 1, 2, 3, 4, 5, 9, 13]:
+                            self.write_score()
                 if current_time >= self.end_ms + 8533.34:
                     if not self.result_transition.is_started:
                         self.result_transition.start()
@@ -161,9 +183,53 @@ class AIBattleGameScreen(GameScreen):
             self.movie.draw()
         elif self.background is not None:
             self.background.draw(self.player_1.chara, self.player_2.chara)
+        self.section_board.draw()
         self.player_1.draw(self.current_ms, self.start_ms, self.mask_shader)
         self.player_2.draw(self.current_ms, self.start_ms, self.mask_shader)
         self.draw_overlay()
+
+class SectionBoard:
+    def __init__(self):
+        self.num = 0
+        self.wins: list[Optional[bool]] = [None] * 5
+        self.current_progress = 0
+        self.progress_bar_flash = Animation.create_fade(133, loop=True, reverse_delay=0)
+        self.section_highlight_flash = Animation.create_fade(350, loop=True, reverse_delay=0)
+        self.section_highlight_flash.start()
+        self.progress_bar_flash.start()
+
+    def update(self, current_time, player_notes, total_notes):
+        self.current_progress = player_notes / (total_notes // 5) if self.num < 3 else player_notes / ((total_notes // 5) + (total_notes % 5))
+        self.progress_bar_flash.update(current_time)
+        self.section_highlight_flash.update(current_time)
+
+    def draw(self):
+        if self.current_progress < 0.75:
+            color = ray.GREEN
+            fade = 1.0
+        else:
+            color = ray.YELLOW
+            fade = self.progress_bar_flash.attribute
+        ray.draw_rectangle(int(177 * tex.screen_scale), int(160 * tex.screen_scale), int(148 * tex.screen_scale), int(20 * tex.screen_scale), ray.GRAY)
+        ray.draw_rectangle(int(177 * tex.screen_scale), int(160 * tex.screen_scale), int(self.current_progress * (148 * tex.screen_scale)), int(20 * tex.screen_scale), ray.fade(color, fade))
+        tex.draw_texture('ai_battle', 'progress_bar')
+        if self.num < len(self.wins):
+            tex.draw_texture('ai_battle', 'section_text', index=0, frame=self.num)
+        if self.num < len(self.wins) - 1:
+            tex.draw_texture('ai_battle', 'section_text', index=1, frame=self.num+1)
+
+        tex.draw_texture('ai_battle', 'sections')
+        if self.num < len(self.wins):
+            tex.draw_texture('ai_battle', 'section_highlight_green', index=self.num)
+            tex.draw_texture('ai_battle', 'section_highlight_white', index=self.num, fade=self.section_highlight_flash.attribute)
+
+        for i in range(len(self.wins)):
+            if self.wins[i] is not None:
+                if self.wins[i]:
+                    tex.draw_texture('ai_battle', 'section_win', index=i)
+                else:
+                    tex.draw_texture('ai_battle', 'section_lose', index=i)
+
 
 class PlayerNoChara(Player):
     def __init__(self, tja: TJAParser, player_num: PlayerNum, difficulty: int, is_2p: bool, modifiers: Modifiers):
@@ -216,7 +282,7 @@ class PlayerNoChara(Player):
             margin = tex.textures["ai_battle"]["scoreboard_num"].width//2
             total_width = len(str(counter)) * margin
             for i, digit in enumerate(str(counter)):
-                tex.draw_texture('ai_battle', 'scoreboard_num', frame=int(digit), x=-(total_width // 2) + (i * margin), y=-self.stretch_animation[j].attribute, y2=self.stretch_animation[j].attribute, index=j, controllable=True)
+                tex.draw_texture('ai_battle', 'scoreboard_num', frame=int(digit), x=-(total_width // 2) + (i * margin), y=-self.stretch_animation[j].attribute, y2=self.stretch_animation[j].attribute, index=j)
 
         # Group 8: Special animations and counters
         if self.drumroll_counter is not None:
@@ -231,7 +297,7 @@ class PlayerNoChara(Player):
 
 
 class AIPlayer(Player):
-    def __init__(self, tja: TJAParser, player_num: PlayerNum, difficulty: int, is_2p: bool, modifiers: Modifiers):
+    def __init__(self, tja: TJAParser, player_num: PlayerNum, difficulty: int, is_2p: bool, modifiers: Modifiers, ai_difficulty: AIDifficulty):
         super().__init__(tja, player_num, difficulty, is_2p, modifiers)
         self.stretch_animation = [tex.get_animation(5, is_copy=True) for _ in range(4)]
         self.chara = Chara2D(player_num - 1, self.bpm)
@@ -240,8 +306,7 @@ class AIPlayer(Player):
         self.gauge_hit_effect = []
         plate_info = global_data.config[f'nameplate_{self.is_2p+1}p']
         self.nameplate = Nameplate(plate_info['name'], plate_info['title'], PlayerNum.AI, plate_info['dan'], plate_info['gold'], plate_info['rainbow'], plate_info['title_bg'])
-        self.good_percentage = 0.90
-        self.ok_percentage = 0.07
+        self.good_percentage, self.ok_percentage = ai_difficulty
 
     def update(self, ms_from_start: float, current_time: float, background: Optional[Background]):
         good_count, ok_count, bad_count, total_drumroll = self.good_count, self.ok_count, self.bad_count, self.total_drumroll
@@ -344,7 +409,7 @@ class AIPlayer(Player):
             margin = tex.textures["ai_battle"]["scoreboard_num"].width//2
             total_width = len(str(counter)) * margin
             for i, digit in enumerate(str(counter)):
-                tex.draw_texture('ai_battle', 'scoreboard_num', frame=int(digit), x=-(total_width // 2) + (i * margin), y=-self.stretch_animation[j].attribute, y2=self.stretch_animation[j].attribute, index=j+4, controllable=True)
+                tex.draw_texture('ai_battle', 'scoreboard_num', frame=int(digit), x=-(total_width // 2) + (i * margin), y=-self.stretch_animation[j].attribute, y2=self.stretch_animation[j].attribute, index=j+4)
 
         # Group 8: Special animations and counters
         if self.drumroll_counter is not None:
@@ -423,10 +488,13 @@ class AIBackground:
         ]
 
         self.contest_point_fade = Animation.create_fade(166, initial_opacity=0.0, final_opacity=1.0, reverse_delay=166, delay=166, loop=True)
+        self.triangles_down = Animation.create_move(8500, total_distance=1152, loop=True)
         self.contest_point_fade.start()
+        self.triangles_down.start()
 
     def update(self, current_ms: float):
         self.contest_point_fade.update(current_ms)
+        self.triangles_down.update(current_ms)
 
     def update_values(self, player_judge: tuple[int, int], ai_judge: tuple[int, int]):
         player_total = (player_judge[0] * self.multipliers[self.difficulty][0]) + (player_judge[1] * self.multipliers[self.difficulty][1])
@@ -444,6 +512,9 @@ class AIBackground:
             tex.draw_texture('ai_battle', 'red_tile_lower', frame=i, x=(i*tile_width))
         for i in range(self.total_tiles - self.contest_point):
             tex.draw_texture('ai_battle', 'blue_tile_lower', frame=i, x=(((self.total_tiles - 1) - i)*tile_width))
+
+        tex.draw_texture('ai_battle', 'lower_triangles_1', y=self.triangles_down.attribute, fade=0.5)
+        tex.draw_texture('ai_battle', 'lower_triangles_2', y=self.triangles_down.attribute, fade=0.5)
         tex.draw_texture('ai_battle', 'highlight_tile_lower', x=self.contest_point * tile_width, fade=self.contest_point_fade.attribute)
 
     def draw_upper(self, chara_1: Chara2D, chara_2: Chara2D):
