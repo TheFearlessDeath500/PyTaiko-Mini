@@ -242,7 +242,7 @@ def init_audio():
 
 def check_args():
     if len(sys.argv) == 1:
-        return Screens.SETTINGS
+        return Screens.LOADING
 
     parser = argparse.ArgumentParser(description='Launch game with specified song file')
     parser.add_argument('song_path', type=str, help='Path to the TJA song file')
