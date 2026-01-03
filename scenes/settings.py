@@ -163,13 +163,13 @@ class StrOptionBox(BaseOptionBox):
         if self.value_list:
             self.value_index = max(self.value_index - 1, 0)
             self.value = self.value_list[self.value_index]
-            self.value_text = OutlinedText(self.values[self.value][global_data.config["general"]["language"]], int(30 * tex.screen_scale), ray.WHITE)
+            self.value_text = OutlinedText(self.values[self.value].get(global_data.config["general"]["language"], self.values[self.value]["en"]), int(30 * tex.screen_scale), ray.WHITE)
 
     def move_right(self):
         if self.value_list:
             self.value_index = min(self.value_index + 1, len(self.value_list) - 1)
             self.value = self.value_list[self.value_index]
-            self.value_text = OutlinedText(self.values[self.value][global_data.config["general"]["language"]], int(30 * tex.screen_scale), ray.WHITE)
+            self.value_text = OutlinedText(self.values[self.value].get(global_data.config["general"]["language"], self.values[self.value]["en"]), int(30 * tex.screen_scale), ray.WHITE)
 
     def draw(self):
         super().draw()
