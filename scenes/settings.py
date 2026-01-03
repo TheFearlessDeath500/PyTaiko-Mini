@@ -6,7 +6,7 @@ import pyray as ray
 from libs.animation import Animation
 from libs.audio import audio
 from libs.config import get_key_string, save_config
-from libs.global_objects import Indicator
+from libs.global_objects import AllNetIcon, CoinOverlay, Indicator
 from libs.screen import Screen
 from libs.texture import tex
 from libs.utils import (
@@ -457,6 +457,8 @@ class SettingsScreen(Screen):
         self.indicator = Indicator(Indicator.State.SELECT)
         self.template = json.loads((tex.graphics_path / "settings_template.json").read_text(encoding='utf-8'))
         self.box_manager = BoxManager(self.template)
+        self.coin_overlay = CoinOverlay()
+        self.allnet_indicator = AllNetIcon()
         audio.play_sound('bgm', 'music')
 
     def on_screen_end(self, next_screen: str):
@@ -496,3 +498,5 @@ class SettingsScreen(Screen):
         self.box_manager.draw()
         tex.draw_texture('background', 'footer')
         self.indicator.draw(tex.skin_config['song_select_indicator'].x, tex.skin_config['song_select_indicator'].y)
+        self.coin_overlay.draw()
+        self.allnet_indicator.draw()
