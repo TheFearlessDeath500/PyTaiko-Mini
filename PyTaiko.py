@@ -242,7 +242,7 @@ def init_audio():
 
 def check_args():
     if len(sys.argv) == 1:
-        return Screens.LOADING
+        return Screens.SETTINGS
 
     parser = argparse.ArgumentParser(description='Launch game with specified song file')
     parser.add_argument('song_path', type=str, help='Path to the TJA song file')
@@ -265,7 +265,7 @@ def check_args():
             selected_difficulty = args.difficulty
         else:
             selected_difficulty = max(tja.metadata.course_data.keys())
-        current_screen = Screens.GAME_PRACTICE if args.practice else Screens.AI_GAME
+        current_screen = Screens.GAME_PRACTICE if args.practice else Screens.GAME
         global_data.session_data[PlayerNum.P1].selected_song = path
         global_data.session_data[PlayerNum.P1].selected_difficulty = selected_difficulty
         global_data.modifiers[PlayerNum.P1].auto = args.auto
